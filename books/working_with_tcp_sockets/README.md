@@ -45,3 +45,10 @@ bindは普通しないらしい
 
 ### Sockets Can Read
 
+### Sockets can Write
+
+一気にたくさん書くのがいいか，分けて細かく書くのがいいか
+ー＞バッファを使ってkernelがいい感じにやってくれる
+
+
+
