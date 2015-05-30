@@ -52,4 +52,7 @@ bindは普通しないらしい
 
 ### Our First Client/Server
 
+### Non-blocking IO
+
+selectはsocketが読み込み可能になるまで待つのでretryはデータが読み込み可能になった時のみ動く
 
