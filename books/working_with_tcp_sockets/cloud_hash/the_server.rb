@@ -2,6 +2,8 @@ require 'socket'
 
 module CloudHash
   class Server
+    SIZE_OF_INT = [11].pack('i').size
+
     def initialize(port)
       @server = TCPServer.new(port)
       puts "Listening on port #{@server.local_address.ip_port}"
@@ -16,11 +18,10 @@ module CloudHash
     end
 
     def handle(connection)
-      loop do
-        request = connection.gets
-        break if request == 'exit'
-        connection.puts process(request)
-      end
+      packed_msg_length = connection.read(SIZE_OF_INT)
+      msg_length = packed_msg_length.unpack('i').first
+      request = connection.read(msg_length)
+      connection.write process(request)
     end
 
     def process(request)
