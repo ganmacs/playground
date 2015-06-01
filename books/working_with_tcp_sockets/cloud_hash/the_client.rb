@@ -2,31 +2,29 @@ require 'socket'
 
 module CloudHash
   class Client
-    class << self
-      attr_accessor :host, :port
+    attr_accessor :host, :port
 
-      def get(key)
-        request "GET #{key}"
-      end
+    def initialize(host, port)
+      @connection = TCPSocket.new(host, port)
+    end
 
-      def set(key, value)
-        request "SET #{key} #{value}"
-      end
+    def get(key)
+      request "GET #{key}"
+    end
 
-      def request(string)
-        @client = TCPSocket.new(host, port)
-        @client.write(string)
-        @client.close_write
-        @client.read
-      end
+    def set(key, value)
+      request "SET #{key} #{value}"
+    end
+
+    def request(string)
+      @connection.puts(string)
+      @connection.gets
     end
   end
 end
 
+cloud_hash = CloudHash::Client.new('localhost', 4481)
 
-CloudHash::Client.host = 'localhost'
-CloudHash::Client.port = 4481
-
-puts CloudHash::Client.set 'prez', 'obama'
-puts CloudHash::Client.get 'prez'
-puts CloudHash::Client.get 'vp'
+puts cloud_hash.set 'prez', 'obama'
+puts cloud_hash.get 'prez'
+puts cloud_hash.get 'vp'

@@ -16,8 +16,11 @@ module CloudHash
     end
 
     def handle(connection)
-      request = connection.read
-      connection.write process(request)
+      loop do
+        request = connection.gets
+        break if request == 'exit'
+        connection.puts process(request)
+      end
     end
 
     def process(request)
