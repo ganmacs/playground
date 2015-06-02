@@ -1,5 +1,7 @@
 # Reading "Working with TCP Sockets"
 
+https://pragprog.com/book/jstcp/working-with-tcp-sockets
+
 ### server lifecycle
 
 socketのportとip addressはユニークである
