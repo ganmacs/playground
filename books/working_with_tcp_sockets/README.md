@@ -77,4 +77,7 @@ content lengthをきめる決めてそれを最初に送って受信者はそれ
 
 ### Timeouts
 
+### DNS Lookups
+
+### SSL Sockets
 
