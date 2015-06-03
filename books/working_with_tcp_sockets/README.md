@@ -81,3 +81,8 @@ content lengthをきめる決めてそれを最初に送って受信者はそれ
 
 ### SSL Sockets
 
+### Urgent Data
+
+Urgent dataは一番最初に送ることができる
+帯域外として？
+
