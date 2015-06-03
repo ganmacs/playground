@@ -174,3 +174,9 @@ _pros_
 _cons_
 
 メモリ
+
+### Thread Pool
+
+Preforkingのthread版
+サーバ起動時にたくさんのスレッドを作っておく
+
