@@ -192,3 +192,26 @@ Preforkingのthread版
 * 大量のconnectionをさばける
 * ブロックしたら死ぬ
 
+### Hybrids
+
+##### nginx
+
+Preforking して forkしたprocessそれぞれがeventedパターンを使っている
+
+##### Puma
+
+並列性のためにThread Pool  
+
+リクエストの処理はthead pool の中で行って，接続の監視はeventedでおこなう
+
+##### EventMachine
+
+eventedパターンで並列の接続を実現している．reactorが遅くなりそうな(ブロックとか長い実行時間もの)はthread Poolを使っている
+
+
+
+
+
+
+
+
