@@ -21,7 +21,9 @@ class Person
   end
 end
 
-pp Person._create_callbacks?
+# pp Person._create_callbacks?
+Person.new.create
+
 # Person.new.create
 
 # class A
