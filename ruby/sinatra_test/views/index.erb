@@ -1,0 +1,13 @@
+<table>
+  <tr>
+    <th>レポジトリ名</th>
+    <th>ip</th>
+  </tr>
+
+  <% @users.each do |user| %>
+    <tr>
+      <td><%= user.ip %></td>
+      <td><%= user.repo %></td>
+    </tr>
+  <% end %>
+</table>
