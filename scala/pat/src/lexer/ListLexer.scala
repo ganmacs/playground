@@ -27,10 +27,7 @@ class ListLexer(input: String) extends Lexer(input) {
   def nextToken: Token = {
     while ( c != Lexer.EOF ) {
       c match {
-        case '\t' => ws
-        case '\n' => ws
-        case '\r' => ws
-        case ' ' => ws
+        case '\t' | '\n' | '\r' | ' ' => ws
         case ',' => {
           consume
           return Token(ListLexer.COMMA, ",")
