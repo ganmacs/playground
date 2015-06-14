@@ -1,14 +1,17 @@
 package lexer
 
-abstract class Lexer(val input: String) {
+object Lexer {
   val EOF_TYPE = 1
   val EOF = -1.toChar
+}
+
+abstract class Lexer(val input: String) {
   var p = 0
   var c = input.charAt(p)
 
   def consume: Unit = {
     p += 1
-    c = if (p >= input.length) EOF else input.charAt(p)
+    c = if (p >= input.length) Lexer.EOF else input.charAt(p)
   }
 
   // match
