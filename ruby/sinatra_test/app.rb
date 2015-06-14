@@ -13,6 +13,7 @@ class App < Sinatra::Base
   end
 
   get '/create' do
+    p YAML.load_file('src/users.data.yml')
 
     erb :create
   end
@@ -21,10 +22,15 @@ class App < Sinatra::Base
     @repo = @params['repo']
     @user = users.find { |e| e.repo == @repo }
 
+    unless @user
+      user = Models::User.new(repo: @repo, ip: '')
+      user.save
+    end
+
     erb :new
   end
 
   def users
-    @users ||= Utils::Loader.new(:User, 'users.data')
+    @users ||= Utils::Loader.new(:User, 'src/users.data.yml')
   end
 end
