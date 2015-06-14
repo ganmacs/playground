@@ -1,15 +1,15 @@
 object Case {
   def main(args: Array[String]) {
-    val u = new User("ganmacs")
+    val u = new User("ganmacs", 1)
     u match {
-      case User(user) => println(user)
+      case User(name, id) => println(name + " " + id)
       case _ => println("nothing")
     }
   }
-}
 
-class User(private val name: String)
+  class User(private val name: String, private val id: Int)
 
-object User {
-  def unapply(u :User) = Option("hoge")
+  object User {
+    def unapply(u: User) = Option((u.name, u.id))
+  }
 }
