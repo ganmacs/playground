@@ -1,0 +1,15 @@
+#!/usr/bin/env ruby
+$LOAD_PATH.unshift(File.expand_path('../lib', __FILE__))
+require 'plug'
+
+# plugin
+$LOAD_PATH.unshift(File.expand_path('../plugins', __FILE__))
+require 'other_plugin'
+
+resouces = [
+  :file,
+  :directory,
+  :rbenv
+]
+
+puts Plug::Runner.new(resouces).call
