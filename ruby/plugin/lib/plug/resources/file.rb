@@ -1,8 +1,10 @@
+require 'plug/resources/base'
+
 module Plug
   module Resources
-    class Rbenv < Base
+    class File < Base
       def call
-        'rbevn'
+        'file'
       end
     end
   end

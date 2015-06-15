@@ -1,8 +1,8 @@
 module Plug
   module Resources
-    class Rbenv < Base
+    class Base
       def call
-        'rbevn'
+        raise NotImplementedError
       end
     end
   end

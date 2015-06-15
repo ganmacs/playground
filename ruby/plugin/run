@@ -9,7 +9,8 @@ require 'other_plugin'
 resouces = [
   :file,
   :directory,
-  :rbenv
+  :rbenv,
+  :unknow                       # not raise error
 ]
 
 puts Plug::Runner.new(resouces).call
