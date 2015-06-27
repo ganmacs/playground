@@ -28,6 +28,13 @@ defmodule Foo.DecoderTest do
     assert decode(person, as: [Person]) == ["Devin Torres (27)"]
   end
 
+  test "decoding nested :as with string keys" do
+    person = %{"person" => %{"name" => "Devin Torres", "age" => 27}}
+    actual = decode(person, as: %{"person" => Person})
+    expected = %{"person" => "Devin Torres (27)"}
+    assert actual == expected
+  end
+
   test "decoding into structs with default values" do
     person = %{"name" => "Devin Torres"}
     assert decode(person, as: Person) == "Devin Torres (20)"
