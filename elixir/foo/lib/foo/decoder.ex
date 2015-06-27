@@ -7,11 +7,25 @@ defmodule Foo.Decode do
   end
 
   def transform(value, as, options) when is_atom(as) do
-    Foo.Decoder.decode(struct(as, value), options)
+    transform_struct(value, as, options[:keys], options)
   end
 
   def transform(value, as, options) when is_list(as) do
     true
+  end
+
+  def transform_struct(value, as, keys, options) when keys == :atoms do
+    Foo.Decoder.decode(struct(as, value), options)
+  end
+
+  def transform_struct(value, as, _keys, options) do
+    struct = as.__struct__
+
+    Map.from_struct(struct)
+    |> Enum.into(%{}, fn {key, default} ->
+      {key, Map.get(value, Atom.to_string(key), default)} end)
+    |> Map.put(:__struct__, struct.__struct__) # create struct, struct is just bare maps underneath
+    |> Foo.Decoder.decode(options)
   end
 end
 
