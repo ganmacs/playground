@@ -7,14 +7,13 @@ defmodule Foo.Decode do
   end
 
   def transform(value, as, options) when is_atom(as) do
-    true
+    Foo.Decoder.decode(struct(as, value), options)
   end
 
   def transform(value, as, options) when is_list(as) do
     true
   end
 end
-
 
 defprotocol Foo.Decoder do
   @fallback_to_any true
@@ -23,7 +22,7 @@ defprotocol Foo.Decoder do
 end
 
 defimpl Foo.Decoder, for: Any do
-  def decode(value) do
+  def decode(value, option) do
     value
   end
 end

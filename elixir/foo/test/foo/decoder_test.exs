@@ -7,6 +7,12 @@ defmodule Foo.DecoderTest do
     defstruct name: '', age: 20
   end
 
+  defimpl Foo.Decoder, for: Person do
+    def decode(person, _option) do
+      "#{person.name} (#{person.age})"
+    end
+  end
+
   test "decoding single :as with atom keys" do
     person = %{name: "Devin Torres", age: 27}
     assert decode(person, as: Person) == "Devin Torres (27)"
