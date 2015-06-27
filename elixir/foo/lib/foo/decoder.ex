@@ -11,13 +11,17 @@ defmodule Foo.Decode do
   end
 
   def transform(value, [as], options) do
-    for v <- value, do: transform(v, as, options)
+    transform_list(value, as, options)
   end
 
   def transform(value, as, options) do
     value
   end
 
+
+  def transform_list(value, as, options) do
+    for v <- value, do: transform(v, as, options)
+  end
   def transform_struct(value, as, keys, options) when keys == :atoms do
     Foo.Decoder.decode(struct(as, value), options)
   end
