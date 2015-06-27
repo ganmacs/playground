@@ -23,4 +23,8 @@ defimpl Foo.Encoder, for: Atom do
       # [?", escape(string, options[:escape]), ?"]
     end
   end
+
+  defimpl Foo.Encoder, for: Integer do
+    def encode(integer, _options), do: Integer.to_string(integer)
+  end
 end

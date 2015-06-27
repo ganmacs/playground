@@ -11,4 +11,8 @@ defmodule Foo.EncoderTest do
     assert to_json(false) == "false"
     # assert to_json(:poison) == ~s("poison")
   end
+
+  test "Integer" do
+    assert to_json(10) == "10"
+  end
 end
