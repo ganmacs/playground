@@ -28,4 +28,8 @@ defmodule Foo.DecoderTest do
     assert decode(person, as: [Person]) == ["Devin Torres (27)"]
   end
 
+  test "decoding into structs with default values" do
+    person = %{"name" => "Devin Torres"}
+    assert decode(person, as: Person) == "Devin Torres (20)"
+  end
 end
