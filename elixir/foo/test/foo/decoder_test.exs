@@ -22,4 +22,10 @@ defmodule Foo.DecoderTest do
     person = %{"name" => "Devin Torres", "age" => 27}
     assert decode(person, as: Person) == "Devin Torres (27)"
   end
+
+  test "decoding single :as list with string keys" do
+    person = [%{"name" => "Devin Torres", "age" => 27}]
+    assert decode(person, as: [Person]) == ["Devin Torres (27)"]
+  end
+
 end

@@ -10,8 +10,12 @@ defmodule Foo.Decode do
     transform_struct(value, as, options[:keys], options)
   end
 
-  def transform(value, as, options) when is_list(as) do
-    true
+  def transform(value, [as], options) do
+    for v <- value, do: transform(v, as, options)
+  end
+
+  def transform(value, as, options) do
+    value
   end
 
   def transform_struct(value, as, keys, options) when keys == :atoms do
