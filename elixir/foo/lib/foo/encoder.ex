@@ -27,6 +27,11 @@ defimpl Foo.Encoder, for: Atom do
   defimpl Foo.Encoder, for: Integer do
     def encode(integer, _options), do: Integer.to_string(integer)
   end
+
+  defimpl Foo.Encoder, for: Float do
+    def encode(float, _options), do: :io_lib_format.fwrite_g(float)
+  end
+
   defimpl Foo.Encoder, for: List do
     def encode([], options), do: "[]"
 

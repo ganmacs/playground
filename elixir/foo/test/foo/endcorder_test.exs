@@ -15,6 +15,12 @@ defmodule Foo.EncoderTest do
   test "Integer" do
     assert to_json(10) == "10"
   end
+
+  test "Float" do
+    assert to_json(999.9) == "999.9"
+    assert to_json(999.9999) == "999.9999"
+  end
+
   test "list" do
     assert to_json([]) == "[]"
     assert to_json([1, 2, 3]) == "[1, 2, 3]"
