@@ -6,23 +6,23 @@ defmodule Foo.Decode do
     end
   end
 
-  def transform(value, as, options) when is_atom(as) do
+  defp transform(value, as, options) when is_atom(as) do
     transform_struct(value, as, options[:keys], options)
   end
 
-  def transform(value, as, options) when is_map(as) do
+  defp transform(value, as, options) when is_map(as) do
     transform_map(value, as, options)
   end
 
-  def transform(value, [as], options) do
+  defp transform(value, [as], options) do
     transform_list(value, as, options)
   end
 
-  def transform(value, as, options) do
+  defp transform(value, as, options) do
     value
   end
 
-  def transform_map(value, as, options) do
+  defp transform_map(value, as, options) do
     Enum.reduce(as, value, fn {key, as}, acc ->
       case Map.get(acc, key) do
         nil -> acc
@@ -31,15 +31,15 @@ defmodule Foo.Decode do
     end)
   end
 
-  def transform_list(value, as, options) do
+  defp transform_list(value, as, options) do
     for v <- value, do: transform(v, as, options)
   end
 
-  def transform_struct(value, as, keys, options) when keys == :atoms do
+  defp transform_struct(value, as, keys, options) when keys == :atoms do
     Foo.Decoder.decode(struct(as, value), options)
   end
 
-  def transform_struct(value, as, _keys, options) do
+  defp transform_struct(value, as, _keys, options) do
     struct = as.__struct__
 
     Map.from_struct(struct)
