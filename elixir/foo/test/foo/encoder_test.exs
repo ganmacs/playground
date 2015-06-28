@@ -9,7 +9,13 @@ defmodule Foo.EncoderTest do
     assert to_json(nil) == "null"
     assert to_json(true) == "true"
     assert to_json(false) == "false"
-    # assert to_json(:poison) == ~s("poison")
+    assert to_json(:poison) == ~s("poison")
+  end
+
+  test "BitString" do
+    assert to_json("") == ~s("")
+    assert to_json("hello world") == ~s("hello world")
+    assert to_json("hello\nworld") == ~s("hello\\nworld")
   end
 
   test "Integer" do
