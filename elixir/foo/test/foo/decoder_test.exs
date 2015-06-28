@@ -23,7 +23,7 @@ defmodule Foo.DecoderTest do
     end
   end
 
-  test "decoding single :as with atom keys" do
+  test "decoding single :as with atom keys with other struct" do
     person = %{name: "Devin Torres", age: 27}
     b = %{person: person, group: 'b'}
     assert decode(b, keys: :atoms, as: B) == "Devin Torres (27)"
