@@ -31,10 +31,6 @@ defmodule Foo.Parser do
     Foo.Parser.Numbers.parse(string)
   end
 
-  def parse_array("]") do
-    []
-  end
-
   # def skip_whitespace(<<char>>), do: string
   # def skip_whitespace(string), do: string
 end

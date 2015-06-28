@@ -24,7 +24,8 @@ defmodule Foo.ParserTest do
     assert parse!("123456789.123456789e123") == 123456789.123456789e123
   end
 
-  test "List" do
+  test "Arrays" do
     assert parse!("[]") == []
+    assert parse!("[1,2,3]") == [1, 2, 3]
   end
 end
