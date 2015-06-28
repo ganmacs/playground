@@ -49,18 +49,16 @@ defmodule Foo.Parser.Numbers do
     end
   end
 
-
   def exp_continue(rest, acc) do
     {digits, rest} = digits(rest)
-    generate_number([acc, digits], true)
+    {generate_number([acc, digits], true), rest}
   end
-
 
   @doc """
   When not has exp
   """
   def exp(string, frac, acc) do
-    generate_number([acc], frac)
+    {generate_number([acc], frac), string}
   end
 
   @doc """

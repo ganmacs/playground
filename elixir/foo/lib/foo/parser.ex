@@ -17,8 +17,11 @@ defmodule Foo.Parser do
 
   def parse(iodata) do
     string = IO.iodata_to_binary(iodata)
-    a = do_parse(string)
-    {:ok, a}
+    {value, rest} = do_parse(string)
+    case rest do
+      "" -> {:ok, value}
+      _ -> {:error, "invalid"}
+    end
   end
 
   # def lookup("\"" <> rest), do: parse_string(rest)
