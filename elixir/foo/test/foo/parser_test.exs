@@ -24,8 +24,17 @@ defmodule Foo.ParserTest do
     assert parse!("123456789.123456789e123") == 123456789.123456789e123
   end
 
-  test "Arrays" do
+  test "String" do
     assert parse!("[]") == []
     assert parse!("[1,2,3]") == [1, 2, 3]
+  end
+
+  test "Arrays" do
+    assert parse!(~s("")) == ""
+    assert parse!(~s("foo")) == "foo"
+    assert parse!(~s("\\b\\f\\n\\r\\t")) == ~s(\b\f\n\r\t)
+    assert parse!(~s("\\b\\f\\n\\r\\tabc")) == ~s(\b\f\n\r\tabc)
+    assert parse!(~s("abc\\b\\f\\n\\r\\t")) == ~s(abc\b\f\n\r\t)
+    assert parse!(~s("最高")) == "最高"
   end
 end

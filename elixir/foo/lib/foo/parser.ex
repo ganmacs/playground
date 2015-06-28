@@ -24,8 +24,8 @@ defmodule Foo.Parser do
     end
   end
 
-  # def lookup("\"" <> rest), do: parse_string(rest)
-  # def lookup("{" <> rest), do: parse_map(rest)
+  # def do_parse("{" <> rest), do: parse_map(rest)
+  def do_parse("\"" <> rest), do: Foo.Parser.String.parse(rest, [])
   def do_parse("[" <> rest), do: Foo.Parser.Arrays.parse(rest, [])
   def do_parse(<<char, _ :: binary >> = string) when char in '-0123456789' do
     Foo.Parser.Numbers.parse(string)
