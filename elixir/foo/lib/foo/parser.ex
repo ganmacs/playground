@@ -48,16 +48,39 @@ defmodule Foo.Parser do
     number_int(string, [])
   end
 
-  def number_int(<<char, _>> = string, acc) when char in '123456789' do
+  def number_int(<<char, _ :: binary >> = string, acc) when char in '123456789' do
     {digit, rest} = number_digit(string)
-    generate_number([acc, digit], true)
+    number_frac(rest, [acc, digit])
   end
 
   def number_int(_, acc), do: raise(Foo.SyntaxError, message: "invalid number")
 
   def number_frac("." <> rest, acc) do
     {digit, rest} = number_digit(rest)
-    generate_number([acc, ?., digit], false)
+    number_exp(rest, true, [acc, ?., digit])
+  end
+
+  def number_frac(string, acc) do
+    number_exp(string, false, acc)
+  end
+
+  def number_exp(<<e>> <> rest, frac, acc) when e in 'eE' do
+    e = if frac, do: ?e, else: ".0e"
+
+    case rest do
+      "-" <> rest -> number_exp_continue(rest, [acc, e, ?-])
+      "+" <> rest -> number_exp_continue(rest, [acc, e])
+      rest -> number_exp_continue(rest, [acc, e])
+    end
+  end
+
+  def number_exp(string, frac, acc) do
+    generate_number([acc], frac)
+  end
+
+  def number_exp_continue(rest, acc) do
+    {digits, rest} = number_digit(rest)
+    generate_number([acc, digits], true)
   end
 
   def number_digit(<<char, rest :: binary>> = string) when char in '0123456789' do
@@ -72,11 +95,11 @@ defmodule Foo.Parser do
 
   def digit_size(_, acc), do: acc
 
-  def generate_number(iolist, true) do
+  def generate_number(iolist, false) do
     IO.iodata_to_binary(iolist) |> String.to_integer
   end
 
-  def generate_number(iolist, false) do
+  def generate_number(iolist, true) do
     IO.iodata_to_binary(iolist) |> String.to_float
   end
 
