@@ -11,7 +11,7 @@ defmodule Foo.Parser do
   def parse!(iodata) do
     case parse(iodata) do
       {:ok, value} -> value
-      {:error, message} -> raise SyntaxError, message: "invalid"
+      {:error, message} -> raise SyntaxError, message: "invalid #{message}"
     end
   end
 
@@ -26,8 +26,8 @@ defmodule Foo.Parser do
 
   # def lookup("\"" <> rest), do: parse_string(rest)
   # def lookup("{" <> rest), do: parse_map(rest)
-  def do_parse("[" <> rest), do: parse_array(rest)
-  def do_parse(<<char, rest :: binary >> = string) when char in '-0123456789' do
+  def do_parse("[" <> rest), do: Foo.Parser.Arrays.parse(rest, [])
+  def do_parse(<<char, _ :: binary >> = string) when char in '-0123456789' do
     Foo.Parser.Numbers.parse(string)
   end
 
