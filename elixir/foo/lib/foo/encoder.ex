@@ -80,3 +80,14 @@ defimpl Foo.Encoder, for: List do
     [?[, Enum.map_join(list, ", ", &Foo.Encoder.encode(&1, options)), ?]]
   end
 end
+
+defimpl Foo.Encoder, for: Map do
+  def encode(map, _) when map_size(map) == 0, do: "{}"
+
+  def encode(map, options) do
+    value = Enum.map(map, fn {key, value} ->
+      [Foo.Encoder.encode(key, options), ?:, Foo.Encoder.encode(value, options)]
+    end)
+    [?{, value, ?}]
+  end
+end

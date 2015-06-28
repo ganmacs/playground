@@ -32,4 +32,10 @@ defmodule Foo.EncoderTest do
     assert to_json([1, 2, 3]) == "[1, 2, 3]"
     assert to_json([[1, 2, 3], 2, 3]) == "[[1, 2, 3], 2, 3]"
   end
+
+  test "Map" do
+    assert to_json(%{}) == "{}"
+    assert to_json(%{foo: :bar}) == ~s({"foo":"bar"})
+    assert to_json(%{"foo" => "bar"})  == ~s({"foo":"bar"})
+  end
 end
