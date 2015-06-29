@@ -24,13 +24,16 @@ defmodule Foo.Parser do
     end
   end
 
-  def do_parse("{" <> rest),  do: Foo.Parser.Objects.parse(rest, [])
   def do_parse("\"" <> rest), do: Foo.Parser.String.parse(rest, [])
-  def do_parse("[" <> rest),  do: Foo.Parser.Arrays.parse(rest, [])
+  def do_parse("{" <> rest),  do: Foo.Parser.Objects.parse(skip_whitespace(rest), [])
+  def do_parse("[" <> rest),  do: Foo.Parser.Arrays.parse(skip_whitespace(rest), [])
   def do_parse(<<char, _ :: binary >> = string) when char in '-0123456789' do
     Foo.Parser.Numbers.parse(string)
   end
 
-  # def skip_whitespace(<<char>>), do: string
-  # def skip_whitespace(string), do: string
+  def skip_whitespace(<<char>> <> rest) when char in '\n\s' do
+    skip_whitespace(rest)
+  end
+
+  def skip_whitespace(string), do: string
 end

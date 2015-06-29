@@ -27,6 +27,8 @@ defmodule Foo.ParserTest do
   test "String" do
     assert parse!("[]") == []
     assert parse!("[1,2,3]") == [1, 2, 3]
+    assert parse!("[1, 2, 3]") == [1, 2, 3]
+    assert parse!("[ 1, 2, 3 ]") == [1, 2, 3]
   end
 
   test "Arrays" do
@@ -41,6 +43,7 @@ defmodule Foo.ParserTest do
   test "objects" do
     assert parse!("{}") == %{}
     assert parse!(~s({"foo":"bar"})) == %{"foo" => "bar"}
-    assert parse!(~s({"foo":1})) == %{"foo" => 1}
+    assert parse!(~s({"foo": "bar"})) == %{"foo" => "bar"}
+    assert parse!(~s({ "foo":1, "bar" : 2 })) == %{"foo" => 1, "bar" => 2}
   end
 end
