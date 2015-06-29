@@ -37,4 +37,10 @@ defmodule Foo.ParserTest do
     assert parse!(~s("abc\\b\\f\\n\\r\\t")) == ~s(abc\b\f\n\r\t)
     assert parse!(~s("最高")) == "最高"
   end
+
+  test "objects" do
+    assert parse!("{}") == %{}
+    assert parse!(~s({"foo":"bar"})) == %{"foo" => "bar"}
+    assert parse!(~s({"foo":1})) == %{"foo" => 1}
+  end
 end
