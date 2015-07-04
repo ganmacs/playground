@@ -13,7 +13,7 @@ class Operation
               right, derivs4 = derivs3.dv_mutiltive
               [left + right, derivs4]
             else
-              alt2.cal
+              alt2.call
             end
           else
             alt2.call
@@ -34,8 +34,7 @@ class Operation
         if derivs2.dv_char
           op, derivs3 = derivs2.dv_char
           if op == '*'
-            p derivs3
-            if derivs3.dv_multitive
+            if derivs3.dv_mutiltive
               right, derivs4 = derivs3.dv_primary
               [left * right, derivs4]
             else
@@ -72,7 +71,7 @@ class Operation
           alt2.call
         end
       else
-        alt2.cal
+        alt2.call
       end
     end
 
