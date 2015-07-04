@@ -28,6 +28,7 @@ class Operation
 
     def multitive?(derivs)
       alt2 = -> { derivs.dv_primary if derivs.dv_primary }
+
       if derivs.dv_primary
         left, derivs2 = derivs.dv_primary
 
@@ -53,6 +54,7 @@ class Operation
 
     def primary?(derivs)
       alt2 = -> { derivs.dv_decimal if derivs.dv_decimal }
+
       if derivs.dv_char
         op, derivs2 = derivs.dv_char
         if op == '('
@@ -118,8 +120,8 @@ class Derivs
 
   def dv_char
     @char ||= begin
-                [@str[0...1], Derivs.new(@str[1..-1])] if @str.size > 1
-              end
+      [@str[0...1], Derivs.new(@str[1..-1])] if @str.size > 0
+    end
   end
 
   private
