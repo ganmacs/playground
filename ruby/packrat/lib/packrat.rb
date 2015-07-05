@@ -21,7 +21,7 @@ class Derivs
     rule(:addtivie) do
       left = derivs.dv_multitive \
       and vsuff = left.derivs.dv_additive_suffix \
-      and ::Parsed.new(vsuff.value.call(left.value), left.derivs) \
+      and ::Parsed.new(vsuff.value.call(left.value), vsuff.derivs) \
     end
   end
 
@@ -51,7 +51,7 @@ class Derivs
     rule(:multitive) do
       left = derivs.dv_primary \
       and vsuff = left.derivs.dv_multitive_suffix \
-      and ::Parsed.new(vsuff.value.call(left.value), left.derivs) \
+      and ::Parsed.new(vsuff.value.call(left.value), vsuff.derivs) \
     end
   end
 
@@ -142,4 +142,4 @@ def evaluate(str)
   end
 end
 
-puts evaluate('2*(2+3)*2')
+puts evaluate('2*(2+3)*2/2+(2+1)')
