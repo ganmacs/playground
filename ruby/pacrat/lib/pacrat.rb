@@ -13,6 +13,7 @@ class Operation
               right, derivs4 = derivs3.dv_mutiltive
               [left + right, derivs4]
             else
+              p '------------'
               alt2.call
             end
           else
@@ -80,6 +81,7 @@ class Operation
     def decimal?(derivs)
       if derivs.dv_char
         n, derivs2 = derivs.dv_char
+        p n
         case n
         when '0' then [0, derivs2]
         when '1' then [1, derivs2]
@@ -103,28 +105,48 @@ class Derivs
   end
 
   def dv_additive
-    @additive ||= Operation.additive?(derivs)
+    rule(:addtivie) do
+      Operation.additive?(derivs)
+    end
   end
 
   def dv_mutiltive
-    @multitive ||= Operation.multitive?(derivs)
+    rule(:mutiltive) do
+      Operation.multitive?(derivs)
+    end
   end
 
   def dv_primary
-    @primary ||= Operation.primary?(derivs)
+    rule(:priamry) do
+      Operation.primary?(derivs)
+    end
   end
 
   def dv_decimal
-    @decimal ||= Operation.decimal?(derivs)
+    rule(:decimal) do
+      Operation.decimal?(derivs)
+    end
   end
 
   def dv_char
-    @char ||= begin
+    rule(:char) do
       [@str[0...1], Derivs.new(@str[1..-1])] if @str.size > 0
     end
   end
 
   private
+
+  def rule(key)
+    if value.key?(key)
+      value[key]
+    else
+      value[key] = yield
+    end
+  end
+
+  def value
+    @value ||= {}
+  end
 
   def derivs
     @derivs ||= Derivs.new(@str)
@@ -140,4 +162,4 @@ def evaluate(str)
   end
 end
 
-evaluate('1+2*3')
+evaluate('1+2')
