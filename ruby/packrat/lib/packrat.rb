@@ -1,8 +1,6 @@
 class Operation
   class << self
     def additive?(derivs)
-      alt2 = -> { derivs.dv_mutiltive if derivs.dv_mutiltive }
-
       if derivs.dv_mutiltive
         left, derivs2 = derivs.dv_mutiltive
 
@@ -13,23 +11,20 @@ class Operation
               right, derivs4 = derivs3.dv_mutiltive
               [left + right, derivs4]
             else
-              p '------------'
-              alt2.call
+              derivs.dv_mutiltive
             end
           else
-            alt2.call
+            derivs.dv_mutiltive
           end
         else
-          alt2.call
+          derivs.dv_mutiltive
         end
       else
-        alt2.call
+        derivs.dv_mutiltive
       end
     end
 
     def multitive?(derivs)
-      alt2 = -> { derivs.dv_primary if derivs.dv_primary }
-
       if derivs.dv_primary
         left, derivs2 = derivs.dv_primary
 
@@ -40,22 +35,20 @@ class Operation
               right, derivs4 = derivs3.dv_primary
               [left * right, derivs4]
             else
-              alt2.call
+              derivs.dv_primary
             end
           else
-            alt2.call
+            derivs.dv_primary
           end
         else
-          alt2.call
+          derivs.dv_primary
         end
       else
-        alt2.call
+        derivs.dv_primary
       end
     end
 
     def primary?(derivs)
-      alt2 = -> { derivs.dv_decimal if derivs.dv_decimal }
-
       if derivs.dv_char
         op, derivs2 = derivs.dv_char
         if op == '('
@@ -65,23 +58,22 @@ class Operation
             if op == ')'
               [v, derivs4]
             else
-              alt2.call
+              derivs.dv_decimal
             end
           else
-            alt2.call
+            derivs.dv_decimal
           end
         else
-          alt2.call
+          derivs.dv_decimal
         end
       else
-        alt2.call
+        derivs.dv_decimal
       end
     end
 
     def decimal?(derivs)
       if derivs.dv_char
         n, derivs2 = derivs.dv_char
-        p n
         case n
         when '0' then [0, derivs2]
         when '1' then [1, derivs2]
@@ -156,10 +148,10 @@ end
 def evaluate(str)
   d = Derivs.new(str)
   if d.dv_additive
-    puts d.dv_additive
+    d.dv_additive[0]
   else
     raise 'No Parse'
   end
 end
 
-evaluate('1+2')
+puts evaluate('1+2*(1+2)')
