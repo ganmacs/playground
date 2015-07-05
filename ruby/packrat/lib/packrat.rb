@@ -30,13 +30,13 @@ class Derivs
   #                    <- empty
   def dv_additive_suffix
     rule(:addtivie_suffix) do
-      (plus = derivs.dv_char \
+      (plus = derivs.dv_symbol \
        and plus.value?('+') \
        and vright = plus.derivs.dv_multitive \
        and vsuff = vright.derivs.dv_additive_suffix \
        and ::Parsed.new(-> x { vsuff.value.call(x + vright.value) }, vsuff.derivs)) \
       or \
-      (minus = derivs.dv_char \
+      (minus = derivs.dv_symbol \
        and minus.value?('-') \
        and vright = minus.derivs.dv_multitive \
        and vsuff = vright.derivs.dv_additive_suffix \
@@ -60,13 +60,13 @@ class Derivs
   #                     <- empty
   def dv_multitive_suffix
     rule(:mutiltive_suffix) do
-      (mul = derivs.dv_char \
+      (mul = derivs.dv_symbol \
        and mul.value?('*') \
        and vright = mul.derivs.dv_primary \
        and vsuff = vright.derivs.dv_multitive_suffix \
        and ::Parsed.new(-> x { vsuff.value.call(x * vright.value) }, vsuff.derivs)) \
       or \
-      (div = derivs.dv_char \
+      (div = derivs.dv_symbol \
        and div.value?('/') \
        and vright = div.derivs.dv_primary \
        and vsuff = vright.derivs.dv_multitive_suffix \
@@ -78,10 +78,10 @@ class Derivs
 
   def dv_primary
     rule(:priamry) do
-      lparn = derivs.dv_char \
+      lparn = derivs.dv_symbol \
       and lparn.value?('(') \
       and addtive = lparn.derivs.dv_additive \
-      and rparn = addtive.derivs.dv_char \
+      and rparn = addtive.derivs.dv_symbol \
       and rparn.value?(')') \
       and ::Parsed.new(addtive.value, rparn.derivs) \
       or derivs.dv_decimal
@@ -90,6 +90,27 @@ class Derivs
 
   def dv_decimal
     rule(:decimal) do
+      d = derivs.dv_digits \
+      and dd = d.derivs.dv_whitespace \
+      and ::Parsed.new(d.value[0], dd.derivs)
+    end
+  end
+
+  def dv_digits
+    rule(:digits) do
+      if d = derivs.dv_digit
+        if dd = d.derivs.dv_digits
+          n = 10**dd.value[1]
+          ::Parsed.new([(d.value * n) + dd.value[0], dd.value[1] + 1],  dd.derivs)
+        else
+          ::Parsed.new([d.value, 1], d.derivs)
+        end
+      end
+    end
+  end
+
+  def dv_digit
+    rule(:digit) do
       if derivs.dv_char
         parsed = derivs.dv_char
         case parsed.value
@@ -104,6 +125,29 @@ class Derivs
         when '8' then ::Parsed.new(8, parsed.derivs)
         when '9' then ::Parsed.new(9, parsed.derivs)
         end
+      end
+    end
+  end
+
+  def dv_symbol
+    rule(:symbol) do
+      d = derivs.dv_char \
+      and %w!+ = * / % ( )!.include?(d.value) \
+      and dd = d.derivs.dv_whitespace \
+      and ::Parsed.new(d.value, dd.derivs)
+    end
+  end
+
+  def dv_whitespace
+    rule(:whitespace) do
+      if d = derivs.dv_char
+        if d.value?(' ')
+          d.derivs.dv_whitespace
+        else
+          ::Parsed.new(nil, derivs)
+        end
+      else
+        ::Parsed.new(nil, derivs)
       end
     end
   end
@@ -142,4 +186,4 @@ def evaluate(str)
   end
 end
 
-puts evaluate('2*(2+3)*2/2+(2+1)')
+puts evaluate('(12 + 34) * 10000')
