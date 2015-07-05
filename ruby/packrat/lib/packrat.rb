@@ -16,25 +16,63 @@ class Derivs
     @str = str
   end
 
+  # dv_additive <- dv_mutiltive dv_additive_suffix
   def dv_additive
     rule(:addtivie) do
-      left = derivs.dv_mutiltive \
-      and plus = left.derivs.dv_char \
-      and plus.value?('+') \
-      and right = plus.derivs.dv_mutiltive \
-      and ::Parsed.new(left.value + right.value, right.derivs) \
-      or derivs.dv_mutiltive
+      left = derivs.dv_multitive \
+      and vsuff = left.derivs.dv_additive_suffix \
+      and ::Parsed.new(vsuff.value.call(left.value), left.derivs) \
     end
   end
 
-  def dv_mutiltive
-    rule(:mutiltive) do
+  # dv_additive_suffix <- + dv_multitive dv_additive_suffix
+  #                    <- - dv_multitive dv_additive_suffix
+  #                    <- empty
+  def dv_additive_suffix
+    rule(:addtivie_suffix) do
+      (plus = derivs.dv_char \
+       and plus.value?('+') \
+       and vright = plus.derivs.dv_multitive \
+       and vsuff = vright.derivs.dv_additive_suffix \
+       and ::Parsed.new(-> x { vsuff.value.call(x + vright.value) }, vsuff.derivs)) \
+      or \
+      (minus = derivs.dv_char \
+       and minus.value?('-') \
+       and vright = minus.derivs.dv_multitive \
+       and vsuff = vright.derivs.dv_additive_suffix \
+       and ::Parsed.new(-> x { vsuff.value.call(x - vright.value) }, vsuff.derivs)) \
+      or \
+      ::Parsed.new(-> x { x }, derivs)
+    end
+  end
+
+  # dv_multitive <- dv_primary dv_multitive_suffix
+  def dv_multitive
+    rule(:multitive) do
       left = derivs.dv_primary \
-      and mul = left.derivs.dv_char \
-      and mul.value?('*') \
-      and right = mul.derivs.dv_mutiltive \
-      and ::Parsed.new(left.value * right.value, right.derivs) \
-      or derivs.dv_primary
+      and vsuff = left.derivs.dv_multitive_suffix \
+      and ::Parsed.new(vsuff.value.call(left.value), left.derivs) \
+    end
+  end
+
+  # dv_multitive_suffix <- * dv_primary dv_multitive_suffix
+  #                     <- / dv_primary dv_multitive_suffix
+  #                     <- empty
+  def dv_multitive_suffix
+    rule(:mutiltive_suffix) do
+      (mul = derivs.dv_char \
+       and mul.value?('*') \
+       and vright = mul.derivs.dv_primary \
+       and vsuff = vright.derivs.dv_multitive_suffix \
+       and ::Parsed.new(-> x { vsuff.value.call(x * vright.value) }, vsuff.derivs)) \
+      or \
+      (div = derivs.dv_char \
+       and div.value?('/') \
+       and vright = div.derivs.dv_primary \
+       and vsuff = vright.derivs.dv_multitive_suffix \
+       and ::Parsed.new(-> x { vsuff.value.call(x / vright.value) }, vsuff.derivs)) \
+      or \
+      ::Parsed.new(-> x { x }, derivs)
     end
   end
 
@@ -104,4 +142,4 @@ def evaluate(str)
   end
 end
 
-puts evaluate('1+2*(1+2)')
+puts evaluate('2*(2+3)*2')
