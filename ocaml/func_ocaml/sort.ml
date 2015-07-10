@@ -31,3 +31,27 @@ let rec quick_sort = function
               quick_sort l @ [x] @ quick_sort r
 ;;
 quick_sort [5; 3; 7; 6; 9; 8; 1; 2; 4];;
+
+let rec drop n lst =
+  match (n, lst) with
+  | (0, _) | (_, []) -> lst
+  | (_, x :: xs) -> drop (n-1) xs
+
+let rec merge l r =
+  match (l, r) with
+  | ([], []) -> []
+  | ([],  y) -> y
+  | (x,  []) -> x
+  | (x :: xs,  y :: ys) -> if x < y then x :: merge xs r
+                           else y :: merge l ys
+
+let rec merge_sort n lst =
+  match (n, lst) with
+  | (_, []) -> []
+  | (1, x :: xs) -> [x]
+  | (2, x :: y :: xs) -> if x < y then [x; y] else [y; x]
+  | (_, _) -> let m = n/2 in
+              merge (merge_sort (n/2) lst) (merge_sort (n-m) (drop m lst))
+;;
+
+merge_sort 9 [5; 9; 1; 8; 2; 7; 3; 6; 4];;
