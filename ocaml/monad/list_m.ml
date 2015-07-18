@@ -38,6 +38,12 @@ ListM.(
 
   (* [1; 2; 3; 4] >>= (fun x -> *)
   (*     (if x mod 2 = 0 then [()] else []) >> return x) *)
-
   (* [1; 2; 3; 4] >>= (fun x -> guard (x mod 2 = 0) >> return x) *)
+
+  let permutation n xs =
+    let rec iter m acc = if m = n then return (List.rev acc)
+      else xs >>= fun x ->
+        guard (not (List.mem x acc)) >> iter (1 + m) (x :: acc)
+    in iter 0 []
+  in permutation 3 [1; 2; 3; 4]
 )
