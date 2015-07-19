@@ -35,6 +35,6 @@ let key2 = { value1 = "asdf"; value2 = ['a'; 'c'; 'c']; value3 = hoge };;
 let key3 = { value1 = ";ljk"; value2 = ['b'; 'd'; 'a']; value3 = hoge };;
 
 Hashtbl.add cache key.value1 "asdfasdf";
-(* key2.value3 key3.value1;; *)
-Hashtbl.find cache key.value1;;
+key2.value3 key3.value1;;
+(* Hashtbl.find cache key.value1;; *)
 (* Hashtbl.add cache key2 "sfdasaf"; *)
