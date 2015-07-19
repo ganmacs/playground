@@ -16,21 +16,25 @@ Lazy.force p.name
 type key = {
   value1: string;
   value2: char list;
-  value3: () -> int
+  value3: string -> string
 }
 
-let cache2 = Hashtbl.create 100;;
-let memoize key f = if Hashtbl.mem cache2 key then Hashtbl.find key
-  else let result = f () in Hashtbl.add cache2 key result; result
-;;
-
-let fuga () = memoize 10 fun () -> 10
-let hoge () = memoize 10 fun () -> 10
+(* let cache2 = Hashtbl.create 100;; *)
 
 let cache = Hashtbl.create 100;;
-let key = { value1 = "asdf"; value2 = ['a'; 'c'; 'c']; value3 = fuga };;
-let key2 = { value1 = "asdf"; value2 = ['a'; 'c'; 'c'] value3 = hoge };;
 
-Hashtbl.add cache key "asdfasdf";
-key.value3 ();;
-Hashtbl.find cache key2
+let memoize key f = if Hashtbl.mem cache key then Hashtbl.find cache key
+  else let result = f () in print_string "call in memoize"; Hashtbl.add cache key result; result
+;;
+
+let fuga key = memoize key (fun () -> "fuga")
+let hoge key = memoize key (fun () -> "hoge")
+
+let key = { value1 = "asdf"; value2 = ['a'; 'c'; 'c']; value3 = fuga };;
+let key2 = { value1 = "asdf"; value2 = ['a'; 'c'; 'c']; value3 = hoge };;
+let key3 = { value1 = ";ljk"; value2 = ['b'; 'd'; 'a']; value3 = hoge };;
+
+Hashtbl.add cache key.value1 "asdfasdf";
+(* key2.value3 key3.value1;; *)
+Hashtbl.find cache key.value1;;
+(* Hashtbl.add cache key2 "sfdasaf"; *)
