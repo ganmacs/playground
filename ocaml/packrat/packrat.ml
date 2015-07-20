@@ -4,6 +4,7 @@ sig
 end
 
 = struct
+  type pos = int
   type 'a result = Parsed of 'a * derivs
                  | NoParse
 
@@ -13,7 +14,7 @@ end
     dv_primary : derivs -> int result;
     dv_decimal : derivs -> int result;
     dv_char : unit -> char result;
-    position : int;
+    position : pos;
   }
 
   let cache = Hashtbl.create 10000

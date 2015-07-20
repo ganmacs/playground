@@ -38,3 +38,11 @@ Hashtbl.add cache key.value1 "asdfasdf";
 key2.value3 key3.value1;;
 (* Hashtbl.find cache key.value1;; *)
 (* Hashtbl.add cache key2 "sfdasaf"; *)
+
+type derivs = { name : string }
+type 'a result = Parsed of 'a * derivs
+               | NoParse
+
+type ('d, 'v) pparser = Pparser of ('d -> 'v result)
+
+(* type ('a ,'b) parse = Pparser of 'a * 'b;; *)
