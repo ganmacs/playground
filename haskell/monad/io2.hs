@@ -5,7 +5,7 @@ import GHC.Base
 a `bind` f = IO $ \s ->
   let (# s1, v #) = unIO a s
       (# s2, v2 #) = unIO (f v) s1
-  in (# s2, v2 #)
+  in (# s2, f v2 #)
 
 
 return' v = IO $ \s ->  (# s, v #)

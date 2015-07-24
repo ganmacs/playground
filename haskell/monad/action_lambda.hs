@@ -10,7 +10,6 @@ randomPlus1 = do
   modifyIORef a (+1)
   print =<< readIORef a
 
-
 modifyArray ary i f = writeArray ary i =<< f <$> readArray ary i
 fixArray = do
   a <- newArray (0, 2) 0 :: IO (IOUArray Int Int)
@@ -35,9 +34,24 @@ printWithFor = do
                                 return x
   print a
 
+inc x = x + 1
+
+add x y = x + y
+
+main = print =<< (add <$> return 10 <*> return 10 )
+
+-- main = print =<< replicateM' 5 dice
+
 -- when' = do
 --   r <- dice
 --   print r
 --   when (r /= 3) main
 
--- main =
+-- main = print 5 >> print 7
+
+-- f1 x = putStr
+
+-- f = putStr >=> print
+-- f2 = print <=< putStr
+
+-- main = f "4" >> f2 "f"
