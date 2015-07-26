@@ -3,19 +3,18 @@
 import Control.Monad
 import GHC.Base
 import Data.Char
+import Control.Arrow(first)
 
 data Parser a = Parser (String -> [(a, String)])
 
 instance Functor Parser where
-  fmap f ma = Parser $ \str ->
-    map (\(v, s') -> (f v, s')) $ parse ma str
+  fmap f ma = Parser $ \str -> map (first f) $ parse ma str
 
 instance Applicative Parser where
   pure = return
-  (<*>) fm ma = Parser $ \str ->
-    let a = parse ma str -- [(a,s)]
-        ff = parse fm str -- [(a,s)] -> [(b,s)]
-    in concatMap (\(v, s') -> map (\(f, _) -> (f v, s')) ff) a
+  (<*>) fm ma = Parser $ \str -> let a = parse ma str -- [(a,s)]
+                                     ff = parse fm str -- [(a,s)] -> [(b,s)]
+                                 in concatMap (\(f, _) -> map (first f) a) ff
 
 instance Monad Parser where
   return a = Parser $ \s -> [(a, s)]
@@ -23,13 +22,13 @@ instance Monad Parser where
     concatMap (\(v, s') -> parse (f v) s') $ parse p s
 
 instance Alternative Parser where
-  empty = Parser $ \_ -> []
+  empty = Parser $ const []
   (<|>) xs ys = Parser $ \x -> case parse xs x of
     [] -> parse ys x
     (y:_) -> [y]
 
 instance MonadPlus Parser where
-  mzero = Parser $ \_ -> []
+  mzero = Parser $ const []
   mplus p q = Parser $ \x -> parse p x ++ parse q x
 
 parse :: Parser s -> String -> [(s, String)]
@@ -43,8 +42,7 @@ item = Parser $ \cs -> case cs of
 satisfy :: (Char -> Bool) -> Parser Char
 satisfy f = do
   c <- item
-  if f c then return c
-    else mzero
+  if f c then return c else mzero
 
 mmany :: Parser a -> Parser [a]
 mmany p = many1 p <|> return []
@@ -65,25 +63,20 @@ string (x:xs) = do
   string xs
   return $ x:xs
 
-oneOf :: String -> Parser Char
-oneOf xs = satisfy $ \x ->  x `elem` xs
-
-digit :: Parser Char
-digit = satisfy isDigit
-
 number :: Parser Integer
 number = token $ do
-  x <- many1 digit
-  return $ read x
+  n <- many1 digit
+  return $ read n
+  where digit = satisfy isDigit
 
 chain1 :: Parser a -> Parser (a -> a -> a) -> Parser a
 chain1 p op = do
   x <- p
   rest x
-  where rest c = do ff <- op
-                    b <- p
-                    rest (ff c b)
-                 <|> return c
+  where rest y = do f <- op
+                    z <- p
+                    rest (f y z)
+                 <|> return y
 
 expr :: Parser Integer
 expr = do
@@ -103,30 +96,18 @@ factor = number <|> do
 
 addop :: Parser (Integer -> Integer -> Integer)
 addop = add <|> sub
-  where add = do
-          symb "+"
-          return (+)
-        sub = do
-          symb "-"
-          return (-)
+  where add = symb "+" >> return (+)
+        sub = symb "-" >> return (-)
 
 mulop :: Parser (Integer -> Integer -> Integer)
 mulop = mul <|> div'
-  where mul = do
-          symb "*"
-          return (*)
-        div' = do
-          symb "/"
-          return div
+  where mul = symb "*" >> return (*)
+        div' = symb "/" >> return div
 
 unary :: Parser (Integer -> Integer)
 unary = plus <|> minus <|> return id
-  where plus = do
-          symb "+"
-          return id
-        minus = do
-          symb "-"
-          return negate
+  where plus = symb "+" >> return id
+        minus = symb "-" >> return negate
 
 space :: Parser String
 space = mmany $ satisfy isSpace
@@ -141,7 +122,7 @@ symb :: String -> Parser String
 symb s = token $ string s
 
 apply :: Parser a -> String -> [(a, String)]
-apply p = parse $ do {space; p}
+apply p = parse $ do { space; p }
 
 main :: IO ()
-main = print $ apply expr "- ( 10 * 11 ) +19 "
+main = print $ apply expr "- ( 10 * 11 ) + 19 / 10"
