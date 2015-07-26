@@ -31,9 +31,8 @@ push i = do
 stackTest :: StateE (Stack Int) ()
 stackTest = do
   a <- pop
-  b <- pop
   -- a <- lift(Just a >>= \s -> Just $ s + 1)
+  b <- pop
   push (a + b)
 
-main :: IO ()
 main = print $ runStateT stackTest [1, 2]
