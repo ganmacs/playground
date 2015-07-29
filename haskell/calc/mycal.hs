@@ -4,71 +4,78 @@ import Data.Char
 
 type Result = Either String
 
-type Parser s v = StateT s Result v
-type CParser v = Parser String v
+type Parser v = StateT String Result v
 
 runParser = runStateT
 
-genErrorMsg :: String -> CParser a
+genErrorMsg :: String -> Parser a
 genErrorMsg str = lift $ Left str
 
-look :: CParser Char
+look :: Parser Char
 look = do
   x:_ <- get
   return x
 
-item :: CParser Char
+item :: Parser Char
 item = do
   x:xs <- get
   put xs
   return x
 
-satisfy :: (Char -> Bool) -> CParser Char
+satisfy :: (Char -> Bool) -> Parser Char
 satisfy f = do
   a <- item
   if f a then return a else genErrorMsg "Unexpected Char"
 
-cjoin :: CParser a -> CParser a -> CParser [a]
+cjoin :: Parser a -> Parser a -> Parser [a]
 cjoin p1 p2 = do
   a <- p1
   b <- p2
   return [a, b]
 
-select :: CParser a -> CParser a -> CParser a
+select :: Parser a -> Parser a -> Parser a
 select = (<|>)
 
-many :: CParser a -> CParser [a]
+many :: Parser a -> Parser [a]
 many f = many1 f <|> return []
 
-many1 :: CParser a -> CParser [a]
+many1 :: Parser a -> Parser [a]
 many1 f = do
   a <- f
   b <- many f
   return $ a:b
 
-number :: CParser Integer
+number :: Parser Integer
 number = do
   n <- many1 digit
   return $ read n
   where digit = satisfy isDigit
 
-string :: CParser String
+string :: Parser String
 string = many1 $ satisfy isAlpha
+
+--
 
 -- Stmnt = Expr EOF
 -- Expr = F { Op F }
 -- F = NUM
 
-stmnt :: CParser Integer
+match :: (Char -> Bool) -> Parser Char
+match f = do
+  a <- satisfy f
+  space
+  return a
+
+stmnt :: Parser Integer
 stmnt = do
   a <- expr
   eof
   return a
 
-eof :: CParser Char
+eof :: Parser Char
 eof = satisfy (==';')
 
-rep :: CParser Integer -> CParser (Integer -> Integer -> Integer) -> CParser Integer
+rep :: Parser Integer -> Parser (Integer -> Integer -> Integer) -> Parser Integer
 rep a op' = do
   n <- a
   rep' n
@@ -76,21 +83,27 @@ rep a op' = do
             do { o <- op'; n'' <- a; rep' $ o n' n'' }
             <|> return n'
 
-op :: CParser (Integer -> Integer -> Integer)
+op :: Parser (Integer -> Integer -> Integer)
 op = add <|> sub
-  where add = satisfy (=='+') >> return (+)
-        sub = satisfy (=='-') >> return (-)
+  where add = match (=='+') >> return (+)
+        sub = match (=='-') >> return (-)
 
-expr :: CParser Integer
+expr :: Parser Integer
 expr = factor `rep` op
 
-factor :: CParser Integer
-factor = number
+factor :: Parser Integer
+factor = do
+  a <- number
+  space
+  return a
+
+space :: Parser String
+space = many $ satisfy isSpace
 
 run :: String -> IO ()
 run str = case runParser stmnt str of
-  Left _ -> fail "Parse failed"
+  Left s -> fail s
   Right (a, _) -> print a
 
 main :: IO ()
-main = run "12-1+2-;"
+main = run "12 - 1 + 2;"
