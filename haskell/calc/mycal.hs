@@ -56,12 +56,13 @@ string = many1 $ satisfy isAlpha
 
 --
 
--- Stmnt = Expr EOF
--- Expr = F { Op F }
--- F = NUM
+-- Stmnt = Expr ';'
+-- Expr = Factor { Op1 Factor }
+-- Factor = Term { Op2 Term }
+-- Term = NUM | '(' Expr ')'
 
-match :: (Char -> Bool) -> Parser Char
-match f = do
+token :: (Char -> Bool) -> Parser Char
+token f = do
   a <- satisfy f
   space
   return a
@@ -83,19 +84,24 @@ rep a op' = do
             do { o <- op'; n'' <- a; rep' $ o n' n'' }
             <|> return n'
 
-op :: Parser (Integer -> Integer -> Integer)
-op = add <|> sub
-  where add = match (=='+') >> return (+)
-        sub = match (=='-') >> return (-)
+op1, op2 :: Parser (Integer -> Integer -> Integer)
+op1 = add <|> sub
+  where add = token (=='+') >> return (+)
+        sub = token (=='-') >> return (-)
+op2 = mul <|> div'
+  where mul = token (=='*') >> return (*)
+        div' = token (=='/') >> return div
 
 expr :: Parser Integer
-expr = factor `rep` op
+expr = term `rep` op1
+
+term :: Parser Integer
+term = factor `rep` op2
 
 factor :: Parser Integer
-factor = do
-  a <- number
-  space
-  return a
+factor = do { a <- number; space; return a}
+         <|> do { s '('; a <- expr; s ')'; return a}
+         where s c = token (==c)
 
 space :: Parser String
 space = many $ satisfy isSpace
@@ -106,4 +112,4 @@ run str = case runParser stmnt str of
   Right (a, _) -> print a
 
 main :: IO ()
-main = run "12 - 1 + 2;"
+main = run "( 1 + 2 ) * 2;"
