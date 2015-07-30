@@ -8,9 +8,6 @@ type Parser v = StateT String Result v
 
 runParser = runStateT
 
-genErrorMsg :: String -> Parser a
-genErrorMsg str = lift $ Left str
-
 look :: Parser Char
 look = do
   x:_ <- get
@@ -25,7 +22,10 @@ item = do
 satisfy :: (Char -> Bool) -> Parser Char
 satisfy f = do
   a <- item
-  if f a then return a else genErrorMsg "Unexpected Char"
+  if f a then return a else mzero
+
+unsatisfy :: (Char -> Bool) -> Parser Char
+unsatisfy f = satisfy (not . f)
 
 cjoin :: Parser a -> Parser a -> Parser [a]
 cjoin p1 p2 = do
@@ -45,21 +45,13 @@ many1 f = do
   b <- many f
   return $ a:b
 
-number :: Parser Integer
-number = do
-  n <- many1 digit
-  return $ read n
-  where digit = satisfy isDigit
-
-string :: Parser String
-string = many1 $ satisfy isAlpha
-
 --
 
--- Stmnt = Expr ';'
--- Expr = Factor { Op1 Factor }
--- Factor = Term { Op2 Term }
--- Term = NUM | '(' Expr ')'
+-- Stmnt <- Expr ';'
+-- Expr <- Factor ( Op1 Factor )*
+-- Factor <- Term ( Op2 Term )*
+-- Term <- NUM / '(' Expr ')'
+-- NUM <- ['0'-'9']+
 
 token :: (Char -> Bool) -> Parser Char
 token f = do
@@ -103,6 +95,12 @@ factor = do { a <- number; space; return a}
          <|> do { s '('; a <- expr; s ')'; return a}
          where s c = token (==c)
 
+number :: Parser Integer
+number = do
+  n <- many1 digit
+  return $ read n
+  where digit = satisfy isDigit
+
 space :: Parser String
 space = many $ satisfy isSpace
 
@@ -112,4 +110,4 @@ run str = case runParser stmnt str of
   Right (a, _) -> print a
 
 main :: IO ()
-main = run "( 1 + 2 ) * 2;"
+main = run "( 1 + 2 ) * 2 + 1;"
