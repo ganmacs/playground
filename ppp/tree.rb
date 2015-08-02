@@ -1,7 +1,5 @@
-require 'pp'
-
 class Tree
-  attr_accessor :right, :left, :value
+  attr_accessor :value, :right, :left
 
   def initialize(value, left = nil, right = nil)
     @value = value
@@ -10,30 +8,32 @@ class Tree
   end
 
   # @param [Fixnum] x
-  def insert(x)
-    if x < @value
-      if @left
-        @left.insert(x)
-      else
-        @left = Tree.new(x)
-      end
-    elsif x > @value
-      if @right
-        @right.insert(x)
-      else
-        @right = Tree.new(x)
-      end
-    end
-
-    self
+  def insert!(x)
+    node = insert(x)
+    set(node)
   end
 
-  # @param [Fixnum] xs
-  def insert_elems(xs)
-    xs.each do |x|
-      insert(x)
+  def insert(x)
+    if x < @value
+      if has_left_child?
+        Tree.new(@value, @left.insert(x), @right)
+      else
+        Tree.new(@value, Tree.new(x), @right)
+      end
+    elsif x > @value
+      if has_right_child?
+        Tree.new(@value, @left, @right.insert(x))
+      else
+        Tree.new(@value, @left, Tree.new(x))
+      end
+    else
+      self
     end
+  end
 
+  # @param [[Fixnum]] xs
+  def insert_elems!(xs)
+    xs.each { |x| insert!(x) }
     self
   end
 
@@ -49,54 +49,60 @@ class Tree
     end
   end
 
+  def delete!(x)
+    node = delete(x)
+    set(node)
+  end
+
   def delete(x)
     if x == @value
       case
       when has_two_children?
-        node = find_max(@left)
-        @value = node.right.value
-        node.right = nil
-      when has_right_child?
-        @value = @right.value
-        l = @right.left
-        r = @right.right
-        @left = l
-        @right = r
-      when has_left_child?
-        @value = @left.value
-        l = @left.left
-        r = @left.right
-        @left = l
-        @right = r
-      else
-        @value = nil
+        Tree.new(@left.find_max, @left.delete_max, @right)
+      when has_right_child? then @right
+      when has_left_child? then @left
       end
     else
-      node = select_tree(x)
-      node.delete(x)
+      if x > @value
+        Tree.new(@value, @left, @right.delete(x))
+      else
+        Tree.new(@value, @left.delete(x), @right)
+      end
     end
-  end
-
-  def traverse(&block)
   end
 
   def to_s
     @left.to_s
-    print "#{@value} " if @value
+    print "#{@value} "
     @right.to_s
   end
 
   protected
 
-  def find_max(tree)
-    if tree.right
-      tree.find_max(@right)
+  def find_max
+    if @right
+      @right.find_max
     else
-      self
+      @value
+    end
+  end
+
+  def delete_max
+    if @right
+      Tree.new(@value, @left, @right.delete_max)
+    else
+      nil
     end
   end
 
   private
+
+  def set(node)
+    @value = node.value
+    @left = node.left
+    @right = node.right
+    self
+  end
 
   # return left or right tree
   def select_tree(x)
@@ -120,7 +126,14 @@ class Tree
   end
 end
 
-puts a = Tree.new(10).insert_elems([13, 2, 4, 5, 1, 19, 14, 11, 12, 13])
-puts a.delete(12)
-# puts a.delete(10)
+puts a = Tree.new(10).insert_elems!([13, 2, 4, 5, 1, 19, 14, 11, 12, 13])
+a.insert!(9)
+a.delete!(10)
+a.delete!(1)
+a.delete!(2)
+a.delete!(4)
+a.delete!(19)
+a.delete!(12)
+a.insert!(100)
+a.insert!(10)
 puts a
