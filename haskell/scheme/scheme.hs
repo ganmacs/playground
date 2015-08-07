@@ -1,5 +1,7 @@
 import Control.Monad.Error
 import Data.Char
+import System.IO
+import qualified Data.Map as M
 
 -- S Expression types
 data SExpr = INT Integer
@@ -8,6 +10,18 @@ data SExpr = INT Integer
            | STR String
            | CELL SExpr SExpr
            | NIL
+           | PRIM (SExpr -> Scm SExpr)
+           | SYNT (GEnv -> LEnv -> SExpr -> Scm (SExpr, GEnv))
+           | CLOS SExpr LEnv
+
+-- Evalator
+type Scm a = Either String a
+
+-- Local Env
+type LEnv = [(String, SExpr)]
+
+-- Global Env
+type GEnv = M.Map String SExpr
 
 showCell :: SExpr -> String
 showCell (CELL s1 s2) =
@@ -55,6 +69,7 @@ isNUM :: String -> Bool
 isNUM (x:_) = isDigit x
 isNUM _ = False
 
+quote :: SExpr
 quote = SYM "quote"
 
 getNumber :: String -> Parser (SExpr, String)
@@ -75,8 +90,8 @@ readSExpr (x:xs)
                  else if x == '-' && isNUM xs
                       then do (y, ys) <- getNumber xs
                               case y of
-                                (INT x) -> return (INT (- x), ys)
-                                (REAL x) -> return (REAL (- x), ys)
+                                INT z -> return (INT (- z), ys)
+                                REAL z -> return (REAL (- z), ys)
                       else
                         let (y, ys) = span isIdent1 (x:xs)
                         in return (SYM y, ys)
@@ -107,9 +122,132 @@ readCell n (x:xs)
                      _ -> throwError $ ParseErr xs "invalid dotted list"
     '(' -> do (y, ys) <- readCell 0 xs
               (y', ys') <- readCell 1 ys
-              return ((CELL y y'), ys')
+              return (CELL y y', ys')
     _ -> do (y, ys) <- readSExpr (x:xs)
             (y', ys') <- readCell 1 ys
-            return ((CELL y y'), ys')
+            return (CELL y y', ys')
 
-main = print $ ()
+eval :: GEnv -> LEnv -> SExpr -> Scm (SExpr, GEnv)
+eval genv _ NIL = return (NIL, genv)
+eval genv _ v@(INT _) = return (v, genv)
+eval genv _ v@(REAL _) = return (v, genv)
+eval genv _ v@(STR _) = return (v, genv)
+eval genv lenv (SYM name) =
+  case lookup name lenv of
+  Nothing -> case M.lookup name genv of
+    Nothing -> throwError $ strMsg $ "unbound variable: " ++ name
+    Just v ->  return (v, genv)
+  Just v -> return (v, genv)
+eval genv lenv (CELL fun args) = do
+  (v, genv1) <- eval genv lenv fun
+  case v of
+    SYNT f -> f genv1 lenv args
+    _ -> do (vs, genv2) <- evalArguments genv1 lenv args
+            apply genv2 lenv v vs
+
+evalArguments :: GEnv -> LEnv -> SExpr -> Scm (SExpr, GEnv)
+evalArguments genv _ NIL = return (NIL, genv)
+evalArguments genv lenv (CELL expr rest) = do
+  (v1, genv1) <- eval genv lenv expr
+  (v2, genv2) <- evalArguments genv1 lenv rest
+  return (CELL v1 v2, genv2)
+evalArguments _ _ _ = throwError $ strMsg "invalid funcito form"
+
+apply :: GEnv -> LEnv -> SExpr -> SExpr -> Scm (SExpr, GEnv)
+apply genv _ func actuals =
+  case func of
+  PRIM f -> do v <- f actuals
+               return (v, genv)
+  CLOS (CELL params body) lenv0 -> do
+    lenv1 <- makeBindings lenv0 params actuals
+    evalBody genv lenv1 body
+
+makeBindings :: LEnv -> SExpr -> SExpr -> Scm LEnv
+makeBindings lenv NIL _ = return lenv
+makeBindings lenv (SYM name) rest = return $ (name, rest):lenv
+makeBindings lenv (CELL (SYM name) rest) (CELL v actuals') =
+  makeBindings ((name, v):lenv) rest actuals' -- check
+makeBindings _ _ NIL = throwError $ strMsg "error"
+makeBindings _ _ _ = throwError $ strMsg "invalid arguments form"
+
+evalBody :: GEnv -> LEnv -> SExpr -> Scm (SExpr, GEnv)
+evalBody genv lenv (CELL expr NIL) = eval genv lenv expr
+evalBody genv lenv (CELL expr rest) = do
+  (_, genv1) <- eval genv lenv expr
+  evalBody genv1 lenv rest
+evalBody _ _ _ = throwError $ strMsg "invalid arguments form"
+
+true :: SExpr
+true = SYM "ture"
+
+false :: SExpr
+false = SYM "false"
+
+instance Eq SExpr where
+  INT x == INT y = x == y
+  REAL x == REAL y = x == y
+  STR x == STR y = x == y
+  NIL == NIL = True
+  _ == _ = False
+
+eq' :: SExpr -> Scm SExpr
+eq' (CELL x (CELL y _)) = if x == y then return true else return false
+eq' _ = throwError $ strMsg "invalid arguments form"
+
+equal' :: SExpr -> Scm SExpr
+equal' (CELL x (CELL y _)) =
+  if iter x y then return true else return false
+  where iter (CELL a b) (CELL c d) = iter a c && iter b d
+        iter a b = a == b
+equal' _ = throwError $ strMsg "invalid arguments form"
+
+-- evalQuote :: GEnv -> LEnv -> SExpr -> Scm (SExpr, GEnv)
+-- evalQuote genv lenf (CELL expr _)
+
+-- Primitive
+car :: SExpr -> Scm SExpr
+car NIL = throwError $ strMsg $ "car : NIL"
+car (CELL a _) = return a
+
+cdr :: SExpr -> Scm SExpr
+cdr NIL = throwError $ strMsg $ "cdr : NIL"
+cdr (CELL _ b) = return b
+
+cons :: SExpr -> SExpr -> Scm SExpr
+cons NIL NIL= throwError $ strMsg $ "cons : NIL"
+cons NIL _= throwError $ strMsg $ "cons : NIL"
+cons _ NIL= throwError $ strMsg $ "cons : NIL"
+cons a b = return $ CELL a b
+
+
+initGEnv :: GEnv
+initGEnv = M.fromList [("true", true),
+                       ("false", false),
+                       ("eq?",    PRIM eq'),
+                       ("equal?", PRIM equal'),
+                       ("car",    PRIM car),
+                       ("cdr",    PRIM cdr)
+                       ]
+
+repl :: GEnv -> LEnv -> String -> IO ()
+repl genv lenv xs = do
+  putStr "Scm> "
+  hFlush stdout
+  case readSExpr xs of
+    Left (ParseErr xs' mes) -> do putStrLn mes
+                                  repl genv lenv $ dropWhile (/= '\n') xs'
+    Right (expr, xs') -> do case eval genv lenv expr of
+                              Left mes -> do putStrLn mes
+                                             repl genv lenv xs'
+                              Right (v, genv1) -> do print v
+                                                     repl genv1 lenv xs'
+
+
+main :: IO ()
+main = do
+  xs <- hGetContents stdin
+  repl initGEnv [] xs
+
+
+
+-- main = print $ ()
