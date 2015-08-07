@@ -1,5 +1,3 @@
-require 'othello/stone'
-
 module Othello
   class Board
     def initialize(n = 8)
@@ -8,11 +6,11 @@ module Othello
     end
 
     # set stone and
-    def set_stone(x, y, turn)
-      board[x][y] = turn
+    def set_stone(x, y, stone)
+      board[x][y].set(stone)
       around_each do |xx, yy|
-        if (pos = position_of_same_color_stone(x, y, xx, yy, turn))
-          set_line(x, y, pos[0], pos[1], turn, xx, yy)
+        if (pos = position_of_same_color_stone(x, y, xx, yy, stone))
+          set_line(x, y, pos[0], pos[1], stone, xx, yy)
         end
       end
     end
@@ -62,13 +60,13 @@ module Othello
       end
     end
 
-    def position_of_same_color_stone(x, y, dx, dy, turn)
+    def position_of_same_color_stone(x, y, dx, dy, stone)
       x += dx
       y += dy
 
-      if board[x][y] == (-1 * turn)
-        position_of_same_color_stone(x, y, dx, dy, turn)
-      elsif board[x][y] == turn
+      if board[x][y].reverse?(stone)
+        position_of_same_color_stone(x, y, dx, dy, stone)
+      elsif board[x][y] == stone
         [x, y]
       else
         nil
@@ -87,20 +85,20 @@ module Othello
       board[x][y].empty?
     end
 
-    def takabble?(x, y, turn)
+    def takabble?(x, y, stone)
       around_each do |xx, yy|
-        return true if check(x, y, xx, yy, turn)
+        return true if check(x, y, xx, yy, stone)
       end
       false
     end
 
-    def check(x, y, dx, dy, turn)
+    def check(x, y, dx, dy, stone)
       x += dx
       y += dy
 
-      if board[x][y] == (-1 * turn)
-        check(x, y, dx, dy, turn)
-      elsif board[x][y] == turn
+      if board[x][y].reverse?(stone)
+        check(x, y, dx, dy, stone)
+      elsif board[x][y] == stone
         true
       else
         false

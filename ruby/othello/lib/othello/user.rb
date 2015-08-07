@@ -7,7 +7,7 @@ module Othello
 
     def put
       x, y = gets.chomp.split(' ').map(&:to_i)
-      call(x-1, y-1)
+      call(x - 1, y - 1)
     end
 
     def call(x, y)

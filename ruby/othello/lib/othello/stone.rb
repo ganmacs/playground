@@ -1,7 +1,7 @@
 module Othello
-  attr_reader :color
-
   class Stone
+    attr_reader :color
+
     EMPTY =  0
     WHITE =  1
     BLACK = -1
@@ -16,6 +16,10 @@ module Othello
       end
     end
 
+    def set(stone)
+      @color = stone.color
+    end
+
     def initialize(color = EMPTY)
       @color = color
     end
@@ -27,6 +31,10 @@ module Othello
     def ==(other)
       # fail if other.color == EMPTY
       other.color == @color
+    end
+
+    def reverse?(other)
+      other.color == (-1 * @color)
     end
 
     def empty?

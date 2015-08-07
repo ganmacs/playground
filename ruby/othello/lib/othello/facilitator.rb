@@ -1,5 +1,6 @@
 require 'othello/board'
 require 'othello/user'
+require 'othello/stone'
 
 module Othello
   class Facilitator
@@ -24,11 +25,11 @@ module Othello
     private
 
     def user1
-      @user1 ||= Othello::User.new(WHITE, board)
+      @user1 ||= Othello::User.new(Stone.white, board)
     end
 
     def user2
-      @user2 ||= Othello::User.new(BLACK, board)
+      @user2 ||= Othello::User.new(Stone.black, board)
     end
 
     def board
