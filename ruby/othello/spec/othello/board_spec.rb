@@ -3,7 +3,7 @@ describe Othello::Board do
 
   describe '#put' do
     before do
-      board.put(x: 4, y: 5, turn: Othello::WHITE)
+      board.set(4, 5, Othello::Stone.black)
     end
 
     it { expect(board.to_s).to eq Othello::WHITE }

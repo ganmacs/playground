@@ -7,6 +7,10 @@ module Othello
 
     def put
       x, y = gets.chomp.split(' ').map(&:to_i)
+    rescue NoMethodError
+      puts 'detect invalid input. please input'
+      put
+    ensure
       call(x - 1, y - 1)
     end
 
@@ -14,7 +18,7 @@ module Othello
       if @board.putable?(x, y, @turn)
         @board.set_stone(x, y, @turn)
       else
-        puts "{x, y} = {#{x}, #{y}} is invalid."
+        puts "{x, y} = {#{x + 1}, #{y + 1}} is invalid."
         put
       end
     end

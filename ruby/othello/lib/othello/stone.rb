@@ -41,6 +41,14 @@ module Othello
       @color == EMPTY
     end
 
+    def black?
+      @color == BLACK
+    end
+
+    def white?
+      @color == WHITE
+    end
+
     def black!
       @color = BLACK
     end

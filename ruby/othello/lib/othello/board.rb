@@ -41,6 +41,10 @@ module Othello
       ret
     end
 
+    def full?
+      count_stone(:empty) == 0
+    end
+
     private
 
     def header
@@ -48,7 +52,7 @@ module Othello
     end
 
     def count_stone(color)
-      b.select { |e| e.send("#{color}?") }.size
+      board.select { |e| e.send("#{color}?") }.size
     end
 
     def around_each
@@ -64,6 +68,8 @@ module Othello
       x += dx
       y += dy
 
+      return nil if x >= @n ||  y >= @n
+
       if board[x][y].reverse?(stone)
         position_of_same_color_stone(x, y, dx, dy, stone)
       elsif board[x][y] == stone
@@ -75,7 +81,7 @@ module Othello
 
     def set_line(x, y, nx, ny, turn, dx, dy)
       until (x + dx == nx) && (y + dy == ny)
-        board[x + dx][y + dy] = turn
+        board[x + dx][y + dy].set(turn)
         x += dx
         y += dy
       end
@@ -96,6 +102,7 @@ module Othello
       x += dx
       y += dy
 
+      return false if x >= @n || y >= @n
       if board[x][y].reverse?(stone)
         check(x, y, dx, dy, stone)
       elsif board[x][y] == stone

@@ -5,11 +5,17 @@ require 'othello/stone'
 module Othello
   class Facilitator
     def run
-      puts board.to_s
-      user1.put
-      puts board.to_s
-      user2.put
-      puts board.to_s
+      while finish?
+        puts board.to_s
+        print '> next o: '
+        user1.put
+
+        puts board.to_s
+        print '> next x: '
+        user2.put
+      end
+
+      puts winner
     end
 
     def winner
@@ -23,6 +29,10 @@ module Othello
     end
 
     private
+
+    def finish?
+      board.full?
+    end
 
     def user1
       @user1 ||= Othello::User.new(Stone.white, board)
