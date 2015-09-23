@@ -24,7 +24,7 @@ let print_env env =
 
 let rec eval3 e env =
   let rec binop f x y =
-    match (eval3 x env, eval3 y env) with
+    match (eval3 y env, eval3 x env) with
     | (IntVal(xx), IntVal(yy)) -> IntVal(f xx yy)
     | _ -> failwith "integer value expected"
   in
@@ -57,6 +57,13 @@ let rec eval3 e env =
       | BoolVal(true) -> eval3 t env
       | BoolVal(false) -> eval3 f env
       | _ -> failwith "wrong type"
+    end
+  | Fun(x, e) -> FunVal(x, e, env)
+  | App(e1, e2) -> begin
+      match (eval3 e1 env) with
+      | FunVal(sym, body, env1) -> let arg = eval3 e2 env in
+        eval3 body (ext env1 sym arg)
+      | _ -> failwith "function value expected"
     end
   | Greater(x, y) -> begin
       match (eval3 x env, eval3 y env) with
