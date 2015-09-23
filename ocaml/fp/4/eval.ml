@@ -13,6 +13,8 @@ let print_env env =
   let pp = function
     | IntVal(z) -> print_int z
     | BoolVal(z) -> print_string (if z then "true" else "else")
+    | FunVal(name, body, exp) -> print_string ("(" ^ name ^ " ()" ^ ")")
+    | RecFunVal(name, arg_name, body, exp) ->  print_string ("(" ^ name ^ " ("^ arg_name ^")" ^ ")")
   in
   List.iter
     (fun (x, y) ->
@@ -25,7 +27,7 @@ let print_env env =
 let rec eval3 e env =
   let rec binop f x y =
     match (eval3 y env, eval3 x env) with
-    | (IntVal(xx), IntVal(yy)) -> IntVal(f xx yy)
+    | (IntVal(yy), IntVal(xx)) -> IntVal(f xx yy)
     | _ -> failwith "integer value expected"
   in
   match e with
@@ -59,10 +61,16 @@ let rec eval3 e env =
       | _ -> failwith "wrong type"
     end
   | Fun(x, e) -> FunVal(x, e, env)
-  | App(e1, e2) -> begin
-      match (eval3 e1 env) with
-      | FunVal(sym, body, env1) -> let arg = eval3 e2 env in
-        eval3 body (ext env1 sym arg)
+  | App(e1, e2) ->
+    let funpart = (eval3 e1 env) in
+    let arg = (eval3 e2 env) in
+    begin
+      match funpart with
+      | FunVal(name, body, env1) ->
+        let env2 = (ext env1 name arg) in
+        eval3 body env2
+      | RecFunVal(name, x, body, env1) ->
+        let env2 = (ext (ext env1 x arg) name funpart) in eval3 body env2
       | _ -> failwith "function value expected"
     end
   | Greater(x, y) -> begin
@@ -70,5 +78,10 @@ let rec eval3 e env =
       | (IntVal(xx), IntVal(yy)) -> BoolVal(xx > yy)
       | _ -> failwith "integer value expected"
     end
-  | Let(sym, value, e) -> let new_env = ext env sym (eval3 value env) in eval3 e new_env
+  | Let(sym, value, e) ->
+    let new_env = ext env sym (eval3 value env) in
+    eval3 e new_env
+  | LetRec(name, x, e1, e2) ->
+    let env1 = ext env name (RecFunVal (name, x, e1, env))
+    in eval3 e2 env1
   | Var(x) -> lookup x env
