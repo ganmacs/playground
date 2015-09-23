@@ -36,3 +36,5 @@ type value =
                           (* let rec f x = e1 in e2 *)
 and
   env = (string * value) list
+
+type ty = TInt | TBool | TArrow of ty * ty

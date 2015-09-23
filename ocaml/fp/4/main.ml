@@ -20,6 +20,10 @@ let run s =
   let env = emptyenv () in
   pretty_print (eval3 (parse s) env)
 
+let check s =
+  let tyenv = ext (emptyenv()) "x" TInt in
+  Check.tcheck2 tyenv (parse s)
+
 (* let () = parse "let x = 3 + 1 * 4 in fun y -> x + y";  print_string "s";; *)
 
 (* 使用例は以下の通り。parse関数は Mainモジュールにはいっているので
