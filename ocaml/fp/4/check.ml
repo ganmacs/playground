@@ -30,6 +30,19 @@ let rec tcheck2 tenv = function
   | Var(s) -> lookup s tenv
   | IntLit(_) -> TInt
   | BoolLit(_) -> TBool
+  | Fun(x, e1) ->
+    let t1 = lookup x tenv in
+    let t2 = tcheck2 tenv e1 in
+    TArrow(t1, t2)
+  | App(e1, e2) ->
+    let t1 = tcheck2 tenv e1 in
+    let t2 = tcheck2 tenv e2 in
+    begin
+      match t1 with
+      | TArrow(t10, t11) -> if t10 = t2 then t11
+        else failwith "type erro in App"
+      | _ -> failwith "type error in App"
+    end
   | Eq(e1, e2) -> begin
       match(tcheck2 tenv e1, tcheck2 tenv e2) with
       | (TInt, TInt) -> TBool
