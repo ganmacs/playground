@@ -9,6 +9,7 @@ type exp =
   | App of exp * exp      (* function application i.e. e e *)
   | Eq of exp * exp       (* e = e *)
   | Greater of exp * exp  (* e > e *)
+  | LessGreater of exp * exp  (* e <> e *)
   | Less of exp * exp     (* e < e *)
   | Plus of exp * exp     (* e + e *)
   | Minus of exp * exp    (* e - e *)

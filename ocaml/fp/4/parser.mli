@@ -9,6 +9,7 @@ type token =
   | LESS
   | GREATER
   | COLCOL
+  | LESS_GREATER
   | LPAREN
   | RPAREN
   | LBRA

@@ -15,6 +15,7 @@
 %token LESS     // '<'
 %token GREATER  // '>'
 %token COLCOL   // "::"
+%token LESS_GREATER // "<>"
 
 // 括弧類
 %token LPAREN   // '('
@@ -47,7 +48,7 @@
 // 演算子優先順位 (優先度の低いものほど先)
 %nonassoc IN ELSE ARROW WITH
 %left VBAR
-%left EQUAL GREATER LESS
+%left EQUAL GREATER LESS LESS_GREATER
 %right COLCOL
 %left PLUS MINUS
 %left ASTERISK SLASH
@@ -118,6 +119,10 @@ exp:
   // e1 = e2
   | exp EQUAL exp
     { Eq ($1, $3) }
+
+  // e1 <> e2
+  | exp LESS_GREATER exp
+    { LessGreater ($1, $3) }
 
   // e1 < e2
   | exp LESS exp

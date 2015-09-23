@@ -46,6 +46,12 @@ let rec eval3 e env =
       | (BoolVal(xx), BoolVal(yy)) -> BoolVal(xx = yy)
       | _ -> failwith "wrong type"
     end
+  | LessGreater(x, y) -> begin
+      match (eval3 x env, eval3 y env) with
+      | (IntVal(xx), IntVal(yy)) -> BoolVal(xx <> yy)
+      | (BoolVal(xx), BoolVal(yy)) -> BoolVal(xx <> yy)
+      | _ -> failwith "wrong type"
+    end
   | If(cond, t, f) -> begin
       match (eval3 cond env) with
       | BoolVal(true) -> eval3 t env

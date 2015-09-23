@@ -5,9 +5,20 @@ let parse str =
   Parser.main Lexer.token
     (Lexing.from_string str)
 
+let rec pretty_print = function
+  | IntVal(x)  -> string_of_int x
+  | BoolVal(x) -> string_of_bool x
+  | ListVal(list) ->
+    print_string "[ ";
+    List.iter (fun x -> pretty_print x ;  print_string "; ") list;
+    print_string " ]"; "failed"
+  | FunVal(sym, body, env)  -> "failed"
+  | RecFunVal(s, sym, body, env) -> "failed"
+  | RecFunVal2(s, sym, body, env) -> "failed"
+
 let run s =
   let env = emptyenv () in
-  eval3 (parse s) env
+  pretty_print (eval3 (parse s) env)
 
 (* let () = parse "let x = 3 + 1 * 4 in fun y -> x + y";  print_string "s";; *)
 
