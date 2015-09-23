@@ -69,8 +69,9 @@ let rec eval3 e env =
       | FunVal(name, body, env1) ->
         let env2 = (ext env1 name arg) in
         eval3 body env2
-      | RecFunVal(name, x, body, env1) ->
-        let env2 = (ext (ext env1 x arg) name funpart) in eval3 body env2
+      | RecFunVal2(name, x, body, env1ref) ->
+        let env2 = (ext (! env1ref) x arg) in
+        eval3 body env2
       | _ -> failwith "function value expected"
     end
   | Greater(x, y) -> begin
@@ -82,6 +83,10 @@ let rec eval3 e env =
     let new_env = ext env sym (eval3 value env) in
     eval3 e new_env
   | LetRec(name, x, e1, e2) ->
-    let env1 = ext env name (RecFunVal (name, x, e1, env))
-    in eval3 e2 env1
+    let refenv = ref (emptyenv ()) in
+    let env1 = ext env name (RecFunVal2 (name, x, e1, refenv)) in
+    begin
+      refenv := env1;
+      eval3 e2 env1
+    end
   | Var(x) -> lookup x env
