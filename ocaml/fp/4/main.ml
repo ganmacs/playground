@@ -1,5 +1,6 @@
 open Syntax
 open Eval
+open Infer
 
 let parse str =
   Parser.main Lexer.token
@@ -24,8 +25,13 @@ let check s =
   let env = emptyenv() in
   let env1 = ext env "x" TInt in
   let env2 = ext env1 "y" TInt in
-  let env3 = ext env2 "f" (TArrow(TInt, TInt)) in
-  Check.tcheck2 env3 (parse s)
+  let env3 = ext env2 "w" (TArrow(TInt, TInt)) in
+  let env4 = ext env3 "z" (TArrow(TInt, TInt)) in
+  Check.tcheck2 env4 (parse s)
+
+let infer s =
+  Infer.tinf1 [] (parse s)
+
 (* let () = parse "let x = 3 + 1 * 4 in fun y -> x + y";  print_string "s";; *)
 
 (* 使用例は以下の通り。parse関数は Mainモジュールにはいっているので

@@ -34,6 +34,9 @@ let rec tcheck2 tenv = function
     let t1 = lookup x tenv in
     let t2 = tcheck2 tenv e1 in
     TArrow(t1, t2)
+  | Let(x, e1, e2) ->
+    let f = Fun (x, e2) in
+    tcheck2 tenv (App (f, e1))
   | App(e1, e2) ->
     let t1 = tcheck2 tenv e1 in
     let t2 = tcheck2 tenv e2 in
@@ -55,11 +58,18 @@ let rec tcheck2 tenv = function
       | (TInt, TInt) -> TInt
       | _ -> failwith "type error in Plus"
     end
+  | Times(e1, e2) ->
+    begin
+      match (tcheck2 tenv e1, tcheck2 tenv e2) with
+      | (TInt, TInt) -> TInt
+      | _ -> failwith "type error in Plus"
+    end
   | If(e1, e2, e3) ->
     begin
       match (tcheck2 tenv e1, tcheck2 tenv e2, tcheck2 tenv e3) with
       | (TBool, TInt, TInt) -> TInt
       | (TBool, TBool, TBool) -> TBool
+      | (TBool, TArrow(_, _), TArrow(_, _)) -> TBool
       | _ -> failwith "type error in If"
     end
   | _ -> failwith "unknown expression"
