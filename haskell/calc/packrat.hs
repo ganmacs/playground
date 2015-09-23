@@ -6,7 +6,10 @@ type Result = Either String
 
 type Parser s v = StateT s Result v
 
-type Table = [(String, Integer)]
+type Pos = Int
+type Key = (String, Pos)
+
+type Env = [(Key, Integer)]
 
 runParser = runStateT
 
@@ -49,8 +52,23 @@ many1 f = do
 
 number :: Parser String Integer
 number = do
+  -- p <- memorize ("number", 10)
   n <- many1 digit
   return $ read n
   where digit = satisfy isDigit
+
+-- memorize :: Key -> Parser String Integer -> Parser Env v
+-- memorize key = do
+--    env <- get
+--    case lookup key env of
+--      Just x -> return x
+--      Nothing -> return 1
+
+-- memorize key env f = case lookup key env of
+--   Just n -> return $ Just n
+--   Nothing -> do
+--      <- f
+--     return a
+-- memorize ("add", 10)
 
 main = print $ runParser number "1;"

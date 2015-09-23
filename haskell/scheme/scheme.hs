@@ -1,4 +1,5 @@
-import Control.Monad.Error
+-- import Control.Monad.Error
+import Control.Monad.Except
 import Data.Char
 import System.IO
 import qualified Data.Map as M
@@ -46,9 +47,12 @@ instance Show SExpr where
 -- parse error type
 data ParseErr = ParseErr String String deriving Show
 
-instance Error ParseErr where
-  noMsg = ParseErr "" ""
-  strMsg = ParseErr ""
+-- instance Except ParseErr where
+--   noMsg = ParseErr "" ""
+--   strMsg = ParseErr ""
+
+noMsg = ParseErr "" ""
+strMsg = ParseErr ""
 
 type Parser a = Either ParseErr a
 
