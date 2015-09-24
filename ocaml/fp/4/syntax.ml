@@ -37,4 +37,7 @@ type value =
 and
   env = (string * value) list
 
-type ty = TInt | TBool | TArrow of ty * ty
+type ty = TInt | TBool | TArrow of ty * ty | TVar of string
+type tyvar = string
+type tyenv = (string * ty) list
+type tysubst = (tyvar * ty) list

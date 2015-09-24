@@ -1,6 +1,7 @@
 open Syntax
 open Eval
 open Infer
+open Unify
 
 let parse str =
   Parser.main Lexer.token
@@ -31,6 +32,8 @@ let check s =
 
 let infer s =
   Infer.tinf1 [] (parse s)
+
+let unify s = Unify.unify s
 
 (* let () = parse "let x = 3 + 1 * 4 in fun y -> x + y";  print_string "s";; *)
 
