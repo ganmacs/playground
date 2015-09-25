@@ -1,3 +1,5 @@
+open Syntax
+
 type cam_instr =
   | CAM_Ldi of int
   | CAM_Ldb of bool
@@ -83,7 +85,28 @@ let rec runner env stack = function
 
 let cam_interpreter code = match runner [] [] code with
   | (_, ret :: _) -> ret
-  | _ -> failwith "おあｋしい"
+  | _ -> failwith "Something went wrong"
+
+let rec position x venv =
+  match venv with
+  | [] -> failwith "no matching variable in environment"
+  | y :: venv2 -> if x = y then 0 else 1 + (position x venv2)
+;;
+
+let cam_compile e =
+  let rec c venv = function
+    | Var(s) -> [CAM_Access (position s venv)]
+    | Fun(x, e) -> [CAM_Closure((c (x :: "dummy" :: venv) e)@ [CAM_Return])]
+    | IntLit(x) -> [CAM_Ldi x]
+    | BoolLit(x) -> [CAM_Ldb x]
+    | Let(s, e1, e2) -> c venv e1 @ [CAM_Let] @ (c (s :: venv) e2) @ [CAM_EndLet]
+    | LetRec(f, x, e1, e2) -> CAM_Closure((c (x :: f :: venv) e) @ [CAM_Return]) :: CAM_Let :: (c (f :: venv) e2) @ [CAM_EndLet]
+    | App(e1, e2) -> c venv e2 @ (c venv e1) @ [CAM_Apply]
+    | Plus(e1, e2) -> c venv e2 @ (c venv e1) @ [CAM_Add]
+    | Eq(e1, e2) -> c venv e2 @ (c venv e1) @ [CAM_Eq]
+    | If(e1, e2, e3) -> c venv e1 @ [CAM_Test (c venv e2, c venv e3)]
+    | _ -> failwith "unknow expression"
+  in c [] e
 
 (* Cam.runner [] [] [CAM_Ldi(4); CAM_Ldi(3); CAM_Ldi(2); CAM_Ldi(1); CAM_Add; CAM_Add; CAM_Add] *)
 (* Cam.cam_interpreter [CAM_Ldi(4); CAM_Ldi(3); CAM_Less] *)

@@ -2,6 +2,7 @@ open Syntax
 open Eval
 open Infer
 open Unify
+open Cam
 
 let parse str =
   Parser.main Lexer.token
@@ -34,6 +35,11 @@ let infer s =
   Infer.tinf1 [] (parse s)
 
 let unify s = Unify.unify s
+
+let compile s = cam_compile (parse s)
+
+let run_in_cam s = cam_interpreter (compile s)
+(* [Cam.CAM_Closure [Cam.CAM_Ldi 1; Cam.CAM_Access 0; Cam.CAM_Add]; Cam.CAM_Return] *)
 
 (* let () = parse "let x = 3 + 1 * 4 in fun y -> x + y";  print_string "s";; *)
 

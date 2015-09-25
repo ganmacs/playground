@@ -2,8 +2,8 @@
 # Makefile
 #
 
-SRC= syntax.ml parser.mly lexer.mll eval.ml check.ml unify.ml infer.ml main.ml
-COMPONENT= syntax.ml parser.mli parser.ml lexer.ml eval.ml check.ml unify.ml infer.ml main.ml
+SRC= syntax.ml parser.mly lexer.mll eval.ml check.ml unify.ml infer.ml cam.ml main.ml
+COMPONENT= syntax.ml parser.mli parser.ml lexer.ml eval.ml check.ml unify.ml infer.ml cam.ml main.ml
 TARGET= miniocaml
 
 all:	$(TARGET)
