@@ -27,6 +27,10 @@ let rec subst_ty theta t =
   | TArrow(t2, t3) -> TArrow(subst_ty theta t2, subst_ty theta t3)
   | TVar(s) -> subst_ty1 theta s
 
+(* 代入thetaを型環境teに適用 *)
+let subst_tyenv theta tenv =
+  List.map (fun (x, t) -> (x, subst_ty theta t)) tenv
+
 (* compose_subst: tysubst -> tysubst -> tysubst *)
 (* 2つの代入を合成した代入を返す *)
 let compose_subst theta2 theta1 =
@@ -70,6 +74,7 @@ let unify eql =
           | (_, _) -> failwith "unification failded"
         end
   in solve eql []
+
 (* unify [(TVar("'a"), TBool)]  *)
 (* TVar("'a") と TBoolが等しいかどうかを判定？ *)
 (* 戻り値は [("'a", TBool)] ？  型代入 *)

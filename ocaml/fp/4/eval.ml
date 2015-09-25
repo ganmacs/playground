@@ -8,6 +8,10 @@ let rec lookup x env = match env with
   | [] -> failwith ("unbound variable: " ^ x)
   | (k, y) :: env1 -> if k = x then y else lookup x env1
 
+let rec remove env x  = match env with
+  | [] -> failwith ("unbound variable: " ^ x)
+  | (k, y) :: env1 -> if k = x then env1 else (k, y) :: remove env1 x
+
 let print_env env =
   print_string "[";
   let pp = function
@@ -15,6 +19,7 @@ let print_env env =
     | BoolVal(z) -> print_string (if z then "true" else "else")
     | FunVal(name, body, exp) -> print_string ("(" ^ name ^ " ()" ^ ")")
     | RecFunVal(name, arg_name, body, exp) ->  print_string ("(" ^ name ^ " ("^ arg_name ^")" ^ ")")
+    | _ -> failwith "unimplment"
   in
   List.iter
     (fun (x, y) ->
@@ -90,3 +95,4 @@ let rec eval3 e env =
       eval3 e2 env1
     end
   | Var(x) -> lookup x env
+  | _ -> failwith "unimplment"
