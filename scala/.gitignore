@@ -1,0 +1,23 @@
+### https://raw.github.com/github/gitignore/5b8eb2c3715a7d5c4fe322abe7f0873b8985d50b/Scala.gitignore
+
+*.class
+*.log
+
+# sbt specific
+.cache
+.history
+.lib/
+dist/*
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+
+# Scala-IDE specific
+.scala_dependencies
+.worksheet
+
+# ensime
+/**/.ensime
+/**/.ensime_cache/*
