@@ -1,3 +1,4 @@
 class Type
-case class IntT(v: Int) extends Type
-case class DoubleT(v: Double) extends Type
+case class IntType() extends Type
+case class DoubleType() extends Type
+case class VarType(v: Type) extends Type

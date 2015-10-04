@@ -1,33 +1,32 @@
 object Evaluator {
-  val emptyEnv = Map.empty[String, Type]
   val vm = new Evaluator
 
-  def eval(e: Expr) = vm.eval(e, emptyEnv)
+  def eval(e: Expr) = vm.eval(e, Env.empty())
 }
 
 class Evaluator {
-  def eval(e: Expr, env: Map[String, Type]): Type = e match {
-    case IntLit(v) => IntT(v)
-    case DoubleLit(v) => DoubleT(v)
+  def eval(e: Expr, env: Env[Value]): Value = e match {
+    case IntLit(v) => IntValue(v)
+    case DoubleLit(v) => DoubleValue(v)
     case IdLit(v) => env.get(v) match {
-      case Some(v@IntT(_)) => v
-      case Some(v@DoubleT(_)) => v
+      case Some(v@IntValue(_)) => v
+      case Some(v@DoubleValue(_)) => v
       case None => throw new RuntimeException(s"unknow variable $v")
     }
     case BinExpr(l, op, r) => (eval(l, env), op, eval(r, env)) match {
       // TODO type infer
-      case (IntT(x), Op("+"), IntT(y)) => IntT(x + y)
-      case (IntT(x), Op("-"), IntT(y)) => IntT(x - y)
-      case (IntT(x), Op("*"), IntT(y)) => IntT(x * y)
-      case (IntT(x), Op("/"), IntT(y)) => IntT(x / y)
-      case (DoubleT(x), Op("+"), DoubleT(y)) => DoubleT(x + y)
-      case (DoubleT(x), Op("-"), DoubleT(y)) => DoubleT(x - y)
-      case (DoubleT(x), Op("*"), DoubleT(y)) => DoubleT(x * y)
-      case (DoubleT(x), Op("/"), DoubleT(y)) => DoubleT(x / y)
+      case (IntValue(x), Op("+"), IntValue(y)) => IntValue(x + y)
+      case (IntValue(x), Op("-"), IntValue(y)) => IntValue(x - y)
+      case (IntValue(x), Op("*"), IntValue(y)) => IntValue(x * y)
+      case (IntValue(x), Op("/"), IntValue(y)) => IntValue(x / y)
+      case (DoubleValue(x), Op("+"), DoubleValue(y)) => DoubleValue(x + y)
+      case (DoubleValue(x), Op("-"), DoubleValue(y)) => DoubleValue(x - y)
+      case (DoubleValue(x), Op("*"), DoubleValue(y)) => DoubleValue(x * y)
+      case (DoubleValue(x), Op("/"), DoubleValue(y)) => DoubleValue(x / y)
     }
     case Let(IdLit(id), value, r) => {
-      val env2 = Map[String, Type](id -> eval(value, env)) ++ env
-      eval(r, env2)
+      val newEnv = Env.build(env, (id, eval(value, env)))
+      eval(r, newEnv)
     }
   }
 }
