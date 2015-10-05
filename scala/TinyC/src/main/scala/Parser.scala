@@ -6,15 +6,15 @@ object Parser extends RegexParsers with PackratParsers with Tokens {
   private val int = INT ^^ { case e => IntLit(e.toInt) }
   private val double = DOUBLE ^^ { case e => DoubleLit(e.toDouble) }
   private val id = ID ^^ { case e => IdLit(e) }
+  private val let = (LET ~> id) ~ (EQ ~> expr) ~ (IN ~> expr) ^^ {
+    case id ~ value ~ body => Let(id, value, body)
+  }
 
-  private val expr: PackratParser[Expr] =
-    (LET ~> id) ~ (EQ ~> expr) ~ (IN ~> expr) ^^ {
-      case id ~ value ~ body => Let(id, value, body)
-    } | term ~ (exprOp ~ term).* ^^ {
-      case l ~ r =>
-        val rl = for ((op ~ fact) <- r) yield (Op(op), fact)
-        makeBinExpr(l, rl)
-    }
+  private val expr: PackratParser[Expr] = let |  term ~ (exprOp ~ term).* ^^ {
+    case l ~ r =>
+      val rl = for ((op ~ fact) <- r) yield (Op(op), fact)
+      makeBinExpr(l, rl)
+  }
 
   private val term: PackratParser[Expr] = fact ~ (termOp ~ fact).* ^^ {
     case l ~ r =>
@@ -32,8 +32,6 @@ object Parser extends RegexParsers with PackratParsers with Tokens {
   }
 
   private def makeBinExpr(lterm: Expr , rterms: List[(Op, Expr)]) = {
-    (lterm /: rterms) ((a, rt) =>
-      rt match { case (op, e) => BinExpr(a, op, e) }
-    )
+    (lterm /: rterms) { case (a, (op, e)) => BinExpr(a, op, e) }
   }
 }

@@ -1,7 +1,7 @@
 object Evaluator {
   val vm = new Evaluator
 
-  def eval(e: Expr) = vm.eval(e, Env.empty())
+  def eval(e: Expr) = vm.eval(e, Env.empty[Value])
 }
 
 class Evaluator {
@@ -11,6 +11,7 @@ class Evaluator {
     case IdLit(v) => env.get(v) match {
       case Some(v@IntValue(_)) => v
       case Some(v@DoubleValue(_)) => v
+      case Some(v) => v
       case None => throw new RuntimeException(s"unknow variable $v")
     }
     case BinExpr(l, op, r) => (eval(l, env), op, eval(r, env)) match {
@@ -24,7 +25,7 @@ class Evaluator {
       case (DoubleValue(x), Op("/"), DoubleValue(y)) => DoubleValue(x / y)
     }
     case Let(IdLit(id), value, r) => {
-      val newEnv = Env.build(env, (id, eval(value, env)))
+      val newEnv = Env.build[Value](env, (id, eval(value, env)))
       eval(r, newEnv)
     }
   }

@@ -2,7 +2,7 @@ case class Op(v: String) {
   override def toString() = v
 }
 
-abstract class Expr
+sealed trait Expr
 
 case class IdLit(v: String) extends Expr {
   override def toString() = v

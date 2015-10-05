@@ -1,3 +1,3 @@
-class Type
-case class IntType() extends Type
-case class DoubleType() extends Type
+sealed trait Type
+case object IntType extends Type
+case object DoubleType extends Type

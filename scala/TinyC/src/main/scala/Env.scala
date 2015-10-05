@@ -1,8 +1,6 @@
 object Env {
-  def empty() = new Env[Value]
-  def emptyType() = new Env[Type]
-  def build(parent: Env[Value], t: Tuple2[String, Value]) = new Env[Value](Some(parent), Map(t._1 ->  t._2))
-  def buildT(parent: Env[Type], t: Tuple2[String, Type]) = new Env[Type](Some(parent), Map(t._1 ->  t._2))
+  def empty[T] = new Env[T]
+  def build[T](parent: Env[T], t: Tuple2[String, T]) = new Env[T](Some(parent), Map(t._1 ->  t._2))
 }
 
 case class Env[T](
