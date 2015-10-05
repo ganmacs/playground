@@ -14,7 +14,6 @@ class Evaluator {
       case None => throw new RuntimeException(s"unknow variable $v")
     }
     case BinExpr(l, op, r) => (eval(l, env), op, eval(r, env)) match {
-      // TODO type infer
       case (IntValue(x), Op("+"), IntValue(y)) => IntValue(x + y)
       case (IntValue(x), Op("-"), IntValue(y)) => IntValue(x - y)
       case (IntValue(x), Op("*"), IntValue(y)) => IntValue(x * y)
