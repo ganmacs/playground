@@ -1,7 +1,7 @@
 import util.parsing.combinator.{RegexParsers, PackratParsers}
 
 object Parser extends RegexParsers with PackratParsers with Tokens {
-  var env = Env.empty[Semantics]
+  var env = Env.empty[RuleW] // args with parse?
 
   def parse(in: String) = parseAll(rule, in) match {
     case Success(d, next) => Right((d, env))
@@ -74,9 +74,9 @@ object Parser extends RegexParsers with PackratParsers with Tokens {
         case (NoTerm(TERMTERM), NoTerm(TERMTERM)) => {
           expr = expr | term ~ e.op.v ~ term ^^ {
             case t1 ~ o ~ t2 =>
-              val el = ExprList(List(t1, Op(o), t2))
-              env.put(el.toString(), se)
-              el
+              val bexpr = BinExpr(t1, Op(o), t2)
+              env.put(bexpr.toString(), RuleW(s, se))
+              bexpr
           }
         }
       }

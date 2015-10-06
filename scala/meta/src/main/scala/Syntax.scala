@@ -34,6 +34,7 @@ case class Semantics(v: String) extends Expr {
 case class NoTerm(v: String) extends Expr {
   override def toString() = v
 }
+
 case class Syntax(val lterm: Expr, val op: Op, val rterm: Expr) extends Expr {
   override def toString() = s"""($op $lterm $rterm)"""
 }
