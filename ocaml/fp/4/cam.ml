@@ -111,3 +111,19 @@ let cam_compile e =
 (* Cam.runner [] [] [CAM_Ldi(4); CAM_Ldi(3); CAM_Ldi(2); CAM_Ldi(1); CAM_Add; CAM_Add; CAM_Add] *)
 (* Cam.cam_interpreter [CAM_Ldi(4); CAM_Ldi(3); CAM_Less] *)
 (* Cam.runner [] [] [CAM_Ldi(4); CAM_Ldi(3); CAM_Ldi(2); CAM_Ldi(1); CAM_Add; CAM_Times; CAM_Add] *)
+
+(* let y = 10 in *)
+(* let f = fun x -> x + y in *)
+(* let g =  fun y -> (f y) * y in *)
+(* g 10 *)
+(* ;; *)
+
+(* let y = 10 in *)
+(* let f = fun x -> x + y in *)
+(* let g = fun y -> (f y) *  y in *)
+(* (f 10) *  10 *)
+
+(* let y = 10 in *)
+(* let f = fun x -> x + y in *)
+(* let g = fun y -> (f y) *  y in *)
+(* (10 + y) * 10 *)
