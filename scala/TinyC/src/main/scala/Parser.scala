@@ -1,6 +1,12 @@
 import util.parsing.combinator.{RegexParsers, PackratParsers}
 
 object Parser extends RegexParsers with PackratParsers with Tokens {
+  def parse(in: String) = parseAll(expr, in) match {
+    case Success(d, next) => Right(d)
+    case NoSuccess(errorMsg, next) =>
+      Left(s"$errorMsg : in ${next.pos.line} at column ${next.pos.column}")
+  }
+
   private val exprOp  = ADD | SUB
   private val termOp  = MUL | DIV
   private val int = INT ^^ { case e => IntLit(e.toInt) }
@@ -22,14 +28,7 @@ object Parser extends RegexParsers with PackratParsers with Tokens {
       makeBinExpr(l, rl)
   }
 
-  private val fact: PackratParser[Expr] =
-    double | int | id | LPAREN ~> expr <~ RPAREN
-
-  def parse(in: String) = parseAll(expr, in) match {
-    case Success(d, next) => Right(d)
-    case NoSuccess(errorMsg, next) =>
-      Left(s"$errorMsg : in ${next.pos.line} at column ${next.pos.column}")
-  }
+  private val fact: PackratParser[Expr] = double | int | id | LPAREN ~> expr <~ RPAREN
 
   private def makeBinExpr(lterm: Expr , rterms: List[(Op, Expr)]) = {
     (lterm /: rterms) { case (a, (op, e)) => BinExpr(a, op, e) }

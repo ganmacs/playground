@@ -9,11 +9,11 @@ case class IdLit(v: String) extends Expr {
 }
 
 case class IntLit(v: Int) extends Expr {
-  override def toString() = v toString()
+  override def toString() = v.toString
 }
 
 case class DoubleLit(v: Double) extends Expr {
-  override def toString() = v toString()
+  override def toString() = v.toString
 }
 
 case class BinExpr(lterm: Expr, op: Op, rterm: Expr) extends Expr {
