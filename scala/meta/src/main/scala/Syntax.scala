@@ -1,8 +1,8 @@
-case class Op(v: String) {
+sealed trait Expr
+
+case class Op(v: String) extends Expr{
   override def toString() = v
 }
-
-sealed trait Expr
 
 case class IdLit(v: String) extends Expr {
   override def toString() = v
@@ -24,13 +24,16 @@ case class Let(id: IdLit, value: Expr, body: Expr) extends Expr {
   override def toString() = s"(let (($id $value)) $body)"
 }
 
+case class ExprList(v: List[Expr]) extends Expr {
+  override def toString() = v.mkString(" ")
+}
+
 case class Semantics(v: String) extends Expr {
   override def toString() = v
 }
 case class NoTerm(v: String) extends Expr {
   override def toString() = v
 }
-
 case class Syntax(val lterm: Expr, val op: Op, val rterm: Expr) extends Expr {
   override def toString() = s"""($op $lterm $rterm)"""
 }

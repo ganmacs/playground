@@ -1,16 +1,18 @@
 import util.parsing.combinator.{RegexParsers, PackratParsers}
 
 object Parser extends RegexParsers with PackratParsers with Tokens {
+  var env = Env.empty[Semantics]
+
   def parse(in: String) = parseAll(rule, in) match {
-    case Success((d, e), next) => Right((d, e))
+    case Success(d, next) => Right((d, env))
     case NoSuccess(errorMsg, next) =>
       Left(s"$errorMsg : in ${next.pos.line} at column ${next.pos.column}")
   }
 
-  lazy val rule: PackratParser[(Expr, Env[Value])] = RULE ~> ruleWithoutIn ~ (IN ~> expr) ^^ {
+  lazy val rule: PackratParser[Expr] = RULE ~> ruleWithoutIn ~ (IN ~> expr) ^^ {
     case rulew ~ e =>
       Rule(rulew.nsyntax, rulew.semantics, e)
-      (e, Env.empty[Value])
+      e
   }
 
   lazy val ruleWithoutIn = nsyntax ~ semantics ^^ {
@@ -72,7 +74,9 @@ object Parser extends RegexParsers with PackratParsers with Tokens {
         case (NoTerm(TERMTERM), NoTerm(TERMTERM)) => {
           expr = expr | term ~ e.op.v ~ term ^^ {
             case t1 ~ o ~ t2 =>
-              BinExpr(t1, Op(o), t2)
+              val el = ExprList(List(t1, Op(o), t2))
+              env.put(el.toString(), se)
+              el
           }
         }
       }
