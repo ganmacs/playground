@@ -3,11 +3,16 @@ import util.parsing.combinator.{RegexParsers, PackratParsers}
 object Parser extends RegexParsers with PackratParsers with Tokens {
   var env = Env.empty[RuleW] // args with parse?
 
-  def parse(in: String) = parseAll(rule, in) match {
-    case Success(d, next) => Right((d, env))
-    case NoSuccess(errorMsg, next) =>
-      Left(s"$errorMsg : in ${next.pos.line} at column ${next.pos.column}")
+  def parse(in: String, env: Env[RuleW] = Env.empty[RuleW]) = {
+    this.env = env
+    parseAll(stmnt, in) match {
+      case Success(d, next) => Right((d, env))
+      case NoSuccess(errorMsg, next) =>
+        Left(s"$errorMsg : in ${next.pos.line} at column ${next.pos.column}")
+    }
   }
+
+  lazy val stmnt = rule | expr
 
   lazy val rule: PackratParser[Expr] = RULE ~> ruleWithoutIn ~ (IN ~> expr) ^^ {
     case rulew ~ e =>
@@ -72,11 +77,15 @@ object Parser extends RegexParsers with PackratParsers with Tokens {
     rule match {
       case NoTerm(EXPRTERM) => (e.lterm, e.rterm) match {
         case (NoTerm(TERMTERM), NoTerm(TERMTERM)) => {
-          expr = expr | term ~ e.op.v ~ term ^^ {
+          expr = term ~ e.op.v ~ term ^^ {
             case t1 ~ o ~ t2 =>
               val bexpr = BinExpr(t1, Op(o), t2)
-              env.put(bexpr.toString(), RuleW(s, se))
+              this.env.put(bexpr.toString(), RuleW(s, se))
               bexpr
+          } | let | term ~ (exprOp ~ term).* ^^ {
+            case l ~ r =>
+              val rl = for ((op ~ fact) <- r) yield (Op(op), fact)
+              makeBinExpr(l, rl)
           }
         }
       }
