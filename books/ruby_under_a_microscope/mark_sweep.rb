@@ -89,11 +89,13 @@ class FreeList
   end
 
   def check_allocatable!
-    fail "Could not allocate object " if freelist.last?
+    fail "Could not allocate object" if freelist.last?
   end
 end
 
 class MSGC
+  MARK = 0
+  UNMARK = 1
   MEMORY_SIZE = 10
 
   attr_reader :free_bit_map
@@ -132,24 +134,24 @@ class MSGC
   def run_mark
     @allocated_objs.each do |al|
       if al.ref_count > 0
-        @free_bit_map << 1
+        @free_bit_map << MARK
       else
-        @free_bit_map << 0
+        @free_bit_map << UNMARK
       end
     end
   end
 
   def run_sweep
-    a = []
+    new_objs = []
     @free_bit_map.each_with_index do |e, i|
-      if e == 0
-        freelist.sweep(@allocated_objs[i])
+      if e == MARK
+        new_objs << @allocated_objs[i]
       else
-        a << @allocated_objs[i]
+        freelist.sweep(@allocated_objs[i])
       end
     end
     @free_bit_map = []
-    @allocated_objs = a
+    @allocated_objs = new_objs
   end
 
   def freelist
@@ -160,36 +162,19 @@ end
 gc = MSGC.new
 p gc
 
-a = gc.allocate
-gc.free(a)
-a = gc.allocate
-gc.free(a)
-a = gc.allocate
-gc.free(a)
-a = gc.allocate
-gc.free(a)
-a = gc.allocate
-gc.free(a)
-a = gc.allocate
-gc.free(a)
-a = gc.allocate
-gc.free(a)
-a = gc.allocate
-gc.free(a)
-a = gc.allocate
-gc.free(a)
+a0 = gc.allocate
+a1 = gc.allocate
+a2 = gc.allocate
+a3 = gc.allocate
+a4 = gc.allocate
+a5 = gc.allocate
+a6 = gc.allocate
+a7 = gc.allocate
+a8 = gc.allocate
 
-gc.run
+gc.free(a3)
+gc.free(a5)
+gc.free(a7)
 p gc
-
-a = gc.allocate
-gc.free(a)
-a = gc.allocate
-gc.free(a)
-a = gc.allocate
-gc.free(a)
-a = gc.allocate
-gc.free(a)
-
 gc.run
 p gc
