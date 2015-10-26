@@ -68,7 +68,6 @@ class FreeList
 
   private
 
-  # first element of freelist is root, so it will not be changed
   def freelist
     @freelist ||= free_ary[1..-1].reduce(free_ary.first) do |a, e|
       e.next_obj = a
@@ -110,7 +109,7 @@ class MSGC
     run_sweep
   end
 
-  # retur RObject
+  # return RObject
   def allocate
     obj = freelist.allocate
     @allocated_objs << obj
@@ -122,7 +121,6 @@ class MSGC
   def free(obj)
     obj.unref!
     puts "free! #{obj}"
-    obj
   end
 
   def inspect
@@ -132,10 +130,8 @@ class MSGC
   private
 
   def run_mark
-    als = []
     @allocated_objs.each do |al|
       if al.ref_count > 0
-        als << al
         @free_bit_map << 1
       else
         @free_bit_map << 0
@@ -144,9 +140,16 @@ class MSGC
   end
 
   def run_sweep
+    a = []
     @free_bit_map.each_with_index do |e, i|
-      freelist.sweep(@allocated_objs[i]) if e == 0
+      if e == 0
+        freelist.sweep(@allocated_objs[i])
+      else
+        a << @allocated_objs[i]
+      end
     end
+    @free_bit_map = []
+    @allocated_objs = a
   end
 
   def freelist
@@ -154,31 +157,39 @@ class MSGC
   end
 end
 
-require 'pp'
-
 gc = MSGC.new
+p gc
+
 a = gc.allocate
-b = gc.allocate
-c = gc.allocate
-d = gc.allocate
-e = gc.allocate
-f = gc.allocate
-g = gc.allocate
+gc.free(a)
+a = gc.allocate
+gc.free(a)
+a = gc.allocate
+gc.free(a)
+a = gc.allocate
+gc.free(a)
+a = gc.allocate
+gc.free(a)
+a = gc.allocate
+gc.free(a)
+a = gc.allocate
+gc.free(a)
+a = gc.allocate
+gc.free(a)
+a = gc.allocate
+gc.free(a)
 
-gc.free(d)
-gc.free(e)
-gc.free(f)
-
+gc.run
 p gc
-p gc.run
+
+a = gc.allocate
+gc.free(a)
+a = gc.allocate
+gc.free(a)
+a = gc.allocate
+gc.free(a)
+a = gc.allocate
+gc.free(a)
+
+gc.run
 p gc
-
-aa = gc.allocate
-bb = gc.allocate
-cc = gc.allocate
-
-gc.free(aa)
-gc.free(bb)
-
-p gc.run
-p gc.list
