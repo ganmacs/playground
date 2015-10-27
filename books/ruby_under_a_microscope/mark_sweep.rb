@@ -6,10 +6,6 @@ class RValue
     @ref_count = 0
   end
 
-  def ref!
-    @ref_count += 1
-  end
-
   def unref!
     @ref_count -= 1
   end
@@ -20,7 +16,7 @@ class RValue
 
   def alloc!
     @next_obj = nil
-    ref!
+    @ref_count += 1
     self
   end
 
@@ -36,11 +32,10 @@ class FreeList
   end
 
   def allocate
-    check_allocatable!
+    return if freelist.last?
 
     ret = freelist
     @freelist = freelist.next_obj
-
     ret.alloc!
   end
 
@@ -87,10 +82,6 @@ class FreeList
   def free_ary
     @free_ary ||= @limit.times.map { RValue.new }
   end
-
-  def check_allocatable!
-    fail "Could not allocate object" if freelist.last?
-  end
 end
 
 class MSGC
@@ -106,14 +97,14 @@ class MSGC
     @size = 0
   end
 
-  def run
-    run_mark
-    run_sweep
-  end
-
   # return RObject
   def allocate
-    obj = freelist.allocate
+    unless (obj = freelist.allocate)
+      run
+      obj = freelist.allocate
+      fail 'Could not allocate object' if obj.nil?
+    end
+
     @allocated_objs << obj
     puts "alloc #{obj}"
     obj
@@ -130,6 +121,11 @@ class MSGC
   end
 
   private
+
+  def run
+    run_mark
+    run_sweep
+  end
 
   def run_mark
     @allocated_objs.each do |al|
@@ -160,21 +156,31 @@ class MSGC
 end
 
 gc = MSGC.new
-p gc
 
+p gc
 a0 = gc.allocate
 a1 = gc.allocate
 a2 = gc.allocate
 a3 = gc.allocate
+gc.free(a0)
+gc.free(a1)
+gc.free(a2)
+gc.free(a3)
 a4 = gc.allocate
 a5 = gc.allocate
 a6 = gc.allocate
 a7 = gc.allocate
+gc.free(a4)
+gc.free(a5)
+gc.free(a6)
+gc.free(a7)
 a8 = gc.allocate
 
-gc.free(a3)
-gc.free(a5)
-gc.free(a7)
 p gc
-gc.run
+a9 = gc.allocate                # gc run
+p gc
+
+a10 = gc.allocate
+a11 = gc.allocate
+
 p gc
