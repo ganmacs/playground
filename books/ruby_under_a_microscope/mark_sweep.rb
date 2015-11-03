@@ -1,5 +1,5 @@
 class RValue
-  attr_accessor :next_obj, :ref_count
+  attr_accessor :next_obj
 
   def initialize(next_obj: nil)
     @next_obj = next_obj
@@ -101,8 +101,9 @@ class MSGC
   def allocate
     unless (obj = freelist.allocate)
       run
-      obj = freelist.allocate
-      fail 'Could not allocate object' if obj.nil?
+      unless (obj = freelist.allocate)
+        fail 'Could not allocate object'
+      end
     end
 
     @allocated_objs << obj

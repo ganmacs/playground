@@ -49,13 +49,40 @@ void traverse2(VM* vm)
   }
 }
 
+void test2() {
+  void* ary[10];
+  int* i = malloc(sizeof(int));
+  char* c = malloc(sizeof(char));
+
+  ary[0] = i;
+  ary[1] = c;
+}
+
+typedef struct
+{
+  int size;
+  int type;
+} Obj;
+
 int main(int argc, char *argv[])
 {
+
   VM* vm = newVM();
-  newObject(vm, 0);
-  newObject(vm, 1);
-  newObject(vm, 2);
-  traverse(vm);
+  /* newObject(vm, 0); */
+  /* newObject(vm, 1); */
+  /* newObject(vm, 2); */
+  /* traverse(vm); */
+  test2();
+
+  void* heap = malloc(1000);
+  int a = (int)heap;
+  a = 10;
+  heap += sizeof(int);
+  printf("%d\n", a);
+  printf("%d\n", (int)sizeof(int));
+  printf("%d\n", (int)sizeof(Obj));
+  printf("%d\n", (int)sizeof(void));
+  printf("%d\n", (int)sizeof(char));
 
   /* Object* object = malloc(sizeof(Object)); */
   /* Object* o = object; */
