@@ -66,7 +66,6 @@ void assertLive(VM* vm, long expectedCount) {
   }
 }
 
-
 VM* newVM()
 {
   VM* vm = malloc(sizeof(VM));
@@ -133,7 +132,6 @@ void test1()
   assertLive(vm, 2);
   freeVM(vm);
 }
-
 
 int main(int argc, char *argv[])
 {

@@ -5,25 +5,25 @@
 void test1()
 {
   printf("Test 1: Objects on stack are preserved.\n");
-  VM* vm = newVM();
-  pushInt(vm, 1);
-  pushInt(vm, 2);
+  vm* vm = new_vm();
+  push_int(vm, 1);
+  push_int(vm, 2);
 
-  assertLive(vm, 2);
-  freeVM(vm);
+  assert_live(vm, 2);
+  free_vm(vm);
 }
 
 void test2() {
   printf("Test 2: Unreached objects are collected.\n");
-  VM* vm = newVM();
-  pushInt(vm, 1);
-  pushInt(vm, 2);
+  vm* vm = new_vm();
+  push_int(vm, 1);
+  push_int(vm, 2);
   pop(vm);
   pop(vm);
 
   gc(vm);
-  assertLive(vm, 0);
-  freeVM(vm);
+  assert_live(vm, 0);
+  free_vm(vm);
 }
 
 int main(int argc, char *argv[])

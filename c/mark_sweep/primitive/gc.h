@@ -1,3 +1,3 @@
 #include "vm.h"
 
-void gc(VM* vm);
+void gc(vm* vm);

@@ -5,23 +5,33 @@
 #define HEAP_SIZE 1024
 #define STACK_SIZE 1024
 
-typedef struct {
-  Object* stack[STACK_SIZE];
-  Object* roots[STACK_SIZE];    /* for assertion */
-  int stackSize;
-
-  void* heap;
+typedef struct heap_ {
+  void* head;
   void* next;
-} VM;
+  struct heap_* nextHeap;
+} heap;
 
-VM* newVM();
-void freeVM(VM* vm);
+typedef struct {
+  object* stack[STACK_SIZE];
+  int stack_size;
 
-void assertLive(VM* vm, int expectedCount);
+  /* for assertion */
+  object* roots[STACK_SIZE];
+  int root_size;
 
-void push(VM* vm, Object* obj);
-void pushInt(VM* vm, int value);
-Object* pop(VM* vm);
+  heap* heap;
+  /* void* next; */
+  /* void* freeList; */
+} vm;
+
+vm* new_vm();
+void free_vm(vm* vm);
+
+void assert_live(vm* vm, int expected_count);
+
+void push(vm* vm, object* obj);
+void push_int(vm* vm, int value);
+object* pop(vm* vm);
 
 #define INCLUDE_VM_H
 #endif
