@@ -7,12 +7,16 @@ vm* new_vm()
 {
   vm* vm = malloc(sizeof(vm));
   vm->stack_size = 0;
-  vm->root_size = 0;
 
-  vm->heap->head = malloc(HEAP_SIZE);
-  vm->heap->next = NULL;
-  /* vm->next = vm->heap->head; */
-  /* vm->freeList = vm->heap->head; */
+  vm->heap = malloc(HEAP_SIZE);
+  vm->next = vm->heap;
+
+  object* o = (object*)vm->heap;
+  vm->next += OBJ_SIZE;
+  o->size = HEAP_SIZE - OBJ_SIZE;
+  o->marked = 0;
+  o->body = vm->next;
+  vm->freelist = o;
 
   return vm;
 }
@@ -23,20 +27,15 @@ void free_vm(vm* vm)
   free(vm);
 }
 
-int count_live(object* obj)
-{
-  switch(obj->type) {
-  case OBJ_INT:
-    return 1;
-  case OBJ_PAIR:
-    return count_live(((o_pair*)obj->body)->head) + count_live(((o_pair*)obj->body)->tail);
-  }
-}
-
 void assert_live(vm* vm, int expected_count) {
   int actual_count = 0;
-  for (int i = 0; i < vm->root_size; i++) {
-    actual_count += count_live(vm->roots[i]);
+  void* o = (object*)vm->heap;
+
+  while (o < (vm->heap + HEAP_SIZE)) {
+    if (((object*)o)->type != OBJ_FREE) {
+      actual_count += 1;
+    }
+    o += ((object*)o)->size;
   }
 
   if (actual_count == expected_count) {
@@ -53,34 +52,61 @@ void* heap_end(vm* vm)
   return vm->heap + HEAP_SIZE;
 }
 
+object* split_heap(object* obj, size_t size)
+{
+  object* o = NULL;
+
+  /* split */
+  object* next = obj->body;
+  next += size;
+
+  /* new object */
+  o = next;
+  next += OBJ_SIZE;
+  o->size = obj->size - OBJ_SIZE;
+  o->body = next;
+
+  return o;
+}
+
+object* pickup_object(vm* vm, size_t size)
+{
+  object* pre = NULL;
+  object* freelist = vm->freelist;
+
+  while (freelist->size < size) {
+    if (freelist->body == NULL)  {
+      perror("out of memory");
+      exit(1);
+    } else {
+      pre = freelist;
+      freelist = freelist->body;
+    }
+  }
+
+  if (pre == NULL) {            /* found allocate memory at first of freelist */
+    if (freelist->size == size) {
+      vm->freelist = freelist->body;
+    } else {
+      vm->freelist = split_heap(freelist, size);
+    }
+  } else {
+    if (freelist->size == size) {
+      pre->body = freelist->body;
+    } else {
+      pre->body = split_heap(freelist, size);
+    }
+  }
+  return freelist;
+}
+
 object* new_int_object(vm* vm)
 {
-
-  object* object = (object*)vm->heap->next;
+  object* object = pickup_object(vm, O_INT_SIZE);
   object->marked = 0;
-  vm->heap->next += OBJ_SIZE;
   object->type = OBJ_INT;
-
-  object->body = (o_int*)vm->heap->next;
-  vm->heap->next += O_Int_SIZE;
-
-  /* vm->freeList += */
+  object->size = O_INT_SIZE;
   return object;
-  /* if (vm->next + OBJ_INT_SIZE > heapEnd(vm)){ */
-  /* gc(vm) */
-  /* } */
-
-  /* Object* object = (Object*)vm->next; */
-  /* object->marked = 0; */
-  /* vm->next += OBJ_SIZE; */
-  /* vm->freeList += OBJ_SIZE; */
-  /* object->type = OBJ_INT; */
-
-  /* object->body = (O_Int*)vm->next; */
-  /* vm->freeList += O_Int_SIZE; */
-  /* return object; */
-
-
 }
 
 object* pop(vm* vm)
@@ -90,7 +116,6 @@ object* pop(vm* vm)
 
 void push(vm* vm, object* obj)
 {
-  vm->roots[vm->root_size++] = obj; /* for assersion */
   vm->stack[vm->stack_size++] = obj;
 }
 

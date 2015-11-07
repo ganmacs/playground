@@ -6,22 +6,18 @@
 #define STACK_SIZE 1024
 
 typedef struct heap_ {
-  void* head;
-  void* next;
-  struct heap_* nextHeap;
+  object* head;
+  object* next;
+  /* struct heap_* nextHeap; */
 } heap;
 
 typedef struct {
   object* stack[STACK_SIZE];
   int stack_size;
 
-  /* for assertion */
-  object* roots[STACK_SIZE];
-  int root_size;
-
-  heap* heap;
-  /* void* next; */
-  /* void* freeList; */
+  void* heap;
+  void* next;
+  object* freelist;
 } vm;
 
 vm* new_vm();
