@@ -1,4 +1,4 @@
-#ifndef INCLUDE_OBJECT_H
+#pragma once
 
 #define OBJ_SIZE sizeof(object)
 #define O_INT_SIZE sizeof(o_int)
@@ -23,7 +23,10 @@ typedef struct {
   size_t size;
 
   /* actual data */
-  void* body;
+  union {
+    void* body;
+    void* next;
+  };
 } object;
 
 typedef struct {
@@ -36,6 +39,3 @@ typedef struct {
 } o_pair;
 
 size_t object_size(object_type type);
-
-#define INCLUDE_OBJECT_H
-#endif

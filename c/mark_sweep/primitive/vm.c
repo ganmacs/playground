@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "vm.h"
+#include "gc.h"
 
 #define OBJ_AND_BODY_SIZE(obj) (OBJ_SIZE + ((object*)obj)->size)
 #define HEAP_END(vm) (vm->heap + HEAP_SIZE)
@@ -19,6 +20,7 @@ vm* new_vm()
   o->size = HEAP_SIZE - OBJ_SIZE;
   o->marked = 0;
   o->body = vm->next;
+  o->type = OBJ_FREE;
   vm->freelist = o;
 
   return vm;
@@ -66,9 +68,8 @@ object* split_heap(object* obj, size_t first_size)
 
   ret = (object*)next;
   ret->size = obj->size - (OBJ_SIZE + first_size);
-  next += OBJ_SIZE;
-  ret->body = next;
-  obj->size = first_size;
+  ret->type = OBJ_FREE;
+  ret->body = next + OBJ_SIZE;
 
   return ret;
 }
@@ -78,37 +79,48 @@ object* pickup_object(vm* vm, size_t size)
   object* pre = NULL;
   object* freelist = vm->freelist;
 
-  while (freelist->size < size) {
+  while (freelist->size < size + OBJ_SIZE) { /* freelist size is next object size */
     if (freelist->body == NULL)  {
-      perror("out of memory");
-      exit(1);
+      gc(vm);
+      freelist = vm->freelist;
+      break;
     } else {
       pre = freelist;
-      freelist = freelist->body;
+      freelist = freelist->next;
     }
   }
 
-  if (pre == NULL) {            /* found allocate memory at first of freelist */
-    if (freelist->size == size) {
+  if (freelist->size == size) {
+    if (pre == NULL) {          /* head of freelist */
       vm->freelist = freelist->body;
     } else {
-      vm->freelist = split_heap(freelist, size);
-    }
-  } else {
-    if (freelist->size == size) {
       pre->body = freelist->body;
+    }
+  } else if(freelist->size > size) {
+    if (pre == NULL) {          /* head of freelist */
+      vm->freelist = split_heap(freelist, size);
     } else {
       pre->body = split_heap(freelist, size);
     }
+  } else {
+    return NULL;
   }
+
+  freelist->body = freelist + OBJ_SIZE; /* actaul body */
   return freelist;
 }
 
 object* new_object(vm* vm, object_type type)
 {
-  object* object = pickup_object(vm, object_size(type));
+  size_t size = object_size(type);
+  object* object = pickup_object(vm, size);
+  if (object == NULL) {
+    perror("out of memory");
+    exit(1);
+  }
   object->marked = 0;
   object->type = type;
+  object->size = size;
   return object;
 }
 
