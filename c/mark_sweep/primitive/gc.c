@@ -1,60 +1,46 @@
-/* #include "gc.h" */
+#include "gc.h"
 
-/* #define O(n) ((object*)n) */
-/* #define OBJ_TYPE(o) (O(o)->type) */
+#define OBJ_TYPE(o) (((object*)o)->type)
+#define PAIR_HEAD(o) (((o_pair*)((object*)o)->body)->head)
+#define PAIR_TAIL(o) (((o_pair*)((object*)o)->body)->tail)
+#define OBJ_AND_BODY_SIZE(obj) (OBJ_SIZE + ((object*)obj)->size)
+#define HEAP_END(vm) (vm->heap + HEAP_SIZE)
 
-/* void mark(object* obj) */
-/* { */
-/*   if (obj->marked) return; */
-/*   obj->marked = 1; */
+void mark(object* obj)
+{
+  if (obj->marked) return;
+  obj->marked = 1;
 
-/*   if (obj->type == OBJ_PAIR) { */
-/*     mark(((o_pair*)obj->body)->head); */
-/*     mark(((o_pair*)obj->body)->tail); */
-/*   } */
-/* } */
+  if (obj->type == OBJ_PAIR) {
+    mark(PAIR_HEAD(obj));
+    mark(PAIR_TAIL(obj));
+  }
+}
 
-/* void mark_all(vm* vm) */
-/* { */
-/*   for (int i = 0; i < vm->stack_size; i++) { */
-/*     mark(vm->stack[i]); */
-/*   } */
-/* } */
+void mark_all(vm* vm)
+{
+  for (int i = 0; i < vm->stack_size; i++) {
+    mark(vm->stack[i]);
+  }
+}
 
-/* void sweep(vm* vm) */
-/* { */
-/*   void* now = vm->heap; */
+void sweep(vm* vm)
+{
+  void* now = vm->heap;
 
-/*   while (now < vm->next) { */
-/*     if (O(now)->marked) { */
-/*       if (OBJ_TYPE(now) == OBJ_PAIR) { */
-/*         mark(((o_pair*)now->body)->head); */
-/*         mark(((o_pair*)now->body)->tail); */
-/*       } */
+  while (now < HEAP_END(vm)) {
+    if (((object*)now)->marked) {
+      ((object*)now)->marked = 0;          /* reset */
+    } else {
+      ((object*)now)->type = OBJ_FREE;
+      ((object*)now)->body = vm->freelist;
+      vm->freelist = now;
+    }
+    now += OBJ_AND_BODY_SIZE(now);
+  }
+}
 
-
-/*       /\* switch(OBJ_TYPE(now)) { *\/ */
-/*       /\* case OBJ_INT: *\/ */
-
-/*       /\*   break; *\/ */
-/*       /\* case OBJ_PAIR: *\/ */
-/*       /\*   break; *\/ */
-/*       /\* } *\/ */
-/*     } else { */
-/*     } */
-
-/*     switch(OBJ_TYPE(now)) { */
-/*     case OBJ_INT: */
-/*       now += OBJ_INT_SIZE; */
-/*       break; */
-/*     case OBJ_PAIR: */
-/*       now += OBJ_PAIR_SIZE; */
-/*       break; */
-/*     } */
-/*   } */
-/* } */
-
-/* void gc(vm* vm) { */
-/*   mark_all(vm); */
-/*   sweep(vm); */
-/* } */
+void gc(vm* vm) {
+  mark_all(vm);
+  sweep(vm);
+}

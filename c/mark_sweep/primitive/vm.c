@@ -4,7 +4,7 @@
 #include "vm.h"
 
 #define OBJ_AND_BODY_SIZE(obj) (OBJ_SIZE + ((object*)obj)->size)
-#define HEAP_END (vm->heap + HEAP_SIZE)
+#define HEAP_END(vm) (vm->heap + HEAP_SIZE)
 
 vm* new_vm()
 {
@@ -34,7 +34,7 @@ void assert_live(vm* vm, int expected_count) {
   int actual_count = 0;
   void* o = vm->heap;
 
-  while (o < (vm->heap + HEAP_SIZE)) {
+  while (o < HEAP_END(vm)) {
     if (((object*)o)->type != OBJ_FREE) {
       actual_count += 1;
     }
