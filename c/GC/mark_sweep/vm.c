@@ -13,13 +13,11 @@ vm* new_vm()
   vm->stack_size = 0;
 
   vm->heap = malloc(HEAP_SIZE);
-  vm->next = vm->heap;
   object* o = vm->heap;
 
-  vm->next += OBJ_SIZE;
   o->size = HEAP_SIZE - OBJ_SIZE;
+  o->body = vm->heap + OBJ_SIZE;
   o->marked = 0;
-  o->body = vm->next;
   o->type = OBJ_FREE;
   vm->freelist = o;
 
@@ -61,16 +59,11 @@ void* heap_end(vm* vm)
 
 object* split_heap(object* obj, size_t first_size)
 {
-  void* next = obj->body;
-  object* ret = NULL;
-
-  next += first_size;
-
-  ret = (object*)next;
+  object* ret = (object*)(obj->body + first_size);
   ret->size = obj->size - (OBJ_SIZE + first_size);
+  ret->body = obj->body + first_size + OBJ_SIZE;
+  ret->marked = 0;
   ret->type = OBJ_FREE;
-  ret->body = next + OBJ_SIZE;
-
   return ret;
 }
 
@@ -92,21 +85,21 @@ object* pickup_object(vm* vm, size_t size)
 
   if (freelist->size == size) {
     if (pre == NULL) {          /* head of freelist */
-      vm->freelist = freelist->body;
+      vm->freelist = freelist->next;
     } else {
-      pre->body = freelist->body;
+      pre->next = freelist->next;
     }
   } else if(freelist->size > size) {
     if (pre == NULL) {          /* head of freelist */
       vm->freelist = split_heap(freelist, size);
     } else {
-      pre->body = split_heap(freelist, size);
+      pre->next = split_heap(freelist, size);
     }
   } else {
     return NULL;
   }
 
-  freelist->body = freelist + OBJ_SIZE; /* actaul body */
+  freelist->next = freelist + OBJ_SIZE; /* actaul body */
   return freelist;
 }
 

@@ -34,7 +34,7 @@ void sweep(vm* vm)
         ((object*)now)->marked = 0;          /* reset */
       } else {
         ((object*)now)->type = OBJ_FREE;
-        ((object*)now)->body = vm->freelist;
+        ((object*)now)->next = vm->freelist;
         vm->freelist = now;
       }
     }
