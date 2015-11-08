@@ -3,6 +3,9 @@
 
 #include "vm.h"
 
+#define OBJ_AND_BODY_SIZE(obj) (OBJ_SIZE + ((object*)obj)->size)
+#define HEAP_END (vm->heap + HEAP_SIZE)
+
 vm* new_vm()
 {
   vm* vm = malloc(sizeof(vm));
@@ -10,8 +13,8 @@ vm* new_vm()
 
   vm->heap = malloc(HEAP_SIZE);
   vm->next = vm->heap;
+  object* o = vm->heap;
 
-  object* o = (object*)vm->heap;
   vm->next += OBJ_SIZE;
   o->size = HEAP_SIZE - OBJ_SIZE;
   o->marked = 0;
@@ -29,13 +32,13 @@ void free_vm(vm* vm)
 
 void assert_live(vm* vm, int expected_count) {
   int actual_count = 0;
-  void* o = (object*)vm->heap;
+  void* o = vm->heap;
 
   while (o < (vm->heap + HEAP_SIZE)) {
     if (((object*)o)->type != OBJ_FREE) {
       actual_count += 1;
     }
-    o += ((object*)o)->size;
+    o += OBJ_AND_BODY_SIZE(o);
   }
 
   if (actual_count == expected_count) {
@@ -45,6 +48,7 @@ void assert_live(vm* vm, int expected_count) {
            expected_count, actual_count);
     exit(1);
   }
+
 }
 
 void* heap_end(vm* vm)
@@ -52,21 +56,20 @@ void* heap_end(vm* vm)
   return vm->heap + HEAP_SIZE;
 }
 
-object* split_heap(object* obj, size_t size)
+object* split_heap(object* obj, size_t first_size)
 {
-  object* o = NULL;
+  void* next = obj->body;
+  object* ret = NULL;
 
-  /* split */
-  object* next = obj->body;
-  next += size;
+  next += first_size;
 
-  /* new object */
-  o = next;
+  ret = (object*)next;
+  ret->size = obj->size - (OBJ_SIZE + first_size);
   next += OBJ_SIZE;
-  o->size = obj->size - OBJ_SIZE;
-  o->body = next;
+  ret->body = next;
+  obj->size = first_size;
 
-  return o;
+  return ret;
 }
 
 object* pickup_object(vm* vm, size_t size)
@@ -105,7 +108,6 @@ object* new_int_object(vm* vm)
   object* object = pickup_object(vm, O_INT_SIZE);
   object->marked = 0;
   object->type = OBJ_INT;
-  object->size = O_INT_SIZE;
   return object;
 }
 
@@ -123,6 +125,5 @@ void push_int(vm* vm, int value)
 {
   object* object = new_int_object(vm);
   ((o_int*)object->body)->value = value;
-
   push(vm, object);
 }

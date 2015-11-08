@@ -1,8 +1,8 @@
 #define OBJ_SIZE sizeof(object)
 #define O_INT_SIZE sizeof(o_int)
 #define O_PAIR_SIZE sizeof(o_pair)
-#define OBJ_INT_SIZE (O_Int_SIZE + OBJ_SIZE)
-#define OBJ_PAIR_SIZE (O_Pair_SIZE + OBJ_SIZE)
+#define OBJ_INT_SIZE (O_INT_SIZE + OBJ_SIZE)
+#define OBJ_PAIR_SIZE (O_PAIR_SIZE + OBJ_SIZE)
 
 #include <stdio.h>
 
