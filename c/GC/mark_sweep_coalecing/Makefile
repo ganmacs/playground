@@ -4,10 +4,10 @@ OBJS := main.o gc.o vm.o object.o
 CC := gcc
 
 %.o: %.c
-	$(CC) -c $<
+	$(CC) -g -c $<
 
 $(PROG): $(OBJS)
-	$(CC) -o $@ $^
+	$(CC) -g -o $@ $^
 
 clean:
 	rm -f $(OBJS) $(PROG)

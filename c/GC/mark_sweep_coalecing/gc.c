@@ -33,10 +33,6 @@ void sweep(vm* vm)
       if (((object*)now)->marked) {
         ((object*)now)->marked = 0;          /* reset */
       } else {
-        printf("vm->freelist first: %lu\n", (void*)vm->freelist - vm->heap);
-        printf("now - vm->heap--------%lu\n", now-vm->heap);
-        printf("now->size--------%lu\n", ((object*)now)->size);
-
         ((object*)now)->type = OBJ_FREE;
 
         if (now + ((object*)now)->size + OBJ_SIZE == vm->freelist) {

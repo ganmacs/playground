@@ -81,8 +81,6 @@ void test6() {
   vm* vm = new_vm();
 
   push_int(vm, 1);
-  push_int(vm, 1);
-  pop(vm);
   pop(vm);
   gc(vm);
 
@@ -119,6 +117,24 @@ void test6() {
   free_vm(vm);
 }
 
+void test7() {
+  printf("## Test 6: coalescing.\n");
+  vm* vm = new_vm();
+
+  push_int(vm, 1);
+  push_int(vm, 2);
+  pop(vm);
+  pop(vm);
+  gc(vm);
+
+  push_int(vm, 3);
+  push_int(vm, 4);
+  push_int(vm, 5);
+  pop(vm);
+  gc(vm);
+
+  free_vm(vm);
+}
 
 void perfTest() {
   printf("## Performance Test.\n");
@@ -128,13 +144,11 @@ void perfTest() {
     for (int j = 0; j < 5; j++) {
       push_int(vm, i);
     }
-    puts("-----------pop fhaze");
 
     for (int k = 0; k < 4; k++) {
       pop(vm);
     }
     gc(vm);
-    puts("---------------------------------");
   }
 
   free_vm(vm);
@@ -143,12 +157,13 @@ void perfTest() {
 
 int main(int argc, char *argv[])
 {
-  /* test1(); */
-  /* test2(); */
-  /* test3(); */
-  /* test4(); */
-  /* test5(); */
+  test1();
+  test2();
+  test3();
+  test4();
+  test5();
   test6();
-  /* perfTest(); */
+  test7();
+  perfTest();
   return 0;
 }

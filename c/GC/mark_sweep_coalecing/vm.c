@@ -13,13 +13,11 @@ vm* new_vm()
   vm->stack_size = 0;
 
   vm->heap = malloc(HEAP_SIZE);
-  vm->next = vm->heap;
   object* o = vm->heap;
 
-  vm->next += OBJ_SIZE;
   o->size = HEAP_SIZE - OBJ_SIZE;
+  o->body = vm->heap + OBJ_SIZE;
   o->marked = 0;
-  o->body = vm->next;
   o->type = OBJ_FREE;
   vm->freelist = o;
 
@@ -51,7 +49,6 @@ void assert_live(vm* vm, int expected_count)
            expected_count, actual_count);
     exit(1);
   }
-
 }
 
 void* heap_end(vm* vm)
@@ -61,16 +58,11 @@ void* heap_end(vm* vm)
 
 object* split_heap(object* obj, size_t first_size)
 {
-  void* next = obj->body;
-  object* ret = NULL;
-
-  next += first_size;
-
-  ret = (object*)next;
+  object* ret = (object*)(obj->body + first_size);
   ret->size = obj->size - (OBJ_SIZE + first_size);
+  ret->body = obj->body + first_size + OBJ_SIZE;
+  ret->marked = 0;
   ret->type = OBJ_FREE;
-  ret->body = next + OBJ_SIZE;
-
   return ret;
 }
 
@@ -79,19 +71,14 @@ object* pickup_object(vm* vm, size_t size)
   object* pre = NULL;
   object* freelist = vm->freelist;
 
-  printf("freelist size: %lu\n", freelist->size);
-  printf("size: %lu\n", size + OBJ_SIZE);
-  printf("freelist first: %lu\n", (void*)freelist - vm->heap);
-
-  while (freelist->size < size + OBJ_SIZE) { /* freelist size is next object size */
-    /* puts("saikou"); */
+  while (freelist->size < size) { /* freelist size is next object size */
     if (freelist->body == NULL)  {
       gc(vm);
       freelist = vm->freelist;
       break;
     } else {
       pre = freelist;
-      freelist = freelist->next;
+      freelist = (object*)freelist->body;
     }
   }
 
