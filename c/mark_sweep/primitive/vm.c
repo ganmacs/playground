@@ -129,10 +129,11 @@ void push_int(vm* vm, int value)
   push(vm, object);
 }
 
-void push_pair(vm* vm)
+object* push_pair(vm* vm)
 {
   object* object = new_object(vm, OBJ_PAIR);
   ((o_pair*)object->body)->head = pop(vm);
   ((o_pair*)object->body)->tail = pop(vm);
   push(vm, object);
+  return object;
 }

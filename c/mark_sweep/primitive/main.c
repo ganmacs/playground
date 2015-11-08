@@ -42,28 +42,29 @@ void test3() {
   free_vm(vm);
 }
 
-/* void test4() { */
-/*   printf("Test 4: Handle cycles.\n"); */
-/*   vm* vm = new_vm(); */
-/*   push_int(vm, 1); */
-/*   push_int(vm, 2); */
-/*   object* a = push_pair(vm); */
-/*   push_int(vm, 3); */
-/*   push_int(vm, 4); */
-/*   object* b = push_pair(vm); */
+void test4() {
+  printf("Test 4: Handle cycles.\n");
+  vm* vm = new_vm();
+  push_int(vm, 1);
+  push_int(vm, 2);
+  object* a = push_pair(vm);
+  push_int(vm, 3);
+  push_int(vm, 4);
+  object* b = push_pair(vm);
 
-/*   a->tail = b; */
-/*   b->tail = a; */
+  ((o_pair*)b->body)->head = b;
+  ((o_pair*)a->body)->tail = a;
 
-/*   gc(vm); */
-/*   assert_live(vm, 4); */
-/*   freeVM(vm); */
-/* } */
+  gc(vm);
+  assert_live(vm, 4);
+  free_vm(vm);
+}
 
 int main(int argc, char *argv[])
 {
   test1();
   test2();
   test3();
+  test4();
   return 0;
 }
