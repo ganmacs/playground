@@ -1,3 +1,5 @@
+#ifndef INCLUDE_OBJECT_H
+
 #define OBJ_SIZE sizeof(object)
 #define O_INT_SIZE sizeof(o_int)
 #define O_PAIR_SIZE sizeof(o_pair)
@@ -5,6 +7,7 @@
 #define OBJ_PAIR_SIZE (O__SIZE + OBJ_SIZE)
 
 #include <stdio.h>
+#include <stdlib.h>
 
 /* data type */
 typedef enum {
@@ -31,3 +34,8 @@ typedef struct {
   object* head;
   object* tail;
 } o_pair;
+
+size_t object_size(object_type type);
+
+#define INCLUDE_OBJECT_H
+#endif

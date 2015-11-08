@@ -27,6 +27,7 @@ void assert_live(vm* vm, int expected_count);
 
 void push(vm* vm, object* obj);
 void push_int(vm* vm, int value);
+void push_pair(vm* vm);
 object* pop(vm* vm);
 
 #define INCLUDE_VM_H

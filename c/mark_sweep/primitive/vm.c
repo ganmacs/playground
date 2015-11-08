@@ -30,7 +30,8 @@ void free_vm(vm* vm)
   free(vm);
 }
 
-void assert_live(vm* vm, int expected_count) {
+void assert_live(vm* vm, int expected_count)
+{
   int actual_count = 0;
   void* o = vm->heap;
 
@@ -103,11 +104,11 @@ object* pickup_object(vm* vm, size_t size)
   return freelist;
 }
 
-object* new_int_object(vm* vm)
+object* new_object(vm* vm, object_type type)
 {
-  object* object = pickup_object(vm, O_INT_SIZE);
+  object* object = pickup_object(vm, object_size(type));
   object->marked = 0;
-  object->type = OBJ_INT;
+  object->type = type;
   return object;
 }
 
@@ -123,7 +124,15 @@ void push(vm* vm, object* obj)
 
 void push_int(vm* vm, int value)
 {
-  object* object = new_int_object(vm);
+  object* object = new_object(vm, OBJ_INT);
   ((o_int*)object->body)->value = value;
+  push(vm, object);
+}
+
+void push_pair(vm* vm)
+{
+  object* object = new_object(vm, OBJ_PAIR);
+  ((o_pair*)object->body)->head = pop(vm);
+  ((o_pair*)object->body)->tail = pop(vm);
   push(vm, object);
 }

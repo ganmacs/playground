@@ -1,6 +1,6 @@
 PROG := a.out
-SRCS := main.c gc.c vm.c
-OBJS := main.o gc.o vm.o
+SRCS := main.c gc.c vm.c object.c
+OBJS := main.o gc.o vm.o object.o
 CC := gcc
 
 %.o: %.c
