@@ -79,7 +79,7 @@ object* pickup_object(vm* vm, size_t size)
   object* pre = NULL;
   object* freelist = vm->freelist;
 
-  while (freelist->size < size + OBJ_SIZE) { /* freelist size is next object size */
+  while (freelist->size < size) { /* freelist size is next object size */
     if (freelist->body == NULL)  {
       gc(vm);
       freelist = vm->freelist;
