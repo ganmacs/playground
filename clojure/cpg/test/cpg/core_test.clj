@@ -2,6 +2,14 @@
   (:require [clojure.test :refer :all]
             [cpg.core :refer :all]))
 
-(deftest a-test
-  (testing "FIXME, I fail."
-    (is (= 0 1))))
+(deftest integer-jsonable-test
+  (testing "integer jsonable"
+    (is (= 1 (to-json 1)))))
+
+(deftest string-jsonable-test
+  (testing "string jsonable"
+    (is (= "\"a\"" (to-json "a")))))
+
+(deftest user-jsonable-test
+  (testing "user jsonable"
+    (is (= "\"a\"" (to-json (User. "name" 1 1))))))

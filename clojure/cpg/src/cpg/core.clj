@@ -1,10 +1,10 @@
 (ns cpg.core
   (:require [clojure.string :as str]))
 
+(defrecord User [^String name ^Integer age gender])
+
 (defprotocol Jsonable
   (to-json [this]))
-
-(defrecord User [name age gender])
 
 (extend-protocol Jsonable
   Integer
@@ -14,18 +14,17 @@
   (to-json [this] this)
 
   String
-  (to-json [this] (str "\"" this "\""))
+  (to-json [this] (format "\"%s\"" this))
 
   clojure.lang.MapEntry
   (to-json [this]
-    (let [k (key this)
-          value (to-json (val this))]
-      (str "\"" (name k) "\" : " value)))
+    (format "\"%s\": %s"
+            (name (key this))
+            (to-json (val this))))
 
   User
   (to-json [this]
-    (let [obj (str/join ",\n  " (map #(to-json %) this))]
-      (str "{ \n" obj "\n }"))))
+    (format "{\n  %s\n}"
+            (str/join ",\n  " (map #(to-json %) this)))))
 
-
-(to-json (User. "ganmacs" 24 "man"))
+(println (to-json (User. "ganmacs" 24 "man")))
