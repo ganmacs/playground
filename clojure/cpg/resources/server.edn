@@ -1,1 +1,2 @@
-{:mydata "foo"}
+{:nomad/hosts {"ganmacs.local" {:key1 "dev-value"}
+               "my-web-server" {:key1 "prod-value"}}}
