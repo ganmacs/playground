@@ -3,6 +3,12 @@
             [clojure.edn :as edn]
             [clojure.java.shell :refer [sh]]))
 
+;; util
+(defn- deep-merge [& maps]
+  (if (every? map? maps)
+    (apply merge-with deep-merge maps)
+    (last maps)))
+
 (defprotocol ConfigFile
   (slurp* [_]))
 
@@ -39,22 +45,24 @@
 
 (defn- attach-location [configs]
   (assoc configs
-         :location {:yesmad/hostname (get-hostname)}))
+         :location {:yesmad/host (get-hostname)}))
 
 (defn- attach-config [config-map config-file]
   (assoc config-map
          :config (load-edn-file config-file)))
 
+(defn build-config [config-file]
+  (-> (deep-merge (or (get-in config-file [:general :config]) {})
+                  (or (get-in config-file [:host :config] {})) {})
+      (dissoc :yesmad/hosts)))
+
 (defn load-config [file-or-resource]
   (let [config-map {:general {:config-file file-or-resource}}]
-    (do
-      (println (-> config-map
-                   (update-in [:general] attach-config (get-in config-map [:general :config-file]))
-                   (update-config :host :general :nomad/hosts (get-hostname))
-                   attach-location
-                   ;; (expand-host-variable)
-                   ))
-      (read-config-file (get-in config-map [:general :config-file])))))
+    (build-config
+     (-> config-map
+         (update-in [:general] attach-config (get-in config-map [:general :config-file]))
+         (update-config :host :general :yesmad/hosts (get-hostname))
+         attach-location))))
 
 (defmacro defconfig [name file-or-resource]
   `(let [cached-config# (atom nil)]

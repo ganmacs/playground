@@ -1,2 +1,2 @@
-{:nomad/hosts {"ganmacs.local" {:key1 "dev-value"}
-               "my-web-server" {:key1 "prod-value"}}}
+{:yesmad/hosts {"ganmacs.local" {:key1 "dev-value"}
+                "my-web-server" {:key1 "prod-value"}}}
