@@ -88,7 +88,8 @@
 (defn cleanup-config [config-file]
   (-> (deep-merge (or (get-in config-file [:general :config]) {})
                   (or (get-in config-file [:general-private :config]) {})
-                  (or (get-in config-file [:host :config]) {}))
+                  (or (get-in config-file [:host :config]) {})
+                  (or (get-in config-file [:host-private :config]) {}))
       (dissoc :yesmad/hosts :yesmad/snippets :yesmad/private-file)))
 
 (defn build-config [file-or-resource]
@@ -98,7 +99,8 @@
     (cleanup-config
      (-> config-map
          (attach-attr :host {:pkey :general, :subkey [:yesmad/hosts (get-hostname)]})
-         (attach-private-attr :general-private :general)))))
+         (attach-private-attr :general-private :general)
+         (attach-private-attr :host-private :host)))))
 
 (defmacro defconfig [name file-or-resource]
   `(let [cached-config# (atom nil)]
@@ -109,5 +111,5 @@
                 (build-config ~file-or-resource))))))
 
 ;; -- api
-(defconfig my-config (io/resource "general-file.edn"))
+(defconfig my-config (io/resource "file.edn"))
 (pprint (my-config))
