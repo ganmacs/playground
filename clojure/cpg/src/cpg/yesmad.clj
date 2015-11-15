@@ -69,17 +69,27 @@
 (defn- load-config-file [file-resource]
   (let [config-str (slurp* file-resource)
         snippets (extract-snippets config-str)]
+    ;; expand-reader-macro
     (edn/read-string {:readers (with-snippets-reader snippets)}
                      config-str)))
 
-(defn- attach-new-attribute [config-map {:keys [new-attr pkey subkey]}]
+(defn- attach-attr [config-map new-attr {:keys [pkey subkey]}]
   (let [{new-config :config} (get config-map pkey)]
-    (assoc config-map new-attr {:config (get-in new-config subkey)})))
+    (assoc config-map
+           new-attr {:config (get-in new-config subkey)})))
+
+(defn- attach-private-attr [config-map new-attr src-key]
+  (let [private-file (get-in config-map [src-key :config :yesmad/private-file])]
+    (assoc config-map
+           new-attr {:config (load-config-file private-file)})))
+
+(get-in {:a {:b {"c" 2}}} [:a :b "c"])
 
 (defn cleanup-config [config-file]
   (-> (deep-merge (or (get-in config-file [:general :config]) {})
-                  (or (get-in config-file [:host :config] {})) {})
-      (dissoc :yesmad/hosts :yesmad/snippets)))
+                  (or (get-in config-file [:general-private :config]) {})
+                  (or (get-in config-file [:host :config]) {}))
+      (dissoc :yesmad/hosts :yesmad/snippets :yesmad/private-file)))
 
 (defn build-config [file-or-resource]
   (let [config-file (load-config-file file-or-resource)
@@ -87,10 +97,8 @@
                               :config config-file}}]
     (cleanup-config
      (-> config-map
-         (attach-new-attribute {:new-attr :host,
-                                :pkey :general,
-                                :subkey [:yesmad/hosts (get-hostname)]})
-         ))))
+         (attach-attr :host {:pkey :general, :subkey [:yesmad/hosts (get-hostname)]})
+         (attach-private-attr :general-private :general)))))
 
 (defmacro defconfig [name file-or-resource]
   `(let [cached-config# (atom nil)]
@@ -101,5 +109,5 @@
                 (build-config ~file-or-resource))))))
 
 ;; -- api
-(defconfig my-config (io/resource "server.edn"))
+(defconfig my-config (io/resource "general-file.edn"))
 (pprint (my-config))

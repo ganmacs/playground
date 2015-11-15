@@ -1,0 +1,3 @@
+{:yesmad/private-file #yesmad/file "./resources/secret-config.edn"
+ :database {:username "my-user"
+            :password :will-be-overridden}}
