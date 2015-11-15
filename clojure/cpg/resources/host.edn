@@ -1,0 +1,3 @@
+{:yesmad/hosts
+ {"ganmacs.local" {:database {:username "my-user"}}
+  "foo.local" {:database {:username "other user"}}}}

@@ -27,25 +27,30 @@
   (slurp* [url] (safe-slurp url (str {})))
 
   java.lang.String
-  (slurp* [s] (safe-slurp s)))
+  (slurp* [s] (safe-slurp s))
+
+  nil
+  (slurp* [s] (str {})))
 
 (defn- get-hostname []
   (.trim (:out (sh "hostname"))))
 
 (defn- get-environment []
-  (or (System/getProperty "nomad.env")))
+  (or (System/getProperty "yesmad.env")))
 
-(defn- read-config-file [file-or-resource]
-  (slurp* file-or-resource))
+(defn- update-private-config [configs src-key dest-key]
+  (let [private-file (get-in configs [src-key :config :yesmad/private-file])]
+    (pprint private-file)
+    (assoc configs
+           dest-key (load-edn-file private-file))))
 
-(defn- update-config [current-config target-key from-key selector value]
-  (let [{new-upstream-config :config} (get current-config from-key)]
-    (assoc current-config
-           target-key
-           {:config (get-in new-upstream-config [selector value])})))
+(defn- attach-location [configs]
+  (assoc configs
+         :location {:yesmad/host (get-hostname)}))
 
 (defn- yesmad-data-reader [snippet-reader]
-  {'yesmad/snippet snippet-reader})
+  {'yesmad/snippet snippet-reader
+   'yesmad/file io/file})
 
 (defn- without-snippets-reader []
   (yesmad-data-reader (constantly ::snippet)))
@@ -55,36 +60,37 @@
    (fn [ks]
      (or
       (get-in snippets ks)
-      (pprint ks)
-      (pprint snippets)
       (throw (ex-info "No snippet found for keys" {:keys ks}))))))
 
-(defn- load-edn-file [file-or-resource]
-  (let [config-file-string (read-config-file file-or-resource)
-        without-map (edn/read-string {:readers (without-snippets-reader)} config-file-string)
-        snippets (get without-map :yesmad/snippets)]
-    (edn/read-string {:readers (with-snippets-reader snippets)} config-file-string)))
+(defn extract-snippets [config-str]
+  (let [edn (edn/read-string {:readers (without-snippets-reader)} config-str)]
+    (get edn :yesmad/snippets)))
 
-(defn- attach-location [configs]
-  (assoc configs
-         :location {:yesmad/host (get-hostname)}))
+(defn- load-config-file [file-resource]
+  (let [config-str (slurp* file-resource)
+        snippets (extract-snippets config-str)]
+    (edn/read-string {:readers (with-snippets-reader snippets)}
+                     config-str)))
 
-(defn- attach-config [config-map config-file]
-  (assoc config-map
-         :config (load-edn-file config-file)))
+(defn- attach-new-attribute [config-map {:keys [new-attr pkey subkey]}]
+  (let [{new-config :config} (get config-map pkey)]
+    (assoc config-map new-attr {:config (get-in new-config subkey)})))
 
-(defn build-config [config-file]
+(defn cleanup-config [config-file]
   (-> (deep-merge (or (get-in config-file [:general :config]) {})
                   (or (get-in config-file [:host :config] {})) {})
       (dissoc :yesmad/hosts :yesmad/snippets)))
 
-(defn load-config [file-or-resource]
-  (let [config-map {:general {:config-file file-or-resource}}]
-    (build-config
+(defn build-config [file-or-resource]
+  (let [config-file (load-config-file file-or-resource)
+        config-map {:general {:config-file file-or-resource
+                              :config config-file}}]
+    (cleanup-config
      (-> config-map
-         (update-in [:general] attach-config (get-in config-map [:general :config-file]))
-         (update-config :host :general :yesmad/hosts (get-hostname))
-         attach-location))))
+         (attach-new-attribute {:new-attr :host,
+                                :pkey :general,
+                                :subkey [:yesmad/hosts (get-hostname)]})
+         ))))
 
 (defmacro defconfig [name file-or-resource]
   `(let [cached-config# (atom nil)]
@@ -92,7 +98,7 @@
        (swap! cached-config#
               (fn [f#]
                 ;; TODO use f#
-                (load-config ~file-or-resource))))))
+                (build-config ~file-or-resource))))))
 
 ;; -- api
 (defconfig my-config (io/resource "server.edn"))
