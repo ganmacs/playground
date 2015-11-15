@@ -1,2 +1,8 @@
-{:yesmad/hosts {"ganmacs.local" {:key1 "dev-value"}
-                "my-web-server" {:key1 "prod-value"}}}
+{:yesmad/snippets
+ {:databases
+  {:dev {:host "dev-host" :user "dev-user"}
+   :prod {:host "prod-host" :user "prod-user"}}}
+ :yesmad/hosts {"ganmacs.local" {:key1 "dev-value"
+                                 :database #yesmad/snippet [:databases :dev]}
+                "my-web-server" {:key1 "prod-value"
+                                 :database #yesmad/snippet [:databases :prod]}}}

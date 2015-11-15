@@ -1,7 +1,8 @@
 (ns cpg.yesmad
   (:require [clojure.java.io :as io]
             [clojure.edn :as edn]
-            [clojure.java.shell :refer [sh]]))
+            [clojure.java.shell :refer [sh]]
+            [clojure.pprint  :refer [pprint]]))
 
 ;; util
 (defn- deep-merge [& maps]
@@ -31,6 +32,9 @@
 (defn- get-hostname []
   (.trim (:out (sh "hostname"))))
 
+(defn- get-environment []
+  (or (System/getProperty "nomad.env")))
+
 (defn- read-config-file [file-or-resource]
   (slurp* file-or-resource))
 
@@ -40,8 +44,26 @@
            target-key
            {:config (get-in new-upstream-config [selector value])})))
 
+(defn- yesmad-data-reader [snippet-reader]
+  {'yesmad/snippet snippet-reader})
+
+(defn- without-snippets-reader []
+  (yesmad-data-reader (constantly ::snippet)))
+
+(defn- with-snippets-reader [snippets]
+  (yesmad-data-reader
+   (fn [ks]
+     (or
+      (get-in snippets ks)
+      (pprint ks)
+      (pprint snippets)
+      (throw (ex-info "No snippet found for keys" {:keys ks}))))))
+
 (defn- load-edn-file [file-or-resource]
-  (edn/read-string (read-config-file file-or-resource)))
+  (let [config-file-string (read-config-file file-or-resource)
+        without-map (edn/read-string {:readers (without-snippets-reader)} config-file-string)
+        snippets (get without-map :yesmad/snippets)]
+    (edn/read-string {:readers (with-snippets-reader snippets)} config-file-string)))
 
 (defn- attach-location [configs]
   (assoc configs
@@ -54,7 +76,7 @@
 (defn build-config [config-file]
   (-> (deep-merge (or (get-in config-file [:general :config]) {})
                   (or (get-in config-file [:host :config] {})) {})
-      (dissoc :yesmad/hosts)))
+      (dissoc :yesmad/hosts :yesmad/snippets)))
 
 (defn load-config [file-or-resource]
   (let [config-map {:general {:config-file file-or-resource}}]
@@ -71,6 +93,7 @@
               (fn [f#]
                 ;; TODO use f#
                 (load-config ~file-or-resource))))))
+
 ;; -- api
 (defconfig my-config (io/resource "server.edn"))
-(my-config)
+(pprint (my-config))
