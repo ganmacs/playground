@@ -28,3 +28,13 @@
             (str/join ",\n  " (map #(to-json %) this)))))
 
 (println (to-json (User. "ganmacs" 24 "man")))
+
+
+(with-meta 'foo {:doc 1})
+(meta 'foo)
+
+(def vv (with-meta [1 2 3] {:doc "fuu"}))
+(def vvv [2])
+
+(meta (let [attr (conj (meta vv) {:foo "var"})]
+        (with-meta vv attr)))
