@@ -1,0 +1,22 @@
+(
+ :root-dir "/Users/ganmacs/src/github.com/ganmacs/playground/books/the_elements_of_computing_systems/projects/06"
+ :cache-dir "/Users/ganmacs/src/github.com/ganmacs/playground/books/the_elements_of_computing_systems/projects/06/.ensime_cache"
+ :name "root-06"
+ :java-home "/Library/Java/JavaVirtualMachines/jdk1.8.0_65.jdk/Contents/Home"
+ :java-flags ("-Xss2m" "-Xms1024m" "-Xmx1024m" "-XX:ReservedCodeCacheSize=128m" "-XX:MaxMetaspaceSize=256m")
+ :reference-source-roots ("/Library/Java/JavaVirtualMachines/jdk1.8.0_65.jdk/Contents/Home/src.zip")
+ :scala-version "2.10.5"
+ :compiler-args ("-feature" "-deprecation" "-Xlint" "-Yinline-warnings" "-Yno-adapted-args" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture")
+ 
+ :subprojects ((
+   :name "root-06"
+   :source-roots ("/Users/ganmacs/src/github.com/ganmacs/playground/books/the_elements_of_computing_systems/projects/06/src/main/scala")
+   :targets ("/Users/ganmacs/src/github.com/ganmacs/playground/books/the_elements_of_computing_systems/projects/06/target/scala-2.10/classes")
+   :test-targets ("/Users/ganmacs/src/github.com/ganmacs/playground/books/the_elements_of_computing_systems/projects/06/target/scala-2.10/test-classes")
+   :depends-on-modules nil
+   :compile-deps ("/Users/ganmacs/.sbt/boot/scala-2.10.5/lib/scala-library.jar")
+   :runtime-deps nil
+   :test-deps nil
+   :doc-jars ("/Users/ganmacs/.ivy2/cache/org.scala-lang/scala-library/docs/scala-library-2.10.5-javadoc.jar" "/Users/ganmacs/src/github.com/ganmacs/playground/books/the_elements_of_computing_systems/projects/06/target/scala-2.10/root-06_2.10-0.1-SNAPSHOT-javadoc.jar")
+   :reference-source-roots ("/Users/ganmacs/.ivy2/cache/org.scala-lang/scala-library/srcs/scala-library-2.10.5-sources.jar")))
+)
