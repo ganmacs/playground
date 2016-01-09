@@ -1,5 +1,5 @@
 import scala.io.Source
-import asm._
+import tecs.asm._
 
 object Main {
   private val ROOT = "src/test/resources/"
