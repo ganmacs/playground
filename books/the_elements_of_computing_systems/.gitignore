@@ -25,3 +25,4 @@ project/
 
 projects/06/**/*.asm
 projects/06/**/*.hack
+projects/**/*.tst
