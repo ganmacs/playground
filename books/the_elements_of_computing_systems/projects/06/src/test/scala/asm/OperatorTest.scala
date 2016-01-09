@@ -6,8 +6,8 @@ import asm._
 class OperatorTest extends FunSpec {
   describe("AOprator")  {
     it("INT") {
-      assert(AOperator("1024").asm ==  "00010000000000")
-      assert(AOperator("1").asm ==  "00000000000001")
+      assert(AOperator("1024").asm ==  "0000010000000000")
+      assert(AOperator("1").asm ==     "0000000000000001")
     }
   }
 

@@ -22,3 +22,6 @@ project/plugins/project/
 .ensime
 .ensime_cache/
 project/
+
+projects/06/**/*.asm
+projects/06/**/*.hack

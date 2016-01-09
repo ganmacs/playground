@@ -11,12 +11,10 @@ import scala.util.parsing.combinator.RegexParsers
  INT = (0|[1-9][0-9]*)
 */
 
-case class Parser() extends RegexParsers {
-  private val table = SymbolTable()
-
+case class Parser(table :SymbolTable) extends RegexParsers {
   private val INT = """(0|[1-9][0-9]*)""".r
   private val LABEL = """[_:.$a-zA-Z][_:.$a-zA-Z0-9]*""".r
-  private val BUILTINL = """([a-zA-Z]*|[01])""".r
+  private val BUILTINL = """([01]|[a-zA-Z]*)""".r
   private val PREFIX = """[!\-]""".r
   private val OPS = """[\+\-&|]""".r
 
@@ -27,7 +25,7 @@ case class Parser() extends RegexParsers {
   }
 
   private val pr = PREFIX.? ~ BUILTINL ^^ { case l ~ r => l.getOrElse("") + r }
-  private val exp = BUILTINL ~ OPS ~  BUILTINL ^^ { case l ~ m ~ r => l + m + r }
+  private val exp = BUILTINL ~ OPS ~ BUILTINL ^^ { case l ~ m ~ r => l + m + r }
   private val comp = "0" | "1" | "-1" | exp | pr
   private val dest = BUILTINL ~ "=" ^^ { case l ~ _ => l }
   private val jump = ";" ~ BUILTINL ^^ { case _ ~ r => r }
@@ -39,7 +37,7 @@ case class Parser() extends RegexParsers {
   def parse(in: String): Either[String, Operator] = {
     parseAll(expr, in) match {
       case Success(d, next) => Right(d)
-      case failure: NoSuccess => Left(s"failure")
+      case failure: NoSuccess => Left(s"$failure")
     }
   }
 }

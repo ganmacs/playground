@@ -7,7 +7,7 @@ case class Translator(sources: List[String]) {
 
   def symbolTable: List[(String, Int)] =
     line.filter { case (s, i) => isLabel(s) }
-        .map { case (s, i) => ("""[_:.$A-Z][_:.$A-Z0-9]*""".r.findFirstMatchIn(s).get.toString(), i) }
+        .map { case (s, i) => ("""[_:.$a-zA-Z][_:.$a-zA-Z0-9]*""".r.findFirstMatchIn(s).get.toString(), i) }
 
   private def withIndex(s: List[String]): List[(String, Int)] = {
     var i = 0
@@ -15,17 +15,14 @@ case class Translator(sources: List[String]) {
 
     for (line <- s) {
       ret = (line, i) :: ret
-
-      if (!isLabel(line)) {
-        i += 1
-      }
+      if (!isLabel(line)) { i += 1 }
     }
     ret.reverse
   }
 
-  private def withoutLable(l: List[(String, Int)]): List[(String, Int)] = {
-    l.filterNot { case (s, i) => isLabel(s) }
+  private def withoutLable(l: List[(String, Int)]): List[String] = {
+    l.filterNot { case (s, i) => isLabel(s) }.map(_._1)
   }
 
-  private def isLabel(line: String) = line.matches("""\([_:.$A-Z][_:.$A-Z0-9]*\)""")
+  private def isLabel(line: String) = line.matches("""\([_:.$a-zA-Z][_:.$a-zA-Z0-9]*\)""")
 }
