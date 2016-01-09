@@ -17,8 +17,6 @@ object Main {
       case Right(v) => v.asm
       case Left(v) => throw new Exception(v)
     }
-    // println(r)
-
     f.writeFile(ROOT + args(0) + ".hack", r)
   }
 }

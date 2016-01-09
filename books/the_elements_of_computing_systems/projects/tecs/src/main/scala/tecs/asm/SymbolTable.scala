@@ -1,4 +1,4 @@
-package asm
+package tecs.asm
 
 case class SymbolTable() {
   private var t: Map[String, String] = Map.empty[String, String]

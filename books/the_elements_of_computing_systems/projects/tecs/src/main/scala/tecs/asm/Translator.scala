@@ -1,4 +1,4 @@
-package asm
+package tecs.asm
 
 case class Translator(sources: List[String]) {
   lazy val line = withIndex(sources)

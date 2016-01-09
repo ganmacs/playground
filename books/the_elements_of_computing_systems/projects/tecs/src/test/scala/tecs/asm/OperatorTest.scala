@@ -1,7 +1,6 @@
-package asm
+package tecs.asm
 
 import org.scalatest.FunSpec
-import asm._
 
 class OperatorTest extends FunSpec {
   describe("AOprator")  {

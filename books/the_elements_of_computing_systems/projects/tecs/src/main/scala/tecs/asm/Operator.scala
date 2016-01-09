@@ -1,4 +1,4 @@
-package asm
+package tecs.asm
 
 sealed trait Operator {
   def asm: String

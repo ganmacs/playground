@@ -1,4 +1,4 @@
-package asm
+package tecs.asm
 
 import scala.io.Source
 import java.io.PrintWriter
