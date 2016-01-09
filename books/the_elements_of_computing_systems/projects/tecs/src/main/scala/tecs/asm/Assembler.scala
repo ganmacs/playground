@@ -1,7 +1,8 @@
-import scala.io.Source
-import tecs.asm._
+package tecs.asm
 
-object Main {
+import tecs.util._
+
+object Assembler {
   private val ROOT = "src/test/resources/"
   private val f = new FileHandler
   private val st = SymbolTable().setup
