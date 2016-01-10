@@ -19,7 +19,7 @@ case class Push(arg1: String, arg2: String) extends Command {
 }
 
 case class Pop(arg1: String, arg2: String) extends Command {
-  override def toAsm: String = Asm.pop
+  override def toAsm: String = Asm.pop + Asm.incSP
 }
 
 case class Add() extends Command {

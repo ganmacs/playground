@@ -32,7 +32,7 @@ object Asm {
   def push: String = ptrSP + "M=D\n" + incSP
 
   // pop value to D register
-  def pop: String = decAndptrSP + "D=M\n" + incSP
+  def pop: String = decAndptrSP + "D=M\n"
 
   def pushA(x: String): String = {
     var s = aop(x)
@@ -49,7 +49,6 @@ object Asm {
   def neg: String = pop + "M=-D\n" + incSP
   def not: String = pop + "M=!D\n" + incSP
 
-
   def eq: String = compareWith("JEQ")
   def gt: String = compareWith("JGT")
   def lt: String = compareWith("JLT")
@@ -57,8 +56,7 @@ object Asm {
   private def compareWith(cond: String): String = {
     val n = counter.inc
 
-    var s = pop
-    s += decAndptrSP
+    var s = popAndSetD_M
     s += "D=M-D\n"   // x - y
     s += s"@COMP_LABEL_$n\n"
     s += s"D; $cond\n"
