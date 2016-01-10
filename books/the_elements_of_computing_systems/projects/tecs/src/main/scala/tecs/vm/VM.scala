@@ -4,11 +4,15 @@ import tecs.util._
 
 object VM {
   private val f = new FileHandler
-  private val ROOT = "src/test/resources/"
+  private val ROOT = "src/test/resources/vm/"
   private val p = Parser()
 
   def main(args: Array[String]) {
     val v = f.loadfile(ROOT + args(0) + ".vm").filter(_ != "")
-    println(v.map(p.parse _))
+    val contents = v.map(p.parse(_)).map(_.toAsm).filter(_ != "")
+    f.writeFile(ROOT + args(0) + ".asm", contents)
   }
-}
+
+    def eval(commands: List[Command]) = {
+    }
+  }

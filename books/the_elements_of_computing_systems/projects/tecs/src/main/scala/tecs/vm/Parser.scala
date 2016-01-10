@@ -1,9 +1,20 @@
 package tecs.vm
 
 case class Parser() {
-  def parse(str: String) = str.split(" ") match {
-    case Array(a, b, c) => Command(a, Some(b), Some(c))
-    case Array(a, b) => Command(a, Some(b), None)
-    case Array(a) => Command(a, None, None)
+  def parse(str: String): Command = str.split(" ") match {
+    case Array("push", a, b) => Push(a, b)
+    case Array("pop", a, b) => Pop(a, b)
+    // case Array(a, b, c) => Pop(a, b, c)
+    // case Array(cmd, b) =>
+    case Array("add") => Add()
+    case Array("sub") => Sub()
+    case Array("neg") => Neg()
+    case Array("eq")  => Eq()
+    case Array("gt")  => Gt()
+    case Array("lt")  => Lt()
+    case Array("and") => And()
+    case Array("or")  => Or()
+    case Array("not") => Not()
+    // case Array(cmd) => ""
   }
 }
