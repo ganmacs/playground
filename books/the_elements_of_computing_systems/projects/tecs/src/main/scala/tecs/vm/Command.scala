@@ -8,7 +8,7 @@ case class Push(arg1: String, arg2: String) extends Command {
   override def toAsm: String = arg1 match {
     case "argument" => Asm.push("ARG", arg2)
     case "local"    => Asm.push("LCL", arg2)
-    case "static"   => ""
+    case "static"   => Asm.pushS(arg2)
     case "constant" => Asm.pushC(arg2)
     case "this"     => Asm.push("THIS", arg2)
     case "that"     => Asm.push("THAT", arg2)
@@ -19,9 +19,9 @@ case class Push(arg1: String, arg2: String) extends Command {
 
 case class Pop(arg1: String, arg2: String) extends Command {
   override def toAsm: String = arg1 match {
-    case "argument" =>  Asm.pop("ARG", arg2)
+    case "argument" => Asm.pop("ARG", arg2)
     case "local"    => Asm.pop("LCL", arg2)
-    case "static"   => ""
+    case "static"   => Asm.popS(arg2)
     case "constant" => Asm.pop("SP", arg2)
     case "this"     => Asm.pop("THIS", arg2)
     case "that"     => Asm.pop("THAT", arg2)

@@ -6,6 +6,8 @@ object Asm {
     def inc: String = { this.i += 1; this.i.toString }
   }
 
+  var filename = ""
+
   val sp = "@SP\n"
   val incSP: String = sp + "M=M+1\n"
   val decSP: String = sp + "M=M-1\n"
@@ -25,7 +27,6 @@ object Asm {
   // poped value to D register
   def pop: String = decAndptrSP + "D=M\n"
 
-
   def pushC(x: String) = {
     var s = s"@$x\n"
     s += "D=A\n"
@@ -38,14 +39,27 @@ object Asm {
     s + push
   }
 
+  def pushS(x: String): String = {
+    val l = "@" + this.filename + "." + x + "\n"
+    var s = l
+    s += "D=M\n"
+    s + push
+  }
+
   def pushI(seg: String, x: String): String = {
     var s = calcMLocationI(seg, x)
     s += s"D=M\n"
     s + push
   }
 
-  def popI(seg: String, x: String): String = calcMLocationI(seg, x) + storeInMemory
   def pop(seg: String, x: String): String = calcMLocation(seg, x) + storeInMemory
+  def popI(seg: String, x: String): String = calcMLocationI(seg, x) + storeInMemory
+  def popS(x: String): String = {
+    val l = "@" + this.filename + "." + x + "\n"
+    var s = l
+    s += "M=D\n"
+    s + storeInMemory
+  }
 
   private def storeInMemory: String = {
     var s = "D=A\n"

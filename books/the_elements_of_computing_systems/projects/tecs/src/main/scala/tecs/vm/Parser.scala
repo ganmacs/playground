@@ -4,8 +4,6 @@ case class Parser() {
   def parse(str: String): Command = str.split(" ") match {
     case Array("push", a, b) => Push(a, b)
     case Array("pop", a, b) => Pop(a, b)
-    // case Array(a, b, c) => Pop(a, b, c)
-    // case Array(cmd, b) =>
     case Array("add") => Add()
     case Array("sub") => Sub()
     case Array("neg") => Neg()
@@ -15,6 +13,5 @@ case class Parser() {
     case Array("and") => And()
     case Array("or")  => Or()
     case Array("not") => Not()
-    // case Array(cmd) => ""
   }
 }
