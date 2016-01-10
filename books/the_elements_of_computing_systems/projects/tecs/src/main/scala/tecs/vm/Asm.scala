@@ -25,20 +25,6 @@ object Asm {
   // poped value to D register
   def pop: String = decAndptrSP + "D=M\n"
 
-  def pop(seg: String, x: String): String = {
-    var s = s"@$seg\n"
-    s += "D=M\n"
-    s += s"@$x\n"
-    s += s"A=D+A\n"
-    s += "D=A\n"
-    s += "@R13\n"
-    s += "M=D\n" // temp @R12 = D + A
-    s += pop // set popd value to D
-    s += "@R13\n"
-    s += "A=M\n"
-    s += "M=D\n"
-    s + incSP
-  }
 
   def pushC(x: String) = {
     var s = s"@$x\n"
@@ -47,12 +33,44 @@ object Asm {
   }
 
   def push(seg: String, x: String): String = {
-    var s = s"@$seg\n"
-    s += "A=M\n"
-    s += s"@$x\n"
-    s += s"A=D+A\n"
+    var s = calcMLocation(seg, x)
     s += s"D=M\n"
     s + push
+  }
+
+  def pushI(seg: String, x: String): String = {
+    var s = calcMLocationI(seg, x)
+    s += s"D=M\n"
+    s + push
+  }
+
+  def popI(seg: String, x: String): String = calcMLocationI(seg, x) + storeInMemory
+  def pop(seg: String, x: String): String = calcMLocation(seg, x) + storeInMemory
+
+  private def storeInMemory: String = {
+    var s = "D=A\n"
+    s += "@R13\n"
+    s += "M=D\n" // temp @R12 = D + A
+    s += pop // set popd value to D
+    s += "@R13\n"
+    s += "A=M\n"
+    s + "M=D\n"
+  }
+
+  // set Memory location to A
+  private def calcMLocation(seg: String, x: String): String = {
+    var s = s"@$seg\n"
+    s += "D=M\n"
+    s += s"@$x\n"
+    s + s"A=D+A\n"
+  }
+
+  //  set Memory location to A (immideate)
+  private def calcMLocationI(seg: String, x: String): String = {
+    var s = s"@$seg\n"
+    s += "D=A\n"
+    s += s"@$x\n"
+    s + s"A=D+A\n"
   }
 
   def add: String = popAndSetD_M + "M=M+D\n" + incSP
