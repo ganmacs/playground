@@ -1,19 +1,12 @@
 package tecs.vm
 
-
 object Asm {
   private val counter = new {
     private var i = -1
     def inc: String = { this.i += 1; this.i.toString }
   }
 
-  val sp = aop("SP")
-  val lcl = aop("LCL")
-  val arg = aop("ARG")
-  val _this = aop("THIS")
-  val that = aop("THAT")
-  val screen = aop("SCREEN")
-  val kbd = aop("KBD")
+  val sp = "@SP\n"
   val incSP: String = sp + "M=M+1\n"
   val decSP: String = sp + "M=M-1\n"
 
@@ -26,17 +19,39 @@ object Asm {
 
   def assignPtrSP(v: String) = ptrSP + s"M=$v\n"
 
-  def aop(x: String): String = s"@$x\n"
-
   // push D register value to SP postion
   def push: String = ptrSP + "M=D\n" + incSP
 
-  // pop value to D register
+  // poped value to D register
   def pop: String = decAndptrSP + "D=M\n"
 
-  def pushA(x: String): String = {
-    var s = aop(x)
+  def pop(seg: String, x: String): String = {
+    var s = s"@$seg\n"
+    s += "D=M\n"
+    s += s"@$x\n"
+    s += s"A=D+A\n"
     s += "D=A\n"
+    s += "@R13\n"
+    s += "M=D\n" // temp @R12 = D + A
+    s += pop // set popd value to D
+    s += "@R13\n"
+    s += "A=M\n"
+    s += "M=D\n"
+    s + incSP
+  }
+
+  def pushC(x: String) = {
+    var s = s"@$x\n"
+    s += "D=A\n"
+    s + push
+  }
+
+  def push(seg: String, x: String): String = {
+    var s = s"@$seg\n"
+    s += "A=M\n"
+    s += s"@$x\n"
+    s += s"A=D+A\n"
+    s += s"D=M\n"
     s + push
   }
 
@@ -69,21 +84,3 @@ object Asm {
     s + incSP
   }
 }
-
-
-// {
-//   val n = counter.inc
-
-//   var s = pop
-//   s += decAndptrSP
-//   s += "D=M-D\n"   // y - x
-//   s += s"@EQ_LABEL$n\n"
-//   s += "D; JEQ\n"
-//   s += assignPtrSP("0")
-//   s += s"@EQ_LABEL_END$n\n"
-//   s += "0; JMP\n"
-//   s += s"(EQ_LABEL$n)\n"
-//   s += assignPtrSP("-1")
-//   s += s"(EQ_LABEL_END$n)\n"
-//   s + incSP
-// }

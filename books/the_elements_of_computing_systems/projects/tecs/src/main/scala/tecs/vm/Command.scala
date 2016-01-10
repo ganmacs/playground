@@ -7,19 +7,28 @@ sealed abstract class Command {
 
 case class Push(arg1: String, arg2: String) extends Command {
   override def toAsm: String = arg1 match {
-    // case "argument" => ""
-    // case "local" => ""
-    // case "static" => ""
-    case "constant" => Asm.pushA(arg2)
-      // case "this" =>
-      // case "that" =>
-      // case "pointer" =>
-      // case "temp" =>
+    case "argument" => Asm.push("ARG", arg2)
+    case "local"    => Asm.push("LCL", arg2)
+    case "static"   => ""
+    case "constant" => Asm.pushC(arg2)
+    case "this"     => Asm.push("THIS", arg2)
+    case "that"     => Asm.push("THAT", arg2)
+    case "pointer"  => Asm.push("THIS", arg2)
+    case "temp"     => Asm.push("R5", arg2)
   }
 }
 
 case class Pop(arg1: String, arg2: String) extends Command {
-  override def toAsm: String = Asm.pop + Asm.incSP
+  override def toAsm: String = arg1 match {
+    case "argument" => Asm.pop("ARG", arg2)
+    case "local"    => Asm.pop("LCL", arg2)
+    case "static"   => ""
+    case "constant" => Asm.pop("SP", arg2)
+    case "this"     => Asm.pop("THIS", arg2)
+    case "that"     => Asm.pop("THAT", arg2)
+    case "pointer"  => Asm.pop("THIS", arg2)
+    case "temp"     => Asm.pop("R5", arg2)
+  }
 }
 
 case class Add() extends Command {
