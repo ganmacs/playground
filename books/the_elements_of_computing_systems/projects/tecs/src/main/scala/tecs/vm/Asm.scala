@@ -6,8 +6,7 @@ object Asm {
     def inc: String = { this.i += 1; this.i.toString }
   }
 
-  var filename = ""
-
+  var filename = "filename"
   val sp = "@SP\n"
   val incSP: String = sp + "M=M+1\n"
   val decSP: String = sp + "M=M-1\n"
@@ -27,64 +26,72 @@ object Asm {
   // poped value to D register
   def pop: String = decAndptrSP + "D=M\n"
 
-  def pushC(x: String) = {
-    var s = s"@$x\n"
-    s += "D=A\n"
-    s + push
+  def pushC(x: String): String = {
+    val s = new StringBuilder
+    s.append(s"@$x\n")
+    s.append("D=A\n")
+    s.append(push)
+    s.toString
   }
 
   def push(seg: String, x: String): String = {
-    var s = calcMLocation(seg, x)
-    s += s"D=M\n"
-    s + push
+    val s = new StringBuilder
+    s.append(calcMLocation(seg, x))
+    s.append("D=M\n")
+    s.append(push)
+    s.toString
   }
 
   def pushS(x: String): String = {
-    val l = "@" + this.filename + "." + x + "\n"
-    var s = l
-    s += "D=M\n"
-    s + push
+    val s = new StringBuilder
+    s.append(s"@$this.filename.$x\n")
+    s.append("D=M\n")
+    s.append(push)
+    s.toString
   }
 
   def pushI(seg: String, x: String): String = {
-    var s = calcMLocationI(seg, x)
-    s += s"D=M\n"
-    s + push
+    val s = new StringBuilder
+    s.append(calcMLocationI(seg, x))
+    s.append("D=M\n")
+    s.append(push)
+    s.toString
   }
 
   def pop(seg: String, x: String): String = calcMLocation(seg, x) + storeInMemory
   def popI(seg: String, x: String): String = calcMLocationI(seg, x) + storeInMemory
-  def popS(x: String): String = {
-    val l = "@" + this.filename + "." + x + "\n"
-    var s = l
-    s += "M=D\n"
-    s + storeInMemory
-  }
+  def popS(x: String): String = s"@$this.filename.$x\n" + "M=D\n" +storeInMemory
 
   private def storeInMemory: String = {
-    var s = "D=A\n"
-    s += "@R13\n"
-    s += "M=D\n" // temp @R12 = D + A
-    s += pop // set popd value to D
-    s += "@R13\n"
-    s += "A=M\n"
-    s + "M=D\n"
+    val s = new StringBuilder
+    s.append("D=A\n")
+    s.append("@R13\n")
+    s.append("M=D\n") // temp @R12 = D + A
+    s.append(pop)     // set popd value to D
+    s.append("@R13\n")
+    s.append("A=M\n")
+    s.append("M=D\n")
+    s.toString
   }
 
   // set Memory location to A
   private def calcMLocation(seg: String, x: String): String = {
-    var s = s"@$seg\n"
-    s += "D=M\n"
-    s += s"@$x\n"
-    s + s"A=D+A\n"
+    val s = new StringBuilder
+    s.append(s"@$seg\n")
+    s.append("D=M\n")
+    s.append(s"@$x\n")
+    s.append(s"A=D+A\n")
+    s.toString
   }
 
   //  set Memory location to A (immideate)
   private def calcMLocationI(seg: String, x: String): String = {
-    var s = s"@$seg\n"
-    s += "D=A\n"
-    s += s"@$x\n"
-    s + s"A=D+A\n"
+    val s = new StringBuilder
+    s.append(s"@$seg\n")
+    s.append("D=A\n")
+    s.append(s"@$x\n")
+    s.append(s"A=D+A\n")
+    s.toString
   }
 
   def add: String = popAndSetD_M + "M=M+D\n" + incSP
@@ -102,17 +109,19 @@ object Asm {
 
   private def compareWith(cond: String): String = {
     val n = counter.inc
+    val s = new StringBuilder
 
-    var s = popAndSetD_M
-    s += "D=M-D\n"   // x - y
-    s += s"@COMP_LABEL_$n\n"
-    s += s"D; $cond\n"
-    s += assignPtrSP("0")
-    s += s"@COMP_LABEL_END_$n\n"
-    s += "0; JMP\n"
-    s += s"(COMP_LABEL_$n)\n"
-    s += assignPtrSP("-1")
-    s += s"(COMP_LABEL_END_$n)\n"
-    s + incSP
+    s.append(popAndSetD_M)
+    s.append("D=M-D\n")   // x - y
+    s.append(s"@COMP_LABEL_$n\n")
+    s.append(s"D; $cond\n")
+    s.append(assignPtrSP("0"))
+    s.append(s"@COMP_LABEL_END_$n\n")
+    s.append("0; JMP\n")
+    s.append(s"(COMP_LABEL_$n)\n")
+    s.append(assignPtrSP("-1"))
+    s.append(s"(COMP_LABEL_END_$n)\n")
+    s.append(incSP)
+    s.toString
   }
 }
