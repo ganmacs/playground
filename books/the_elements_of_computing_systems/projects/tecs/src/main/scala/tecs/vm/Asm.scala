@@ -16,7 +16,7 @@ object Asm {
   val decAndptrSP: String = decSP + "A=M\n"
 
   //  pop x and y, then set D = y, M = x
-  val popAndSetD_M = pop + decAndptrSP
+  private val popAndSetD_M = pop + decAndptrSP
 
   def assignPtrSP(v: String) = ptrSP + s"M=$v\n"
 
@@ -28,8 +28,7 @@ object Asm {
 
   def pushC(x: String): String = {
     val s = new StringBuilder
-    s.append(s"@$x\n")
-    s.append("D=A\n")
+    s.append(loadRamAddress(x))
     s.append(push)
     s.toString
   }
@@ -44,8 +43,7 @@ object Asm {
 
   def pushS(x: String): String = {
     val s = new StringBuilder
-    s.append(s"@$this.filename.$x\n")
-    s.append("D=M\n")
+    s.append(loadRamAddress(s"$filename.$x"))
     s.append(push)
     s.toString
   }
@@ -61,38 +59,6 @@ object Asm {
   def pop(seg: String, x: String): String = calcMLocation(seg, x) + storeInMemory
   def popI(seg: String, x: String): String = calcMLocationI(seg, x) + storeInMemory
   def popS(x: String): String = s"@$this.filename.$x\n" + "M=D\n" +storeInMemory
-
-  private def storeInMemory: String = {
-    val s = new StringBuilder
-    s.append("D=A\n")
-    s.append("@R13\n")
-    s.append("M=D\n") // temp @R12 = D + A
-    s.append(pop)     // set popd value to D
-    s.append("@R13\n")
-    s.append("A=M\n")
-    s.append("M=D\n")
-    s.toString
-  }
-
-  // set Memory location to A
-  private def calcMLocation(seg: String, x: String): String = {
-    val s = new StringBuilder
-    s.append(s"@$seg\n")
-    s.append("D=M\n")
-    s.append(s"@$x\n")
-    s.append(s"A=D+A\n")
-    s.toString
-  }
-
-  //  set Memory location to A (immideate)
-  private def calcMLocationI(seg: String, x: String): String = {
-    val s = new StringBuilder
-    s.append(s"@$seg\n")
-    s.append("D=A\n")
-    s.append(s"@$x\n")
-    s.append(s"A=D+A\n")
-    s.toString
-  }
 
   def add: String = popAndSetD_M + "M=M+D\n" + incSP
   def sub: String = popAndSetD_M + "M=M-D\n" + incSP
@@ -139,48 +105,40 @@ object Asm {
     val s = new StringBuilder
     s.append(label(name))
     s.append("D=0\n")
-    (0 to Integer.parseInt(localnum)).foreach { e =>
-      s.append(push)
-    }
+      (0 to Integer.parseInt(localnum)).foreach { e =>
+        s.append(push)
+      }
     s.toString()
   }
 
   def returnExpr: String = {
     val s = new StringBuilder
-    s.append("@LCL\n")
-    s.append("D=M\n")
-    s.append("@R13\n")
-    s.append("M=D\n") // FRAME = LCL
+    s.append(loadRamValue("LCL"))
+    s.append(storeValueToRam("R13"))
 
-    s.append(backToRAMWithIndex("R14", "5")) // RET = *(FRAME - 5) (R14 = RET)
+    s.append(storeToRAMWithIndex("R14", "5")) // RET = *(FRAME - 5) (R14 = RET)
 
     s.append(pop)
     s.append("@ARG\n")
     s.append("A=M\n") // *ARG
     s.append("M=D\n") // *ARG = pop
 
-    s.append("@ARG\n")
-    s.append("D=M\n")
+    s.append(loadRamValue("ARG"))
     s.append(s"@1\n")
     s.append("D=D+A\n")
-    s.append(s"@SP\n")
-    s.append("M=D\n") //  SP = ARG + 1
+    s.append(storeValueToRam("SP")) //  SP = ARG + 1
 
-    s.append("@R13\n")
-    s.append("D=M\n")
-    s.append(backToRAMWithIndex("THAT", "1"))
+    s.append(loadRamValue("R13"))
+    s.append(storeToRAMWithIndex("THAT", "1"))
 
-    s.append("@R13\n")
-    s.append("D=M\n")
-    s.append(backToRAMWithIndex("THIS", "2"))
+    s.append(loadRamValue("R13"))
+    s.append(storeToRAMWithIndex("THIS", "2"))
 
-    s.append("@R13\n")
-    s.append("D=M\n")
-    s.append(backToRAMWithIndex("ARG", "3"))
+    s.append(loadRamValue("R13"))
+    s.append(storeToRAMWithIndex("ARG", "3"))
 
-    s.append("@R13\n")
-    s.append("D=M\n")
-    s.append(backToRAMWithIndex("LCL", "4"))
+    s.append(loadRamValue("R13"))
+    s.append(storeToRAMWithIndex("LCL", "4"))
 
     s.append("@R14\n")
     s.append("A=M\n")
@@ -190,14 +148,51 @@ object Asm {
   }
 
   // ram = *(D + index)
-  private def backToRAMWithIndex(ram: String, i: String): String = {
+  private def storeToRAMWithIndex(ram: String, i: String): String = {
     val s = new StringBuilder
     s.append(s"@$i\n")
     s.append("D=D-A\n")
     s.append("A=D\n")
     s.append("D=M\n") // D = *(ram - i)
-    s.append(s"@$ram\n")
-    s.append("M=D\n") // v = *(ram - i)
+    s.append(storeValueToRam(ram))
     s.toString
   }
+
+  private def storeInMemory: String = {
+    val s = new StringBuilder
+    s.append("D=A\n")
+    s.append(storeValueToRam("R13"))
+    s.append(pop)     // set popd value to D
+    s.append("@R13\n")
+    s.append("A=M\n")
+    s.append("M=D\n")
+    s.toString
+  }
+
+  // set Memory location to A
+  private def calcMLocation(seg: String, x: String): String = {
+    val s = new StringBuilder
+    s.append(loadRamValue(seg))
+    s.append(s"@$x\n")
+    s.append(s"A=D+A\n")
+    s.toString
+  }
+
+  //  set Memory location to A (immideate)
+  private def calcMLocationI(seg: String, x: String): String = {
+    val s = new StringBuilder
+    s.append(loadRamAddress(seg))
+    s.append(s"@$x\n")
+    s.append(s"A=D+A\n")
+    s.toString
+  }
+
+  // load ram VALUE to D register
+  private def loadRamValue(ram: String) = s"@$ram\n" + "D=M\n"
+
+  // load ram ADREESS to D register
+  private def loadRamAddress(ram: String) = s"@$ram\n" + "D=A\n"
+
+  // Store D register value to ram
+  private def storeValueToRam(ram: String) = s"@$ram\n" + "M=D\n"
 }
