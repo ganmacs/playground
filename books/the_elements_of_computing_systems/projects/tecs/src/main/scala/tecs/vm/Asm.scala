@@ -103,7 +103,7 @@ object Asm {
   def neg: String = pop + "M=-D\n" + incSP
   def not: String = pop + "M=!D\n" + incSP
 
-  def label(v: String): String = s"($v)\n"
+  def label(v: String): String = s"($v$$$filename)\n"
   def goto(v: String): String = s"@$v\n" + "0; JMP\n"
   def ifgoto(v: String): String = {
     val s = new StringBuilder
@@ -138,41 +138,52 @@ object Asm {
   def function(name: String, localnum: String): String = {
     val s = new StringBuilder
     s.append(label(name))
-
-    s.append("D=0")
+    s.append("D=0\n")
     (0 to Integer.parseInt(localnum)).foreach { e =>
       s.append(push)
     }
-
     s.toString()
   }
 
   def returnExpr: String = {
     val s = new StringBuilder
+    s.append("@LCL\n")
+    s.append("D=M\n")
+    s.append("@R13\n")
+    s.append("M=D\n") // FRAME = LCL
+
+    s.append(backToRAMWithIndex("R14", "5")) // RET = *(FRAME - 5) (R14 = RET)
+
     s.append(pop)
     s.append("@ARG\n")
     s.append("A=M\n") // *ARG
     s.append("M=D\n") // *ARG = pop
+
+    s.append("@ARG\n")
+    s.append("D=M\n")
     s.append(s"@1\n")
     s.append("D=D+A\n")
-    s.append("A=D\n")
-    s.append("D=M\n") // D = *(SP + i)
     s.append(s"@SP\n")
-    s.append("M=D\n") // v = *(SP + i)
-
-    s.append(backToRAMWithIndex("SP", "5"))
-    s.append("@LCL\n")
-    s.append("D=M\n")
-    s.append("R13\n")
-    s.append("M=D\n") // R13 = LCL
-
-    s.append(backToRAMWithIndex("R14", "5"))
-    s.append(backToRAMWithIndex("THAT", "1"))
-    s.append(backToRAMWithIndex("THIS", "2"))
-    s.append(backToRAMWithIndex("ARG", "3"))
-    s.append(backToRAMWithIndex("LCL", "4"))
+    s.append("M=D\n") //  SP = ARG + 1
 
     s.append("@R13\n")
+    s.append("D=M\n")
+    s.append(backToRAMWithIndex("THAT", "1"))
+
+    s.append("@R13\n")
+    s.append("D=M\n")
+    s.append(backToRAMWithIndex("THIS", "2"))
+
+    s.append("@R13\n")
+    s.append("D=M\n")
+    s.append(backToRAMWithIndex("ARG", "3"))
+
+    s.append("@R13\n")
+    s.append("D=M\n")
+    s.append(backToRAMWithIndex("LCL", "4"))
+
+    s.append("@R14\n")
+    s.append("A=M\n")
     s.append("0; JMP\n") // goto ret
 
     s.toString
