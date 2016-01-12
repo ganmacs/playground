@@ -103,14 +103,24 @@ object Asm {
   def neg: String = pop + "M=-D\n" + incSP
   def not: String = pop + "M=!D\n" + incSP
 
+  def label(v: String): String = s"($v)\n"
+  def goto(v: String): String = s"@$v\n" + "0; JMP\n"
+  def ifgoto(v: String): String = {
+    val s = new StringBuilder
+    s.append(pop)
+    s.append(s"@$v\n")
+    s.append("D; JGT\n")
+    s.toString
+  }
+
   def eq: String = compareWith("JEQ")
   def gt: String = compareWith("JGT")
   def lt: String = compareWith("JLT")
 
   private def compareWith(cond: String): String = {
     val n = counter.inc
-    val s = new StringBuilder
 
+    val s = new StringBuilder
     s.append(popAndSetD_M)
     s.append("D=M-D\n")   // x - y
     s.append(s"@COMP_LABEL_$n\n")
@@ -118,10 +128,65 @@ object Asm {
     s.append(assignPtrSP("0"))
     s.append(s"@COMP_LABEL_END_$n\n")
     s.append("0; JMP\n")
-    s.append(s"(COMP_LABEL_$n)\n")
+    s.append(label(s"COMP_LABEL_$n"))
     s.append(assignPtrSP("-1"))
-    s.append(s"(COMP_LABEL_END_$n)\n")
+    s.append(label(s"COMP_LABEL_END_$n"))
     s.append(incSP)
+    s.toString
+  }
+
+  def function(name: String, localnum: String): String = {
+    val s = new StringBuilder
+    s.append(label(name))
+
+    s.append("D=0")
+    (0 to Integer.parseInt(localnum)).foreach { e =>
+      s.append(push)
+    }
+
+    s.toString()
+  }
+
+  def returnExpr: String = {
+    val s = new StringBuilder
+    s.append(pop)
+    s.append("@ARG\n")
+    s.append("A=M\n") // *ARG
+    s.append("M=D\n") // *ARG = pop
+    s.append(s"@1\n")
+    s.append("D=D+A\n")
+    s.append("A=D\n")
+    s.append("D=M\n") // D = *(SP + i)
+    s.append(s"@SP\n")
+    s.append("M=D\n") // v = *(SP + i)
+
+    s.append(backToRAMWithIndex("SP", "5"))
+    s.append("@LCL\n")
+    s.append("D=M\n")
+    s.append("R13\n")
+    s.append("M=D\n") // R13 = LCL
+
+    s.append(backToRAMWithIndex("R14", "5"))
+    s.append(backToRAMWithIndex("THAT", "1"))
+    s.append(backToRAMWithIndex("THIS", "2"))
+    s.append(backToRAMWithIndex("ARG", "3"))
+    s.append(backToRAMWithIndex("LCL", "4"))
+
+    s.append("@R13\n")
+    s.append("0; JMP\n") // goto ret
+
+    s.toString
+  }
+
+  // ram = *(D + index)
+  private def backToRAMWithIndex(ram: String, i: String): String = {
+    val s = new StringBuilder
+    s.append(s"@$i\n")
+    s.append("D=D-A\n")
+    s.append("A=D\n")
+    s.append("D=M\n") // D = *(ram - i)
+    s.append(s"@$ram\n")
+    s.append("M=D\n") // v = *(ram - i)
     s.toString
   }
 }

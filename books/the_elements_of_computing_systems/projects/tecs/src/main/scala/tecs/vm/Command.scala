@@ -1,6 +1,6 @@
 package tecs.vm
 
-sealed abstract class Command {
+ sealed abstract class Command {
   def toAsm: String
 }
 
@@ -64,4 +64,28 @@ case class Or() extends Command {
 
 case class Not() extends Command {
   override def toAsm: String = Asm.not
+}
+
+case class Lable(arg1: String) extends Command {
+  override def toAsm: String = Asm.label(arg1)
+}
+
+case class Goto(arg1: String) extends Command {
+  override def toAsm: String = Asm.goto(arg1)
+}
+
+case class IfGoto(arg1: String) extends Command {
+  override def toAsm: String = Asm.ifgoto(arg1)
+}
+
+case class Function(arg1: String, arg2: String) extends Command {
+  override def toAsm: String = Asm.function(arg1, arg2)
+}
+
+case class Call(arg1: String) extends Command {
+  override def toAsm: String = ""
+}
+
+case class Return() extends Command {
+  override def toAsm: String = Asm.returnExpr
 }

@@ -4,6 +4,13 @@ case class Parser() {
   def parse(str: String): Command = str.split(" ") match {
     case Array("push", a, b) => Push(a, b)
     case Array("pop", a, b) => Pop(a, b)
+    case Array("function", a, b) => Function(a, b)
+    case Array("label", a) => Lable(a)
+    case Array("goto", a) => Goto(a)
+    case Array("if-goto", a) => IfGoto(a)
+    case Array("call", a) => IfGoto(a)
+    case Array("call", a) => Call(a)
+    case Array("return") => Not()
     case Array("add") => Add()
     case Array("sub") => Sub()
     case Array("neg") => Neg()
