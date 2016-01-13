@@ -79,7 +79,7 @@ case class IfGoto(arg1: String) extends Command {
 }
 
 case class Function(arg1: String, arg2: String) extends Command {
-  override def toAsm: String = Asm.function(arg1, arg2)
+  override def toAsm: String = Asm.function(arg1, Integer.parseInt(arg2))
 }
 
 case class Call(arg1: String, arg2: String) extends Command {

@@ -33,6 +33,13 @@ object Asm {
     s.toString
   }
 
+  def pushV(x: String): String = {
+    val s = new StringBuilder
+    s.append(loadRamValue(x))
+    s.append(push)
+    s.toString
+  }
+
   def push(seg: String, x: String): String = {
     val s = new StringBuilder
     s.append(calcMLocation(seg, x))
@@ -43,7 +50,7 @@ object Asm {
 
   def pushS(x: String): String = {
     val s = new StringBuilder
-    s.append(loadRamAddress(s"$filename.$x"))
+    s.append(loadRamValue(s"$filename.$x"))
     s.append(push)
     s.toString
   }
@@ -58,7 +65,7 @@ object Asm {
 
   def pop(seg: String, x: String): String = calcMLocation(seg, x) + storeInMemory
   def popI(seg: String, x: String): String = calcMLocationI(seg, x) + storeInMemory
-  def popS(x: String): String = s"@$this.filename.$x\n" + "M=D\n" +storeInMemory
+  def popS(x: String): String = storeValueToRam(s"$filename.$x") + storeInMemory
 
   def add: String = popAndSetD_M + "M=M+D\n" + incSP
   def sub: String = popAndSetD_M + "M=M-D\n" + incSP
@@ -69,13 +76,16 @@ object Asm {
   def neg: String = pop + "M=-D\n" + incSP
   def not: String = pop + "M=!D\n" + incSP
 
-  def label(v: String): String = s"($v$$$filename)\n"
+  def labelwithFileName(v: String): String = s"($v$$$filename)\n"
+  def label(v: String): String = s"($v)\n"
+
   def goto(v: String): String = s"@$v\n" + "0; JMP\n"
+
   def ifgoto(v: String): String = {
     val s = new StringBuilder
     s.append(pop)
     s.append(s"@$v\n")
-    s.append("D; JGT\n")
+    s.append("D; JNE\n")
     s.toString
   }
 
@@ -88,30 +98,54 @@ object Asm {
 
     val s = new StringBuilder
     s.append(popAndSetD_M)
-    s.append("D=M-D\n")   // x - y
+    s.append("D=M-D\n")    // x - y
     s.append(s"@COMP_LABEL_$n\n")
     s.append(s"D; $cond\n")
-    s.append(assignPtrSP("0"))
-    s.append(s"@COMP_LABEL_END_$n\n")
-    s.append("0; JMP\n")
+    s.append(assignPtrSP("0")) //  false
+    s.append(goto(s"COMP_LABEL_END_$n"))
     s.append(label(s"COMP_LABEL_$n"))
-    s.append(assignPtrSP("-1"))
+    s.append(assignPtrSP("-1")) // true
     s.append(label(s"COMP_LABEL_END_$n"))
     s.append(incSP)
     s.toString
   }
 
-  def function(name: String, localnum: String): String = {
+  def function(name: String, localnum: Int): String = {
     val s = new StringBuilder
+
     s.append(label(name))
-    s.append("D=0\n")
-      (0 to Integer.parseInt(localnum)).foreach { e =>
-        s.append(push)
-      }
+    if (localnum > 0) {
+      s.append("D=0\n")
+      (0 to localnum).foreach(s.append(push))
+    }
     s.toString()
   }
 
-  def callexpr(e1: String, e2: String): String = ""
+  def callexpr(e1: String, e2: String): String = {
+    val n = counter.inc.toString
+    val l = s"return-address-$n"
+    val s = new StringBuilder
+
+    s.append(pushC(l))
+    s.append(pushV("LCL"))
+    s.append(pushV("ARG"))
+    s.append(pushV("THIS"))
+    s.append(pushV("THAT"))
+    s.append(loadRamValue("SP"))
+    s.append(s"@$e2\n")
+    s.append("D=D-A\n")
+    s.append(s"@5\n")
+    s.append("D=D-A\n")
+    s.append(storeValueToRam("ARG"))
+
+    s.append(loadRamValue("SP"))
+    s.append(storeValueToRam("LCL"))
+
+    s.append(goto(e1)) // goto ret
+
+    s.append(label(l))
+    s.toString
+  }
 
   def returnExpr: String = {
     val s = new StringBuilder
@@ -146,6 +180,14 @@ object Asm {
     s.append("A=M\n")
     s.append("0; JMP\n") // goto ret
 
+    s.toString
+  }
+
+  def setup: String = {
+    val s = new StringBuilder
+    s.append(loadRamAddress("256"))
+    s.append(storeValueToRam("SP"))
+    s.append(callexpr("Sys.init", "0"))
     s.toString
   }
 

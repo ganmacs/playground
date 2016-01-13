@@ -25,4 +25,7 @@ project/
 
 projects/tecs/**/*.asm
 projects/tecs/**/*.hack
+projects/tecs/**/*.cmp
+projects/tecs/**/*.out
+projects/tecs/**/*.vm
 projects/**/*.tst

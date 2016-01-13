@@ -24,9 +24,17 @@ object VM {
 
     for (file <- files) {
       Asm.filename = file.getName
-      contents = contents ::: (s"// $file" :: f.loadfile(file).map(p.parse(_).toAsm))
+
+      var s = ""
+      if (Asm.filename == "Sys.vm") {
+        s += Asm.setup
+      }
+      s += s"// $file\n"
+      contents = contents ::: (s :: f.loadfile(file).map(p.parse(_).toAsm))
     }
-    f.writeFile(files(0).getParent + ".asm", contents)
+
+    val ff = "/" + files(0).getParent.split("/").last
+    f.writeFile(files(0).getParent + ff + ".asm", contents)
   }
 
   private def genVMfile(file: File) = {
