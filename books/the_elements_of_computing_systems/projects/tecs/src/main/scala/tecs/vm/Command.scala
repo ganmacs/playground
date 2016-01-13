@@ -82,8 +82,8 @@ case class Function(arg1: String, arg2: String) extends Command {
   override def toAsm: String = Asm.function(arg1, arg2)
 }
 
-case class Call(arg1: String) extends Command {
-  override def toAsm: String = ""
+case class Call(arg1: String, arg2: String) extends Command {
+  override def toAsm: String = Asm.callexpr(arg1, arg2)
 }
 
 case class Return() extends Command {

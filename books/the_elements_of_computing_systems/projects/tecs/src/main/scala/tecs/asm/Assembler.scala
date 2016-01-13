@@ -8,7 +8,7 @@ object Assembler {
   private val st = SymbolTable().setup
 
   def main(args: Array[String]) {
-    val v = f.loadfile(ROOT + args(0) + ".asm").filter(_ != "")
+    val v = f.loadfile(ROOT + args(0) + ".asm")
     val t = Translator(v)
     for ((k, v) <- t.symbolTable) { st.put(k, v.toString) }
 

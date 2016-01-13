@@ -8,7 +8,7 @@ case class Parser() {
     case Array("label", a) => Lable(a)
     case Array("goto", a) => Goto(a)
     case Array("if-goto", a) => IfGoto(a)
-    case Array("call", a) => Call(a)
+    case Array("call", a, b) => Call(a, b)
     case Array("return") => Return()
     case Array("add") => Add()
     case Array("sub") => Sub()

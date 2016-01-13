@@ -111,6 +111,8 @@ object Asm {
     s.toString()
   }
 
+  def callexpr(e1: String, e2: String): String = ""
+
   def returnExpr: String = {
     val s = new StringBuilder
     s.append(loadRamValue("LCL"))
