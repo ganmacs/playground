@@ -2,11 +2,11 @@ package tecs.compiler
 
 sealed trait Syntax
 
-case class S_class(className: S_ident, classVarDec: S_classVarDec, subroutineDec: S_subroutineDec) extends Syntax
+case class S_class(className: S_ident, classVarDec: Option[List[S_classVarDec]], subroutineDec: Option[List[S_subroutineDec]]) extends Syntax
 case class S_classVarDec(prefix: S_keyword, t: S_type, varNames: S_varNameList) extends Syntax
 case class S_subroutineDec(l: List[Syntax]) extends Syntax
-case class S_statements(vname: List[S_statement]) extends Syntax
-case class S_statement(l: List[Syntax]) extends Syntax
+case class S_statements(vname: Option[List[S_statement]]) extends Syntax
+case class S_statement(l: Syntax) extends Syntax
 case class S_parameterList(l: List[(S_type, S_ident)]) extends Syntax
 case class S_varNameList(l: List[S_ident]) extends Syntax
 case class S_letStatement(vname: S_ident, e1: Option[S_expression], e2: S_expression) extends Syntax

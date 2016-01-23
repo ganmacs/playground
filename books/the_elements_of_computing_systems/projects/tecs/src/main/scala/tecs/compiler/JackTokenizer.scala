@@ -2,6 +2,10 @@ package tecs.compiler
 
 class JackTokenizer(input: String) {
   private var i = 0
+  private val STR = """([a-zA-Z0-9]+)(.+)""".r
+  private val WS = """\s+(.+)""".r
+  private val KW = """(;|\{|\}|\(|\)|\[|\]|=|\+|\-|/|\*|,|<|>|~|\.)(.+)""".r
+  private val S = """(\"[^"\n]*\")(.+)""".r
   val tokens = scan(input)
 
   def hasMoreTokens: Boolean = {
@@ -39,11 +43,6 @@ class JackTokenizer(input: String) {
     case STRING_CONST(s) => s
     case _ => throw new Exception("only string const")
   }
-
-  private val STR = """([a-zA-Z0-9]+)(.+)""".r
-  private val WS = """\s+(.+)""".r
-  private val KW = """(;|\{|\}|\(|\)|\[|\]|=|\+|\-|/|\*|,|<|>|~|\.)(.+)""".r
-  private val S = """(\"[^"\n]*\")(.+)""".r
 
   private def scan(str: String): List[TKN] = str match {
     case STR(s, rest) => Token.build(s) :: scan(rest)
