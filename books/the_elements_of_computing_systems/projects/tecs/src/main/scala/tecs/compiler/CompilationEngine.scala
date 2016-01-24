@@ -281,6 +281,7 @@ class CompilationEngine(input: String) {
             case _ => Left(lst)
           }
           case S_ident(x) :: xs => Right((S_term(S_ident(x)),  xs))
+          case S_keyword(x) :: xs => Right((S_term(S_ident(x)),  xs))
           case S_symbol("(") :: xs => compileExpression(xs) match {
             case Right((ex, xs)) => xs match {
               case S_symbol(")") :: xs => Right((S_term(ex), xs))
