@@ -18,7 +18,7 @@ class CompilationEngine(input: String) {
   }
 
   def compile() = compileClass(tokens) match {
-    case Right(c) => println(c)
+    case Right(c) => println(XMLConveter.toXML(c))
     case Left(c) => throw new Exception(c)
   }
 
@@ -78,14 +78,14 @@ class CompilationEngine(input: String) {
     case (a@(S_keyword("constructor") | S_keyword("function") | S_keyword("method"))) :: xs => compileType(xs) match {
       case Right((typ, S_ident(name) :: S_symbol("(") :: xs)) => compileParametererList(xs) match {
         case Right((l, S_symbol(")") :: xs)) => compileSubroutineBody(xs) match {
-          case Right((body, xs)) => Right((S_subroutineDec(a.asInstanceOf[S_keyword], typ, S_ident(name), body), xs))
+          case Right((body, xs)) => Right((S_subroutineDec(a.asInstanceOf[S_keyword], typ, S_ident(name), l, body), xs))
           case _ => Left(lst)
         }
         case _ => Left(lst)
       }
       case Left(S_keyword("void") :: S_ident(name) ::  S_symbol("(") :: xs) => compileParametererList(xs) match {
         case Right((l, S_symbol(")") :: xs)) => compileSubroutineBody(xs) match {
-          case Right((body, xs)) => Right((S_subroutineDec(a.asInstanceOf[S_keyword], S_type("void"), S_ident(name), body), xs))
+          case Right((body, xs)) => Right((S_subroutineDec(a.asInstanceOf[S_keyword], S_type("void"), S_ident(name), l, body), xs))
           case _ => Left(lst)
         }
         case _ => Left(lst)
@@ -110,12 +110,13 @@ class CompilationEngine(input: String) {
   //  ((type varName) (',' type varName)*)?
   def compileParametererList(lst: List[Syntax]): Either[String, (S_parameterList, List[Syntax])] = compileType(lst) match {
     case Right((typ, S_ident(vname) :: S_symbol(",") :: xs)) => compileParametererList(xs) match {
-      case Right((S_parameterList(l), xs)) => Right((S_parameterList((typ, S_ident(vname)) :: l), xs))
+      case Right((S_parameterList(Some(l)), xs)) => Right((S_parameterList(Some((typ, S_ident(vname)):: l)), xs))
+      case Right((S_parameterList(None), xs)) => Right((S_parameterList(Some(List((typ, S_ident(vname))))), xs))
       case Right(x) => Left(x.toString)
       case Left(x) => Left(x)
     }
-    case Right((typ, S_ident(vname) :: xs)) => Right((S_parameterList(List((typ, S_ident(vname)))), xs))
-    case Left(_) => Right((S_parameterList(Nil), lst))
+    case Right((typ, S_ident(vname) :: xs)) => Right((S_parameterList(Some(List((typ, S_ident(vname))))), xs))
+    case Left(_) => Right((S_parameterList(None), lst))
   }
 
   def compileVarDecs(lst: List[Syntax]): Either[List[Syntax], (Option[List[S_varDec]], List[Syntax])] = compileVarDec(lst) match {
@@ -179,7 +180,7 @@ class CompilationEngine(input: String) {
       }
       case _ => Left(lst)
     }
-    case S_keyword("let") :: S_ident(vname) :: S_symbol("=") :: xs=> compileExpression(xs) match {
+    case S_keyword("let") :: S_ident(vname) :: S_symbol("=") :: xs => compileExpression(xs) match {
       case Right((e2, S_symbol(";") :: xs)) => Right((S_letStatement(S_ident(vname), None, e2), xs))
       case _ => Left(lst)
     }
@@ -275,7 +276,7 @@ class CompilationEngine(input: String) {
           case S_stringConst(x) :: xs => Right((S_term(S_stringConst(x)),  xs))
           case S_ident(x) :: S_symbol("[") :: xs => compileExpression(xs) match {
             case Right((ex, xs)) => xs match {
-              case S_symbol("]") :: xs => Right((S_term(ex), xs))
+              case S_symbol("]") :: xs => Right((S_term(S_accessAry(S_ident(x), ex)), xs))
               case _ => Left(lst)
             }
             case _ => Left(lst)
@@ -306,7 +307,7 @@ class CompilationEngine(input: String) {
     }
     case S_ident(s) :: S_symbol(".") :: S_ident(r) :: S_symbol("(") :: xs => compileExpressionList(xs) match {
       case Right((el, xs)) => xs match {
-        case S_symbol(")") :: xs => Right((S_subroutineCall(S_ident(s), Some(S_ident(r)), el), xs))
+        case S_symbol(")") :: xs => Right((S_subroutineCall(S_ident(r), Some(S_ident(s)), el), xs))
         case _ => Left(lst)
       }
       case _ => Left(lst)
