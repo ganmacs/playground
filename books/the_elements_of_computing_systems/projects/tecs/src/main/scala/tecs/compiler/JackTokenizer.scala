@@ -4,7 +4,7 @@ class JackTokenizer(input: String) {
   private var i = 0
   private val STR = """([a-zA-Z0-9]+)(.+)""".r
   private val WS = """\s+(.+)""".r
-  private val KW = """(;|\{|\}|\(|\)|\[|\]|=|\+|\-|/|\*|,|<|>|~|\.)(.+)""".r
+  private val KW = """(;|\{|\}|\(|\)|\[|\]|=|\+|\-|/|\*|,|<|>|&|\||~|\.)(.+)""".r
   private val S = """(\"[^"\n]*\")(.+)""".r
   val tokens = scan(input)
 

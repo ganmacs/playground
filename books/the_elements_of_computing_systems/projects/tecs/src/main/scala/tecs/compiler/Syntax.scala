@@ -4,7 +4,8 @@ sealed trait Syntax
 
 case class S_class(className: S_ident, classVarDec: Option[List[S_classVarDec]], subroutineDec: Option[List[S_subroutineDec]]) extends Syntax
 case class S_classVarDec(prefix: S_keyword, t: S_type, varNames: S_varNameList) extends Syntax
-case class S_subroutineDec(l: List[Syntax]) extends Syntax
+case class S_subroutineDec(p: S_keyword,  typ: S_type, name: S_ident, body: S_subroutineBody) extends Syntax
+case class S_subroutineBody(dec: Option[List[S_varDec]], stat: S_statements) extends Syntax
 case class S_statements(vname: Option[List[S_statement]]) extends Syntax
 case class S_statement(l: Syntax) extends Syntax
 case class S_parameterList(l: List[(S_type, S_ident)]) extends Syntax

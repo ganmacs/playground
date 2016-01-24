@@ -17,22 +17,23 @@ class CompilationEngine(input: String) {
     case STRING_CONST(k) :: xs => S_stringConst(k) :: tkn2syntax(xs)
   }
 
-  def compile() = compileClass(tokens)
+  def compile() = compileClass(tokens) match {
+    case Right(c) => println(c)
+    case Left(c) => throw new Exception(c)
+  }
 
   //  "class" className "{" classVarDec* subroutineDec* "}"
   def compileClass(lst: List[Syntax]): Either[String, S_class] = tokens match {
-    case S_keyword("class") :: (a@S_ident(_)) :: S_symbol("{") :: xs =>
-      compileClassVarDecs(xs) match {
-        case Right((cvds, xs)) =>
-          compileSubroutines(xs) match {
-            case Right((subroutine, xs)) => xs match {
-              case S_symbol("}") :: Nil => Right(S_class(a, cvds, subroutine))
-              case x => Left("class definition's } is not found\n" + x.toString)
-            }
-            case Left(x) => Left(x.toString)
-          }
+    case S_keyword("class") :: (a@S_ident(_)) :: S_symbol("{") :: xs => compileClassVarDecs(xs) match {
+      case Right((cvds, xs)) => compileSubroutines(xs) match {
+        case Right((subroutine, xs)) => xs match {
+          case S_symbol("}") :: Nil => Right(S_class(a, cvds, subroutine))
+          case x => Left("class definition's } is not found\n" + x.toString)
+        }
         case Left(x) => Left(x.toString)
       }
+      case Left(x) => Left(x.toString)
+    }
     case x => Left(x.toString)
   }
 
@@ -73,21 +74,37 @@ class CompilationEngine(input: String) {
   }
 
   // ('constructor' | 'function' | "method") ('void' | type) subroutineName "(" parameterList ")" subroutineBody
-  def compileSubroutine(lst: List[Syntax]): Either[String, (S_subroutineDec, List[Syntax])] = lst match {
-    case (a@(S_keyword("constructor") | S_keyword("function") | S_keyword("method"))) :: xs => xs match {
-      case xs => compileType(xs) match {
-        case Right((typ, S_ident(subname) :: S_symbol("(") :: xs)) => compileParametererList(xs) match {
-          // case Right((S_parameterList(l), S_symbol(")") :: xs)) =>
-          case Left(x) => Left(x)
+  def compileSubroutine(lst: List[Syntax]): Either[List[Syntax], (S_subroutineDec, List[Syntax])] = lst match {
+    case (a@(S_keyword("constructor") | S_keyword("function") | S_keyword("method"))) :: xs => compileType(xs) match {
+      case Right((typ, S_ident(name) :: S_symbol("(") :: xs)) => compileParametererList(xs) match {
+        case Right((l, S_symbol(")") :: xs)) => compileSubroutineBody(xs) match {
+          case Right((body, xs)) => Right((S_subroutineDec(a.asInstanceOf[S_keyword], typ, S_ident(name), body), xs))
+          case _ => Left(lst)
         }
-        case Left(S_keyword("void") :: S_ident(subname) ::  S_symbol("(") :: xs) => compileParametererList(xs) match {
-          // case Right((S_parameterList(l), S_symbol(")") :: xs)) =>
-          case Left(x) => Left(x)
-        }
-        case Left(x) => Left(x.toString())
+        case _ => Left(lst)
       }
+      case Left(S_keyword("void") :: S_ident(name) ::  S_symbol("(") :: xs) => compileParametererList(xs) match {
+        case Right((l, S_symbol(")") :: xs)) => compileSubroutineBody(xs) match {
+          case Right((body, xs)) => Right((S_subroutineDec(a.asInstanceOf[S_keyword], S_type("void"), S_ident(name), body), xs))
+          case _ => Left(lst)
+        }
+        case _ => Left(lst)
+      }
+      case _ => Left(lst)
     }
-    case x => Left(x.toString)
+    case _ => Left(lst)
+  }
+
+  // "{" varDec* statements "}"
+  private def compileSubroutineBody(lst: List[Syntax]): Either[List[Syntax], (S_subroutineBody, List[Syntax])] = lst match {
+    case S_symbol("{") :: xs => compileVarDecs(xs) match {
+      case Right((decs, xs)) => compileStatements(xs) match {
+        case Right((ss, S_symbol("}") :: xs)) => Right((S_subroutineBody(decs, ss), xs))
+        case _ => Left(lst)
+      }
+      case _ => Left(lst)
+    }
+    case _ => Left(lst)
   }
 
   //  ((type varName) (',' type varName)*)?
@@ -98,7 +115,16 @@ class CompilationEngine(input: String) {
       case Left(x) => Left(x)
     }
     case Right((typ, S_ident(vname) :: xs)) => Right((S_parameterList(List((typ, S_ident(vname)))), xs))
-    case Left(xs) => Right((S_parameterList(Nil), xs))
+    case Left(_) => Right((S_parameterList(Nil), lst))
+  }
+
+  def compileVarDecs(lst: List[Syntax]): Either[List[Syntax], (Option[List[S_varDec]], List[Syntax])] = compileVarDec(lst) match {
+    case Right((v, xs)) => compileVarDecs(xs) match {
+      case Right((Some(ls), xs)) => Right((Some(v :: ls), xs))
+      case Right((None, xs)) => Right((Some(List(v)), xs))
+      case Left(_) => Right((Some(List(v)), xs))
+    }
+    case Left(_) => Right((None, lst))
   }
 
   //  'var' type varName (',' varName)* ";"
@@ -144,7 +170,6 @@ class CompilationEngine(input: String) {
     }
   }
 
-
   // 'let' varname ('['  expression ']')? '=' expression ';'
   def compileLet(lst: List[Syntax]): Either[List[Syntax], (S_letStatement, List[Syntax])] = lst match  {
     case S_keyword("let") :: S_ident(vname) :: S_symbol("[") :: xs => compileExpression(xs) match {
@@ -158,6 +183,7 @@ class CompilationEngine(input: String) {
       case Right((e2, S_symbol(";") :: xs)) => Right((S_letStatement(S_ident(vname), None, e2), xs))
       case _ => Left(lst)
     }
+    case _ => Left(lst)
   }
 
   // 'if' "(" expression ")" "{" statements "}" ("else" "{" statements"}")?
@@ -194,11 +220,12 @@ class CompilationEngine(input: String) {
       }
       case Left(_) => Left(lst)
     }
+    case _ => Left(lst)
   }
 
   // "do" subroutineCall ";"
   def compileDo(lst: List[Syntax]): Either[List[Syntax], (S_do, List[Syntax])] = lst match {
-    case S_symbol("do") :: xs => compileSubroutineCall(xs) match {
+    case S_keyword("do") :: xs => compileSubroutineCall(xs) match {
       case Right((sr, xs)) => xs match  {
         case S_symbol(";") :: xs => Right((S_do(sr), xs))
         case _ => Left(lst)
@@ -210,7 +237,7 @@ class CompilationEngine(input: String) {
 
   // 'return' expression? ";"
   def compileReturn(lst: List[Syntax]): Either[List[Syntax], (S_return, List[Syntax])] = lst match {
-    case S_symbol("return") :: xs => compileExpression(xs) match {
+    case S_keyword("return") :: xs => compileExpression(xs) match {
       case Right((e, xs)) => xs match {
         case S_symbol(";") :: xs => Right((S_return(Some(e)), xs))
       }
