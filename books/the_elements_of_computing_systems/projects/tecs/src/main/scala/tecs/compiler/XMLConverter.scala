@@ -26,8 +26,8 @@ class XMLConveter extends Converter {
       <keyword> {"class"} </keyword>
       { toXML(className) }
       <symbol> {"{"} </symbol>
-      { varDecs.getOrElse(Nil).map(toXML _) }
-      { subroutines.getOrElse(Nil).map(toXML _) }
+      { varDecs.getOrElse(Nil).map(toXML) }
+      { subroutines.getOrElse(Nil).map(toXML) }
       <symbol> {"}"} </symbol>
       </class>
     }
@@ -35,7 +35,7 @@ class XMLConveter extends Converter {
       <classVarDec>
       { toXML(p) }
       { toXML(t) }
-      { join(name.map(toXML _), <symbol> , </symbol>) }
+      { join(name.map(toXML), <symbol> , </symbol>) }
       <symbol> ; </symbol>
       </classVarDec>
     }
@@ -55,53 +55,38 @@ class XMLConveter extends Converter {
     case S_subroutineBody(decs, statments) => {
       <subroutineBody>
       <symbol> {"{"} </symbol>
-      { decs.getOrElse(Nil).map(toXML _) }
+      { decs.getOrElse(Nil).map(toXML) }
       { toXML(statments) }
       <symbol> {"}"} </symbol>
       </subroutineBody>
     }
     case S_statements(ss) => {
       <statements>
-      { ss.getOrElse(Nil).map(toXML _) }
+      { ss.getOrElse(Nil).map(toXML) }
       </statements>
     }
     case S_statement(s) => toXML(s)
     case S_do(S_subroutineCall(S_ident(name), reciever, S_expressionList(elist))) => {
-      val r = reciever match {
-        case Some(x) => toXML(x) +: <symbol> . </symbol>
-        case None => Nil
-      }
-
       <doStatement>
       <keyword> {"do"} </keyword>
-      {r}
+      { reciever map (toXML(_) +: <symbol> . </symbol>) getOrElse Nil }
       <identifier> {name} </identifier>
       <symbol> {"("} </symbol>
       <expressionList>
-      { join(elist.getOrElse(Nil).map(toXML _), <symbol> ,  </symbol>) }
+      { join(elist.getOrElse(Nil).map(toXML), <symbol> ,  </symbol>) }
       </expressionList>
       <symbol> {")"} </symbol>
       <symbol> {";"} </symbol>
       </doStatement>
     }
     case S_return(v) => {
-      val x = v match {
-        case None => Nil
-        case Some(x) => toXML(x)
-      }
-
       <returnStatement>
       <keyword> {"return"} </keyword>
-      { x }
+      { v map(toXML) getOrElse Nil }
       <symbol> ; </symbol>
       </returnStatement>
     }
     case S_if(c, t, f) => {
-      val ff = f match {
-        case None => Nil
-        case Some(s) => <keyword> {"else"} </keyword> +: <symbol> {"{"} </symbol> +: toXML(s) +: <symbol> {"}"} </symbol>
-      }
-
       <ifStatement>
       <keyword> {"if"} </keyword>
       <symbol> {"("} </symbol>
@@ -110,7 +95,7 @@ class XMLConveter extends Converter {
       <symbol> {"{"} </symbol>
       { toXML(t) }
       <symbol> {"}"} </symbol>
-      { ff }
+      { f map (<keyword> {"else"} </keyword> +: <symbol> {"{"} </symbol> +: toXML(_) +: <symbol> {"}"} </symbol>) getOrElse Nil }
       </ifStatement>
     }
     case S_while(c, body) => {
@@ -125,15 +110,10 @@ class XMLConveter extends Converter {
       </whileStatement>
     }
     case S_letStatement(v, e1, e2) => {
-      val ee = e1 match {
-        case None => Nil
-        case Some(s) =>  <symbol> {"["} </symbol> +: toXML(s) +: <symbol> {"]"} </symbol>
-      }
-
       <letStatement>
       <keyword> let </keyword>
       { toXML(v) }
-      { ee }
+      { e1 map (<symbol> {"["} </symbol> +: toXML(_) +: <symbol> {"]"} </symbol>) getOrElse Nil }
       <symbol> = </symbol>
       { toXML(e2) }
       <symbol> ; </symbol>
@@ -147,16 +127,11 @@ class XMLConveter extends Converter {
     }
     case S_term(s) => {
       val ss = s match {
-        case S_subroutineCall(S_ident(name), reciever, S_expressionList(elist)) => {
-          val r = reciever match {
-            case None => Nil
-            case Some(x) => toXML(x) +: <symbol> . </symbol>
-          }
-
-          r :+ <identifier> {name} </identifier>
+        case S_subroutineCall(name, reciever, S_expressionList(elist)) => {
+          (reciever map (toXML(_) +: <symbol> . </symbol>) getOrElse Nil) :+ toXML(name) :+
           <symbol> {"("} </symbol>
           <expressionList>
-          { join(elist.getOrElse(Nil).map(toXML _), <symbol> , </symbol> )}
+          { join(elist.getOrElse(Nil).map(toXML), <symbol> , </symbol> )}
           </expressionList>
           <symbol> {")"} </symbol>
         }
@@ -183,7 +158,7 @@ class XMLConveter extends Converter {
       <varDec>
       <keyword> {"var"} </keyword>
       { toXML(typ)}
-      { join(varNameList.map(toXML _), <symbol> , </symbol>) }
+      { join(varNameList.map(toXML), <symbol> , </symbol>) }
       <symbol> ; </symbol>
       </varDec>
     }
