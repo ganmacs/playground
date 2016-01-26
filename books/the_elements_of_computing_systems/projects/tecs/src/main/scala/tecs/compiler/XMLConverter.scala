@@ -2,7 +2,13 @@ package tecs.compiler
 
 import scala.xml.{Elem, NodeSeq, PrettyPrinter, XML}
 
-object XMLConveter {
+trait Converter {
+  def run(s: Syntax): List[String]
+}
+
+class XMLConveter extends Converter {
+  def run(s: Syntax): List[String] = format(toXML(s))
+
   def format(c: Elem): List[String]= {
     val pp = new PrettyPrinter(80, 2)
     pp.format(c).split("\n").toList

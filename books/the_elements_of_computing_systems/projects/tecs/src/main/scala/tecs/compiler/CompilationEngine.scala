@@ -1,6 +1,6 @@
 package tecs.compiler
 
-class CompilationEngine(input: String) {
+class CompilationEngine(input: String, converter: Converter) {
   lazy val tokenizer = new JackTokenizer(input)
   lazy val tokens = tkn2syntax(tokenizer.tokens)
 
@@ -18,7 +18,7 @@ class CompilationEngine(input: String) {
   }
 
   def compile(): List[String] = compileClass(tokens) match {
-    case Right(c) => XMLConveter.format(XMLConveter.toXML(c))
+    case Right(c) => converter.run(c)
     case Left(c) => throw new Exception(c)
   }
 

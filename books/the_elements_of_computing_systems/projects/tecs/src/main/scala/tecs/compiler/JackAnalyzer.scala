@@ -7,6 +7,12 @@ object Compiler {
   private val ROOT = "src/test/resources/compiler/"
   private val f = new FileHandler
 
+  // private lazy val converter = new XMLConveter()
+  // private lazy val outputExt = ".xml"
+
+  private lazy val converter = new VMConverter()
+  private lazy val outputExt = ".vm"
+
   def main(args: Array[String]): Unit = {
     val f = new File(ROOT, args(0))
     if (f.exists()) {
@@ -22,10 +28,10 @@ object Compiler {
     for (file <- loadfiles(dir)) {
       val contents = f.loadfile(file).flatMap(_.split(" "))
       val c = trimComment(contents).reduce((a, b) => a + " " + b)
-      val ce = new CompilationEngine(c)
+      val ce = new CompilationEngine(c, converter)
 
       file.toString match {
-        case fext(ff) => f.writeFile(ff + ".xml", ce.compile())
+        case fext(ff) => f.writeFile(ff + outputExt, ce.compile())
         case _ => throw new Exception(s"not found file: $file")
       }
     }
