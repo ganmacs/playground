@@ -28,4 +28,6 @@ projects/tecs/**/*.hack
 projects/tecs/**/*.cmp
 projects/tecs/**/*.out
 projects/tecs/**/*.vm
+projects/tecs/**/*.xml
+projects/tecs/**/*.jack
 projects/**/*.tst

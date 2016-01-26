@@ -3,15 +3,9 @@ package tecs.compiler
 import scala.xml.{Elem, NodeSeq, PrettyPrinter, XML}
 
 object XMLConveter {
-  def pprint(c: Elem)= {
+  def format(c: Elem): List[String]= {
     val pp = new PrettyPrinter(80, 2)
-    println(pp.format(c))
-  }
-
-  def write(c: Elem) = {
-    val pp = new PrettyPrinter(80, 2)
-    val s = XML.loadString(pp.format(c))
-    XML.save("items.xml", s, "UTF-8", true, null)
+    pp.format(c).split("\n").toList
   }
 
   private def join(l: List[NodeSeq], e: NodeSeq): NodeSeq = l match {

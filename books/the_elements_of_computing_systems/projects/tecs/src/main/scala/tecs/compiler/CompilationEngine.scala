@@ -17,11 +17,8 @@ class CompilationEngine(input: String) {
     case STRING_CONST(k) :: xs => S_stringConst(k) :: tkn2syntax(xs)
   }
 
-  def compile() = compileClass(tokens) match {
-    case Right(c) => {
-      val r = XMLConveter.toXML(c)
-      XMLConveter.write(r)
-    }
+  def compile(): List[String] = compileClass(tokens) match {
+    case Right(c) => XMLConveter.format(XMLConveter.toXML(c))
     case Left(c) => throw new Exception(c)
   }
 
