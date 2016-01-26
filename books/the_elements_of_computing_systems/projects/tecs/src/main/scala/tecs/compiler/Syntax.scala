@@ -18,7 +18,7 @@ case class S_return(v: Option[S_expression]) extends Syntax
 case class S_accessAry(vname: S_ident, e: S_expression) extends Syntax
 case class S_expression(l: S_term, r: Option[List[S_rightTerm]]) extends Syntax
 case class S_expressionList(l: Option[List[S_expression]]) extends Syntax
-case class S_type(l: String) extends Syntax
+case class S_type(l: Syntax) extends Syntax
 case class S_varDec(typ: S_type, varList: S_varNameList) extends Syntax
 case class S_subroutineCall(name: S_ident, reciever: Option[S_ident], elist: S_expressionList) extends Syntax
 case class S_keyword(keyword: String) extends Syntax

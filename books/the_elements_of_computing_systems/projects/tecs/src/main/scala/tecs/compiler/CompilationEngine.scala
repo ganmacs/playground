@@ -20,7 +20,7 @@ class CompilationEngine(input: String) {
   def compile() = compileClass(tokens) match {
     case Right(c) => {
       val r = XMLConveter.toXML(c)
-      XMLConveter.pprint(r)
+      XMLConveter.write(r)
     }
     case Left(c) => throw new Exception(c)
   }
@@ -88,7 +88,7 @@ class CompilationEngine(input: String) {
       }
       case Left(S_keyword("void") :: S_ident(name) ::  S_symbol("(") :: xs) => compileParametererList(xs) match {
         case Right((l, S_symbol(")") :: xs)) => compileSubroutineBody(xs) match {
-          case Right((body, xs)) => Right((S_subroutineDec(a.asInstanceOf[S_keyword], S_type("void"), S_ident(name), l, body), xs))
+          case Right((body, xs)) => Right((S_subroutineDec(a.asInstanceOf[S_keyword], S_type(S_keyword("void")), S_ident(name), l, body), xs))
           case _ => Left(lst)
         }
         case _ => Left(lst)
@@ -285,7 +285,7 @@ class CompilationEngine(input: String) {
             case _ => Left(lst)
           }
           case S_ident(x) :: xs => Right((S_term(S_ident(x)),  xs))
-          case S_keyword(x) :: xs => Right((S_term(S_ident(x)),  xs))
+          case S_keyword(x) :: xs => Right((S_term(S_keyword(x)),  xs))
           case S_symbol("(") :: xs => compileExpression(xs) match {
             case Right((ex, xs)) => xs match {
               case S_symbol(")") :: xs => Right((S_term(ex), xs))
@@ -379,10 +379,10 @@ class CompilationEngine(input: String) {
 
   //  'int' | 'char' | 'boolean' | className
   private def compileType(lst: List[Syntax]): Either[List[Syntax], (S_type, List[Syntax])] = lst match {
-    case S_keyword("int")     :: xs => Right((S_type("int"), xs))
-    case S_keyword("char")    :: xs => Right((S_type("char"), xs))
-    case S_keyword("boolean") :: xs => Right((S_type("boolean"), xs))
-    case S_ident(a)           :: xs => Right((S_type(a), xs))
+    case S_keyword("int")     :: xs => Right((S_type(S_keyword("int")), xs))
+    case S_keyword("char")    :: xs => Right((S_type(S_keyword("char")), xs))
+    case S_keyword("boolean") :: xs => Right((S_type(S_keyword("boolean")), xs))
+    case S_ident(a)           :: xs => Right((S_type(S_ident(a)), xs))
     case _ => Left(lst)
   }
 }
