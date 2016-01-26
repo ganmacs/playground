@@ -18,7 +18,10 @@ class CompilationEngine(input: String) {
   }
 
   def compile() = compileClass(tokens) match {
-    case Right(c) => println(XMLConveter.toXML(c))
+    case Right(c) => {
+      val r = XMLConveter.toXML(c)
+      XMLConveter.pprint(r)
+    }
     case Left(c) => throw new Exception(c)
   }
 

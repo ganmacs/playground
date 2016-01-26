@@ -1,13 +1,24 @@
 package tecs.compiler
 
-import scala.xml.Elem
+import scala.xml.{Elem, NodeSeq, PrettyPrinter}
 
 object XMLConveter {
+  def pprint(c: Elem)= {
+    val pp = new PrettyPrinter(80, 2)
+    println(pp.format(c))
+  }
+
+  private def join(l: List[NodeSeq], e: NodeSeq): NodeSeq = l match {
+    case Nil => Nil
+    case x :: Nil => x
+    case x :: xs => x ++: e ++: join(xs, e)
+  }
+
   def toXML(s: Syntax): Elem = s match {
-    case S_class(S_ident(className), varDecs, subroutines) => {
+    case S_class(className, varDecs, subroutines) => {
       <class>
-      <keyword> class </keyword>
-      <identifier> {className} </identifier>
+      <keyword> {"class"} </keyword>
+      { toXML(className) }
       <symbol> {"{"} </symbol>
       { varDecs.getOrElse(Nil).map(toXML _) }
       { subroutines.getOrElse(Nil).map(toXML _) }
@@ -17,43 +28,35 @@ object XMLConveter {
     // case S_classVarDec(p, t, name) => {
     // }
     case S_subroutineDec(S_keyword(p), S_type(typ), name, S_parameterList(plist), body) => {
-      // semicolun is lacking
-      val pp = plist.getOrElse(Nil).map { case (typ, s) => toXML(typ)  }
-
       <subroutineDec>
       <keyword> {p} </keyword>
       <keyword> {typ} </keyword>
       { toXML(name) }
-      <symbol> ( </symbol>
-        <parameterList> {pp} </parameterList>
-        <symbol> ) </symbol>
-      {toXML(body)}
+      <symbol> {"{"} </symbol>
+      <parameterList>
+      { join(plist.getOrElse(Nil).map { case (typ, s) => toXML(typ) +: toXML(typ) }, <symbol> , </symbol>) }
+      </parameterList>
+      <symbol> {"}"} </symbol>
+      { toXML(body) }
       </subroutineDec>
     }
-
     case S_subroutineBody(decs, statments) => {
       <subroutineBody>
       <symbol> {"{"} </symbol>
       { decs.getOrElse(Nil).map(toXML _) }
-      {toXML(statments)}
+      { toXML(statments) }
       <symbol> {"}"} </symbol>
       </subroutineBody>
     }
-    case S_statements(ss) => ss match {
-      case None => <statements> </statements>
-      case Some(ss) => {
-        <statements>
-        { ss.map(toXML _) }
-        </statements>
-      }
+    case S_statements(ss) => {
+      <statements>
+      { ss.getOrElse(Nil).map(toXML _) }
+      </statements>
     }
     case S_statement(s) => toXML(s)
     case S_do(S_subroutineCall(S_ident(name), reciever, S_expressionList(elist))) => {
       val r = reciever match {
-        case Some(S_ident(x)) => {
-          <identifier> {x} </identifier>
-          <symbol> . </symbol>
-        }
+        case Some(x) => toXML(x) +: <symbol> . </symbol>
         case None => Nil
       }
 
@@ -61,9 +64,11 @@ object XMLConveter {
       <keyword> {"do"} </keyword>
       {r}
       <identifier> {name} </identifier>
-      <symbol> ( </symbol>
-        <expressionList>{ elist.getOrElse(Nil).map(toXML _) }</expressionList>
-        <symbol> ) </symbol>
+      <symbol> {"("} </symbol>
+      <expressionList>
+      { elist.getOrElse(Nil).map(toXML _) }
+      </expressionList>
+      <symbol> {")"} </symbol>
       <symbol> ; </symbol>
       </doStatement>
     }
@@ -74,7 +79,7 @@ object XMLConveter {
       }
 
       <returnStatement>
-      <keyword> return </keyword>
+      <keyword> {"return"} </keyword>
       { x }
       <symbol> ; </symbol>
       </returnStatement>
@@ -82,36 +87,35 @@ object XMLConveter {
     case S_while(c, body) => {
       <whileStatement>
       <keyword> {"while"} </keyword>
-      <symbol> ( </symbol>
-        { toXML(c) }
-        <symbol> ) </symbol>
-      <symbol> {"{"} </symbol>
+      <symbol> {"("} </symbol>
       { toXML(c) }
+      <symbol> {")"} </symbol>
+      <symbol> {"{"} </symbol>
+      { toXML(body) }
       <symbol>  {"}"} </symbol>
       </whileStatement>
     }
     case S_letStatement(v, e1, e2) => {
       val ee = e1 match {
         case None => Nil
-        case Some(s) => toXML(s)
+        case Some(s) =>  <symbol> {"["} </symbol> +: toXML(s) +: <symbol> {"]"} </symbol>
       }
 
       <letStatement>
       <keyword> let </keyword>
       { toXML(v) }
-      <symbol> = </symbol>
       { ee }
+      <symbol> = </symbol>
       { toXML(e2) }
       <symbol> ; </symbol>
       </letStatement>
     }
     case S_expression(x, rterm) => {
-      val lt = toXML(x)
       <expression>
-      {lt}
+      { toXML(x) }
+      { rterm.getOrElse(Nil).map { case S_rightTerm(op, t) =>  toXML(op) +: toXML(t) } }
       </expression>
     }
-    case S_ident(s) => <identifier> {s} </identifier>
     case S_term(s) => {
       val ss = s match {
         case S_subroutineCall(S_ident(name), reciever, S_expressionList(elist)) => {
@@ -123,21 +127,21 @@ object XMLConveter {
             case None => Nil
           }
 
-          // {r}
-          <identifier> {name} </identifier>
-          <symbol> ( </symbol>
-            <expressionList>
-            { elist.getOrElse(Nil).map(toXML _) }
-            </expressionList>
-            <symbol> ) </symbol>
-          <symbol> ; </symbol>
+          r :+ <identifier> {name} </identifier>
+          <symbol> {"("} </symbol>
+          <expressionList>
+          { elist.getOrElse(Nil).map(toXML _) }
+          </expressionList>
+          <symbol> {")"} </symbol>
         }
-        case S_intConst(x) => {
-        }
+        case S_intConst(x) => <integerConstant> {x} </integerConstant>
+        case S_stringConst(x) => <stringConstant> {x} </stringConstant>
         case i@S_ident(x) => toXML(i)
         case S_termWithUOp(o, x) => {}
         case S_keywordConst(x) => {}
-        case S_accessAry(S_ident(x), e) => {}
+        case S_accessAry(x, e) => {
+          toXML(x) +: <symbol> {"["} </symbol> +: { toXML(e) } +: <symbol> {"]"} </symbol>
+        }
         case S_expression(s, v) => {}
         case _ => Nil
       }
@@ -150,10 +154,12 @@ object XMLConveter {
       <varDec>
       <keyword> {"var"} </keyword>
       { toXML(typ)}
-      { varNameList.map(toXML _) }
+      { join(varNameList.map(toXML _), <symbol> , </symbol>) }
       <symbol> ; </symbol>
       </varDec>
     }
-    case t@S_type(typ) => <identifier> {typ} </identifier>
+    case S_ident(s) => <identifier> {s} </identifier>
+    case S_type(typ) => <identifier> {typ} </identifier>
+    case S_op(op) => <symbol> {op} </symbol>
   }
 }

@@ -2,7 +2,7 @@ package tecs.compiler
 
 object Token {
   val num = """([1-9][0-9]*|0)""".r
-  val str = """(\"[^"\n]*\")""".r
+  val str = """\"([^"\n]*)\"""".r
   val iden = """([a-zA-Z_][a-zA-Z0-9_]*)""".r
 
   def build(s: String): TKN = s match {
