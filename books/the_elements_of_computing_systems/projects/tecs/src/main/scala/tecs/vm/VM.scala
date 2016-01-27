@@ -19,7 +19,7 @@ object VM {
     }
   }
 
-  private def genVMfiles(files: List[File]) = {
+  private def genVMfiles(files: Seq[File]) = {
     var contents: List[String] = List()
 
     for (file <- files) {
@@ -29,8 +29,9 @@ object VM {
       if (Asm.filename == "Sys.vm") {
         s += Asm.setup
       }
+
       s += s"// $file\n"
-      contents = contents ::: (s :: f.loadfile(file).map(p.parse(_).toAsm))
+      contents ++ (f.loadfile(file).map(p.parse(_).toAsm) :+ s)
     }
 
     val ff = "/" + files(0).getParent.split("/").last
@@ -43,7 +44,7 @@ object VM {
     f.writeFile(file + ".asm", contents)
   }
 
-  private def loadVMfiles(dir: File): List[File] = {
+  private def loadVMfiles(dir: File): Seq[File] = {
     val main = new File(dir + "/Sys.vm")
     val others = dir.list.toList.
       filter(x => x != "Sys.vm" && x.matches(".*\\.vm") ).

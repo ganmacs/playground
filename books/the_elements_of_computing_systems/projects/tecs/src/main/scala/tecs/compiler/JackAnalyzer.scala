@@ -6,6 +6,7 @@ import tecs.util._
 object Compiler {
   private val ROOT = "src/test/resources/compiler/"
   private val f = new FileHandler
+  private val r = """(.*\.jack)""".r
 
   // private lazy val converter = new XMLConveter()
   // private lazy val outputExt = ".xml"
@@ -26,7 +27,7 @@ object Compiler {
     val fext = """(.+)\.jack$""".r
 
     for (file <- loadfiles(dir)) {
-      val contents = f.loadfile(file).flatMap(_.split(" "))
+       val contents = f.loadfile(file).flatMap(_.split(" "))
       val c = trimComment(contents).reduce((a, b) => a + " " + b)
       val ce = new CompilationEngine(c, converter)
 
@@ -37,12 +38,11 @@ object Compiler {
     }
   }
 
-  private def loadfiles(dir: File): List[File] = {
-    dir.list.toList.filter(x => x.matches(".*\\.jack")).
-      map(x => new File(dir.toString + s"/$x"))
+  private def loadfiles(dir: File): Seq[File] = dir.list.toSeq.collect {
+    case r(x) => new File(dir.toString + "/" + x)
   }
 
-  private def trimComment(ss: List[String]): List[String] = {
+  private def trimComment(ss: Seq[String]): Seq[String] = {
     var r: List[String] = List()
     var f = true
 

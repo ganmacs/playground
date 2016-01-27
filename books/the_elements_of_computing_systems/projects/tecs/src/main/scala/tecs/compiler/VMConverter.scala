@@ -1,9 +1,9 @@
 package tecs.compiler
 
 class VMConverter extends Converter {
-  def run(s: Syntax): List[String] = toVM(s, "Nil")
+  def run(s: Syntax): Seq[String] = toVM(s, "Nil")
 
-  def toVM(s: Syntax, className: String): List[String] = s match {
+  def toVM(s: Syntax, className: String): Seq[String] = s match {
     case S_class(className, varDecs, subroutines) => {
       // varDecs.getOrElse(Nil).map()
       // subroutines.getOrElse(Nil).map()
