@@ -3,10 +3,10 @@ package tecs.compiler
 import scala.collection.mutable.{Map => MMap}
 
 trait Kind
-case class STATIC() extends Kind
-case class FIELD() extends Kind
-case class ARG() extends Kind
-case class VAR() extends Kind
+case object STATIC extends Kind
+case object FIELD extends Kind
+case object ARG extends Kind
+case object VAR extends Kind
 
 case class SymbolValue(typ: String, kind: Kind, i: Int)
 
@@ -33,29 +33,29 @@ case class SymbolTable(var parent: Option[SymbolTable]) {
   }
 
   def define(name: String, typ: String, kind: Kind) = kind match {
-    case STATIC() => {
+    case STATIC => {
       m += (name -> SymbolValue(typ, kind, staticIdx))
       staticIdx += 1
     }
-    case FIELD() => {
+    case FIELD => {
       m += (name -> SymbolValue(typ, kind, fieldIdx))
       fieldIdx += 1
     }
-    case ARG() => {
+    case ARG => {
       m += (name -> SymbolValue(typ, kind, argIdx))
       argIdx += 1
     }
-    case VAR() => {
+    case VAR => {
       m += (name -> SymbolValue(typ, kind, varIdx))
       varIdx += 1
     }
   }
 
   def varCount(kind: Kind) = kind match {
-    case STATIC() => staticIdx - 1
-    case FIELD() => fieldIdx - 1
-    case ARG() => argIdx - 1
-    case VAR() => varIdx - 1
+    case STATIC => staticIdx - 1
+    case FIELD => fieldIdx - 1
+    case ARG => argIdx - 1
+    case VAR => varIdx - 1
   }
 
   def kindOf(name: String): Option[Kind] = m.get(name) map { case SymbolValue(_, k, _) => k }
