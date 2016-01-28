@@ -5,16 +5,12 @@ class CompilationEngine(input: String, converter: Converter) {
   lazy val tokens = tkn2syntax(tokenizer.tokens)
 
   private def tkn2syntax(l : List[TKN]): List[Syntax] = l match {
-    case KEYWORD(k)      :: Nil => List(S_keyword(k))
-    case SYMBOL(k)       :: Nil => List(S_symbol(k))
-    case IDENTIFIER(k)   :: Nil => List(S_ident(k))
-    case INT_CONST(k)    :: Nil => List(S_intConst(k))
-    case STRING_CONST(k) :: Nil => List(S_stringConst(k))
     case KEYWORD(k)      :: xs => S_keyword(k)     :: tkn2syntax(xs)
     case SYMBOL(k)       :: xs => S_symbol(k)      :: tkn2syntax(xs)
     case IDENTIFIER(k)   :: xs => S_ident(k)       :: tkn2syntax(xs)
     case INT_CONST(k)    :: xs => S_intConst(k)    :: tkn2syntax(xs)
     case STRING_CONST(k) :: xs => S_stringConst(k) :: tkn2syntax(xs)
+    case Nil => Nil
   }
 
   def compile(): Seq[String] = compileClass(tokens) match {
@@ -153,7 +149,6 @@ class CompilationEngine(input: String, converter: Converter) {
     case Left(_) => Right((S_statements(None), lst))
   }
 
-  // def compileStatements(lst: Seq[Syntax]): Either[String, (Seq[S_statement], Seq[Syntax])] = compileStatement(lst) match {
   private def compileStatement(lst: Seq[Syntax]): Either[Seq[Syntax], (S_statement, Seq[Syntax])] = compileLet(lst) match {
     case Right((l, xs)) => Right((S_statement(l), xs))
     case _ => compileIf(lst) match  {
@@ -381,5 +376,247 @@ class CompilationEngine(input: String, converter: Converter) {
     case S_keyword("boolean") :: xs => Right((S_type(S_keyword("boolean")), xs))
     case S_ident(a)           :: xs => Right((S_type(S_ident(a)), xs))
     case _ => Left(lst)
+  }
+
+
+  // ("static" | "field") type varName ("," varName)*  ";"
+  def compileClassVarDec2(lst: Seq[Syntax]): Either[String, (S_classVarDec, Seq[Syntax])] = lst match {
+    case (a@(S_keyword("static" | "field"))) :: xs => compileType(xs) match {
+      case Right((typ, xs)) => compileVarNameList(xs) match {
+        case Right((n, xs)) => xs match {
+          case S_symbol(";") :: xs => Right((S_classVarDec(a, typ, n), xs))
+          case x => Left(x.toString)
+        }
+        case Left(x) => Left(x.toString)
+      }
+      case Right(x) => Left(x.toString)
+      case Left(x) => Left("Require Type in var dec in class\n" + x.toString)
+    }
+    case x => Left(x.toString)
+  }
+
+  def compileSubroutines2(lst: Seq[Syntax]): Option[(Option[Seq[S_subroutineDec]], Seq[Syntax])] = compileSubroutine2(lst) collect {
+    case (sr, xs) => compileSubroutines2(xs) match {
+      case None => (Some(Seq(sr)), xs)
+      case Some((sr2, xs)) => (Some(sr +: sr2.getOrElse(Nil)), xs)
+      case _ => null
+    }
+  }
+
+  // ('constructor' | 'function' | "method") ('void' | type) subroutineName "(" parameterList ")" subroutineBody
+  def compileSubroutine2(lst: Seq[Syntax]): Option[(S_subroutineDec, Seq[Syntax])] = lst match {
+    case (a@(S_keyword("constructor" | "function" | "method"))) :: (t@S_keyword("void")) :: (id@S_ident(_)) :: S_symbol("(") :: xs => compileParametererList2(xs) collect {
+      case (pl, S_symbol(")") :: xs) => compileSubroutineBody2(xs).map(b => (S_subroutineDec(a, S_type(t), id, pl, b._1), b._2)) getOrElse(null)
+    }
+    case (a@(S_keyword("constructor" | "function" | "method"))) :: xs => compileType2(xs) collect {
+      case (t, (id@S_ident(_)) :: S_symbol(")") :: xs) => compileParametererList2(xs) collect {
+        case (pl, S_symbol(")") :: xs) => compileSubroutineBody2(xs).map (b => (S_subroutineDec(a, t, id, pl, b._1), b._2)) getOrElse(null)
+      } getOrElse(null)
+    }
+    case _ => None
+  }
+
+  // "{" varDec* statements "}"
+  private def compileSubroutineBody2(lst: Seq[Syntax]): Option[(S_subroutineBody, Seq[Syntax])] = lst match {
+    case S_symbol("{") :: xs => for {
+      (decs, xs) <- compileVarDecs2(xs)
+      (ss, xs) <- compileStatements2(xs)
+    } yield xs match {
+      case S_symbol("}") :: xs => (S_subroutineBody(decs, ss), xs)
+      case _ => null
+    }
+    case _ => None
+  }
+
+  //  ((type varName) (',' type varName)*)?
+  def compileParametererList2(lst: Seq[Syntax]): Option[(S_parameterList, Seq[Syntax])] = compileType2(lst) match {
+    case Some((typ, (id@S_ident(_)) :: S_symbol(",") :: xs )) => compileParametererList2(xs) collect {
+      case (S_parameterList(l), xs) => (S_parameterList(Some((typ, id) +: l.getOrElse(Nil))) , xs)
+    }
+    case Some((typ, (id@S_ident(_)) :: xs )) => Some((S_parameterList(Some(Seq((typ, id)))), xs))
+    case _ => Some((S_parameterList(None), lst))
+  }
+
+  // compileVarDec*
+  def compileVarDecs2(lst: Seq[Syntax]): Option[(Option[Seq[S_varDec]], Seq[Syntax])] = compileVarDec2(lst) match {
+    case Some((v, xs)) => compileVarDecs2(lst) match {
+      case Some((l, xs)) => Some((Some(v +: l.getOrElse(Nil)), xs))
+      case None => Some((Some(Seq(v)), xs))
+    }
+    case _ => Some((None, lst))
+  }
+
+  //  'var' type varName (',' varName)* ";"
+  def compileVarDec2(lst: Seq[Syntax]): Option[(S_varDec, Seq[Syntax])] = lst match {
+    case S_keyword("var") :: xs => for {
+      (t, xs1) <- compileType2(xs)
+      (vnames, xs2) <- compileVarNameList2(xs1)
+    } yield xs2 match {
+      case S_symbol(";") :: xs => (S_varDec(t, vnames), xs)
+      case _ => null
+    }
+    case _ => None
+  }
+
+  // Statement ----
+
+  // statement*
+  def compileStatements2(lst: Seq[Syntax]): Option[(S_statements, Seq[Syntax])] = compileStatement2(lst) match {
+    case Some((s, xs)) => compileStatements2(xs) match {
+      case Some((S_statements(k), xs)) => Some((S_statements(Some(s +: k.getOrElse(Nil))), xs))
+      case None => Some((S_statements(Some(Seq(s))), xs))
+      case _ => None
+    }
+    case _ => Some((S_statements(None), lst))
+  }
+
+  def compileStatement2(lst: Seq[Syntax]): Option[(S_statement, Seq[Syntax])] =
+    compileLet2(lst) orElse compileIf2(lst) orElse compileWhile2(lst) orElse compileDo2(lst) orElse compileReturn2(lst) map {
+      t => (S_statement(t._1), t._2)
+    }
+
+  // 'let' varname ('['  expression ']')? '=' expression ';'
+  def compileLet2(lst: Seq[Syntax]): Option[(S_letStatement, Seq[Syntax])] = lst match {
+    case S_keyword("let") :: (id@S_ident(_)) :: S_symbol("=") :: xs => compileExpression2(xs) collect {
+      case (e2, S_symbol(";") :: xs) => (S_letStatement(id, None, e2), xs)
+    }
+    case S_keyword("let") :: (id@S_ident(_)) :: S_symbol("[") :: xs => compileExpression2(xs) flatMap {
+      case (e, S_symbol("]") :: S_symbol("=") :: xs) => compileExpression2(xs) collect {
+        case (e2, S_symbol(";") :: xs) => (S_letStatement(id, Some(e), e2), xs)
+      }
+      case _ => None
+    }
+    case _ => None
+  }
+
+  // 'if' "(" expression ")" "{" statements "}" ("else" "{" statements"}")?
+  def compileIf2(lst: Seq[Syntax]): Option[(S_if, Seq[Syntax])] = lst match {
+    case S_keyword("if") :: S_symbol("(") :: xs => compileExpression2(xs) flatMap {
+      case (ex, xs) => xs match {
+        case S_symbol(")") :: S_symbol("{") :: xs => compileStatements2(xs) collect {
+          case (ss, S_symbol("}") :: S_keyword("else") :: S_symbol("{") :: xs) => (compileStatements2(xs) collect {
+            case (ss2, S_symbol("}") :: xs)  => ((S_if(ex, ss, Some(ss2))), xs) }).getOrElse(null)
+          case (ss, S_symbol("}") :: xs) => ((S_if(ex, ss, None)), xs)
+        }
+        case _ => None
+      }
+      case _ => None
+    }
+    case _ => None
+  }
+
+  //  'while' '(' expression ')' "{" statemetns "}"
+  def compileWhile2(lst: Seq[Syntax]): Option[(S_while, Seq[Syntax])] =  lst match {
+    case S_keyword("while") :: S_symbol("(") :: xs => compileExpression2(xs) flatMap {
+      case (e, S_symbol(")") :: S_symbol("{") :: xs) => compileStatements2(xs) collect {
+        case (ss, (S_symbol("}") :: xs)) => (S_while(e, ss), xs)
+      }
+      case _ => None
+    }
+    case _ => None
+  }
+
+  // "do" subroutineCall ";"
+  def compileDo2(lst: Seq[Syntax]): Option[(S_do, Seq[Syntax])] = lst match {
+    case S_keyword("do") :: xs => compileSubroutineCall2(xs) collect { case (sr, S_symbol(";") :: xs) => (S_do(sr), xs) }
+    case _ => None
+  }
+
+  // 'return' expression? ";"
+  def compileReturn2(lst: Seq[Syntax]): Option[(S_return, Seq[Syntax])] = lst match {
+    case S_keyword("return") :: S_symbol(";") :: xs => Some((S_return(None), xs))
+    case S_keyword("return") :: xs => compileExpression2(xs) collect { case (ex, xs) => (S_return(Some(ex)), xs) }
+    case _ => None
+  }
+
+  // Expression ----
+
+  // temr (op term)*
+  def compileExpression2(lst: Seq[Syntax]): Option[(S_expression, Seq[Syntax])] = compileTerm2(lst) flatMap {
+    case (t, xs) => compileOp2(xs) match {
+      case None => Some((S_expression(t, None), xs))
+      case Some((op, xs)) => compileExpression2(xs) collect {
+        case (S_expression(tr, x), xs) => (S_expression(t, Some(S_rightTerm(op, tr) +: x.getOrElse(Nil))), xs)
+      }
+    }
+  }
+
+  // subroutineCall | unaryOp term | keywordCosnt | integerConst | stringConst | varName | varName "[" expression "]"
+  // | "(" expression ")"
+  def compileTerm2(lst: Seq[Syntax]): Option[(S_term, Seq[Syntax])] = {
+    (compileSubroutineCall2(lst) orElse compileTermWithOp2(lst) orElse compileKeywordConst2(lst) orElse (lst match {
+      case (i@S_intConst(_)) :: xs => Some((i,  xs))
+      case (s@S_stringConst(_)) :: xs => Some((s, xs))
+      case (id@S_ident(x)) :: S_symbol("[") :: xs => compileExpression2(xs) collect {
+        case ((ex, S_symbol("]") :: xs)) => (S_accessAry(id, ex), xs)
+      }
+      case (i@S_ident(x)) :: xs => Some((i,  xs))
+      case S_symbol("(") :: xs => compileExpression2(xs) collect { case ((ex, S_symbol(")") :: xs)) => (ex, xs) }
+      case (k@S_keyword(x)) :: xs => Some((k,  xs))
+      case _ => None
+    })) map { t => (S_term(t._1), t._2) }
+  }
+
+  // subroutineName "(" expressionList ")" | (className | varName) '.' subroutineName '(' expressionList ")"
+  private def compileSubroutineCall2(lst: Seq[Syntax]): Option[(S_subroutineCall, Seq[Syntax])] = lst match {
+    case (i@S_ident(_)) :: S_symbol("(") :: xs => compileExpressionList2(xs) collect {
+      case ((el, S_symbol(")") :: xs)) => (S_subroutineCall(i, None, el), xs)
+    }
+    case (i@S_ident(_)) :: S_symbol(".") :: (i2@S_ident(r)) :: S_symbol("(") :: xs => compileExpressionList2(xs) collect {
+      case ((el, S_symbol(")") :: xs)) => (S_subroutineCall(i, Some(i2), el), xs)
+    }
+    case _ => None
+  }
+
+  private def compileTermWithOp2(lst: Seq[Syntax]): Option[(S_termWithUOp, Seq[Syntax])] = for {
+    op <-  compileUnaryOp2(lst)
+    term <- compileTerm2(op._2)
+  } yield (S_termWithUOp(op._1, term._1), term._2)
+
+  //  (expression (',' expression)*)?
+  def compileExpressionList2(lst: Seq[Syntax]): Option[(S_expressionList, Seq[Syntax])] = compileExpression2(lst) match {
+    case Some((x, S_symbol(",") :: xs)) => compileExpressionList2(xs) map ( t => (t._1.prepend(x), t._2) )
+    case Some((x, xs)) => compileExpressionList2(xs) map ( t => (t._1.prepend(x), t._2) )
+    case None => Some((S_expressionList(None), lst))
+    case _ => None
+  }
+
+  // varName ("," varName)*
+  def compileVarNameList2(lst: Seq[Syntax]): Option[(S_varNameList, Seq[Syntax])] = lst match {
+    case (i@S_ident(_)) :: S_symbol(",") :: xs => compileVarNameList2(xs) map ( t => (t._1.prepend(i), t._2) )
+    case (i@S_ident(_)) :: xs => Some((S_varNameList(Seq(i)), xs))
+    case _ => None
+  }
+
+  // "+" | "-" | "*" | "/" | "&" | "|" | "<"| ">" | "="
+  private def compileOp2(lst: Seq[Syntax]): Option[(S_op, Seq[Syntax])] = lst match {
+    case S_symbol(o@("+" | "-" | "*" | "/" | "&" | "|" | "<" | ">" | "=")) :: xs => Some((S_op(o), xs))
+    case _ => None
+  }
+
+  // "-" | "~"
+  private def compileUnaryOp2(lst: Seq[Syntax]): Option[(S_unaryOp, Seq[Syntax])] = lst match {
+    case S_symbol(s@("-" | "~")) :: xs => Some((S_unaryOp(s), xs))
+    case _ => None
+  }
+
+  // "true" | "false" | "null" | "this"
+  private def compileKeywordConst2(lst: Seq[Syntax]): Option[(S_keywordConst, Seq[Syntax])] = lst match {
+    case S_ident(k@("true" | "false" | "null" | "this")) :: xs => Some((S_keywordConst(k), xs))
+    case _ => None
+  }
+
+  //  'int' | 'char' | 'boolean' | className
+  private def compileType2(lst: Seq[Syntax]): Option[(S_type, Seq[Syntax])] = Option {
+    lst match {
+      case (k@S_keyword("int" | "char" | "boolean")) :: xs => (S_type(k), xs)
+      case (i@S_ident(a)) :: xs => (S_type(i), xs)
+      case _ => null
+    }
+  }
+
+  private def compileKeyword(str: String, lst: Seq[Syntax]): Option[(S_keyword, Seq[Syntax])] = lst match {
+    case S_keyword(str) :: xs => Some((S_keyword(str), xs))
+    case _ => None
   }
 }
