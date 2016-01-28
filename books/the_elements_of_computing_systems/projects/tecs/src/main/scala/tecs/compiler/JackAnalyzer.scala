@@ -8,11 +8,11 @@ object Compiler {
   private val f = new FileHandler
   private val r = """(.*\.jack)""".r
 
-  private lazy val converter = new XMLConveter()
-  private lazy val outputExt = ".xml"
+  // private lazy val converter = new XMLConveter()
+  // private lazy val outputExt = ".xml"
 
-  // private lazy val converter = new VMConverter()
-  // private lazy val outputExt = ".vm"
+  private lazy val converter = new VMConverter()
+  private lazy val outputExt = ".vm"
 
   def main(args: Array[String]): Unit = {
     val f = new File(ROOT, args(0))

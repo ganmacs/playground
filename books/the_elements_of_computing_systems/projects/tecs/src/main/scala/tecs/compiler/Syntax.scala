@@ -7,7 +7,9 @@ case class S_subroutineDec(p: S_keyword,  typ: S_type, name: S_ident, plist: S_p
 case class S_subroutineBody(dec: Option[Seq[S_varDec]], stat: S_statements) extends Syntax
 case class S_statements(vname: Option[Seq[S_statement]]) extends Syntax
 case class S_statement(l: Syntax) extends Syntax
-case class S_parameterList(l: Option[Seq[(S_type, S_ident)]]) extends Syntax
+case class S_parameterList(l: Option[Seq[(S_type, S_ident)]]) extends Syntax {
+  def size: Int = l.map(_.size).getOrElse(0)
+}
 case class S_varNameList(l: Seq[S_ident]) extends Syntax {
   def prepend(o: S_ident): S_varNameList = S_varNameList(o +: l)
 }
@@ -20,6 +22,7 @@ case class S_accessAry(vname: S_ident, e: S_expression) extends Syntax
 case class S_expression(l: S_term, r: Option[Seq[S_rightTerm]]) extends Syntax
 case class S_expressionList(l: Option[Seq[S_expression]]) extends Syntax {
   def prepend(o: S_expression): S_expressionList = S_expressionList { l map (o +: _) }
+  def size: Int = l.map(_.size).getOrElse(0)
 }
 case class S_type(l: Syntax) extends Syntax
 case class S_varDec(typ: S_type, varList: S_varNameList) extends Syntax

@@ -10,22 +10,14 @@ case object VAR extends Kind
 
 case class SymbolValue(typ: String, kind: Kind, i: Int)
 
-case class SymbolTable(var parent: Option[SymbolTable]) {
-  var m = MMap[String, SymbolValue]()
+case class SymbolTable(parent: Option[SymbolTable]) {
+  val m = MMap[String, SymbolValue]()
   var staticIdx = 0
   var fieldIdx = 0
   var argIdx = 0
   var varIdx = 0
 
-  def startSubroutine() = {
-    parent = Some(this)
-
-    m = MMap[String, SymbolValue]()
-    staticIdx =0
-    fieldIdx = 0
-    argIdx = 0
-    varIdx = 0
-  }
+  def newSubroutine() = SymbolTable(Some(this))
 
   def get(name: String): Option[SymbolValue] = m.get(name) match {
     case Some(s) => Some(s)
@@ -58,7 +50,7 @@ case class SymbolTable(var parent: Option[SymbolTable]) {
     case VAR => varIdx - 1
   }
 
-  def kindOf(name: String): Option[Kind] = m.get(name) map { case SymbolValue(_, k, _) => k }
-  def typOf(name: String): Option[String] = m.get(name) map { case SymbolValue(t, _, _) => t }
-  def indexOf(name: String): Option[Int] = m.get(name) map { case SymbolValue(_, _, i) => i }
+  def kindOf(name: String): Option[Kind] = m.get(name) collect { case SymbolValue(_, k, _) => k }
+  def typOf(name: String): Option[String] = m.get(name) collect { case SymbolValue(t, _, _) => t }
+  def indexOf(name: String): Option[Int] = m.get(name) collect { case SymbolValue(_, _, i) => i }
 }
