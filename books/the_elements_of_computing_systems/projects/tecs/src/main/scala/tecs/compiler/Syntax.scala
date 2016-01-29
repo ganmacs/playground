@@ -4,7 +4,9 @@ sealed trait Syntax
 case class S_class(className: S_ident, classVarDec: Option[Seq[S_classVarDec]], subroutineDec: Option[Seq[S_subroutineDec]]) extends Syntax
 case class S_classVarDec(prefix: S_keyword, t: S_type, varNames: S_varNameList) extends Syntax
 case class S_subroutineDec(p: S_keyword,  typ: S_type, name: S_ident, plist: S_parameterList, body: S_subroutineBody) extends Syntax
-case class S_subroutineBody(dec: Option[Seq[S_varDec]], stat: S_statements) extends Syntax
+case class S_subroutineBody(decs: Option[Seq[S_varDec]], stat: S_statements) extends Syntax {
+  def localVarSize = decs.map { _.foldLeft(0) { (a, b) => a + b.defSize } }.getOrElse(0)
+}
 case class S_statements(vname: Option[Seq[S_statement]]) extends Syntax
 case class S_statement(l: Syntax) extends Syntax
 case class S_parameterList(l: Option[Seq[(S_type, S_ident)]]) extends Syntax {
@@ -25,7 +27,9 @@ case class S_expressionList(l: Option[Seq[S_expression]]) extends Syntax {
   def size: Int = l.map(_.size).getOrElse(0)
 }
 case class S_type(l: Syntax) extends Syntax
-case class S_varDec(typ: S_type, varList: S_varNameList) extends Syntax
+case class S_varDec(typ: S_type, varList: S_varNameList) extends Syntax {
+  def defSize = varList match { case S_varNameList(l) => l.size }
+}
 case class S_subroutineCall(name: S_ident, reciever: Option[S_ident], elist: S_expressionList) extends Syntax
 case class S_keyword(keyword: String) extends Syntax
 case class S_symbol(keyword: String) extends Syntax
