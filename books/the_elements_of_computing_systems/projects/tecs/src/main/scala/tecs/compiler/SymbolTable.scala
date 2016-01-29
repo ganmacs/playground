@@ -2,7 +2,7 @@ package tecs.compiler
 
 import scala.collection.mutable.{Map => MMap}
 
-trait Kind
+sealed trait Kind
 case object STATIC extends Kind
 case object FIELD extends Kind
 case object ARG extends Kind
@@ -17,14 +17,22 @@ case class SymbolTable(parent: Option[SymbolTable]) {
   var argIdx = 0
   var varIdx = 0
 
-  def newSubroutine() = SymbolTable(Some(this))
+  override def toString: String = m.toString
 
-  def get(name: String): Option[SymbolValue] = m.get(name) match {
-    case Some(s) => Some(s)
-    case None => parent flatMap (_.get(name))
+  def newSymbolTable = SymbolTable(Some(this))
+
+  def get(name: String): Option[SymbolValue] = m.get(name) orElse (parent.flatMap (_.get(name)))
+  def getOrDie(name: String): SymbolValue = get(name) match {
+    case None => throw new Exception(s"unknown variable: $name")
+    case Some(symbol) => symbol
   }
 
-  def define(name: String, typ: String, kind: Kind) = kind match {
+  def exists(name: String): Boolean = None != m.get(name)
+
+  def defineIfNotExist(name: String, typ: String, kind: Kind) =
+    if (!exists(name)) { this.define (name, typ, kind) }
+
+  def define(name: String, typ: String, kind: Kind) =  kind match {
     case STATIC => {
       m += (name -> SymbolValue(typ, kind, staticIdx))
       staticIdx += 1
