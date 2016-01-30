@@ -44,7 +44,7 @@ class VMConverter extends Converter {
     }
     case S_do(sc) => toVM(sc, className, st)
     case S_if(cond, e1, e2) => {
-      val c = toVM(cond, className, st) :+ VMWriter.uop("~")
+      val c = toVM(cond, className, st)
       val e11 = toVM(e1, className, st)
       val e22 = e2.map(toVM(_, className, st)).getOrElse(List(""))
       VMWriter.ifexp(c, e11, e22, counter.inc)
@@ -85,8 +85,8 @@ class VMConverter extends Converter {
     }
     case S_intConst(x) => Seq(VMWriter.push("constant", x))
     case S_keyword(x) => x match {
-      case "true" => Seq(VMWriter.push("constant", "1"))
-      case "false" => Seq(VMWriter.push("constant", "1"), VMWriter.uop("~"))
+      case "true" => Seq(VMWriter.push("constant", "0"), VMWriter.uop("~"))
+      case "false" => Seq(VMWriter.push("constant", "0"))
       case x => Seq(x)
     }
   }

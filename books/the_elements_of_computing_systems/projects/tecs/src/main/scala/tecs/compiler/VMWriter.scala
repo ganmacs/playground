@@ -32,7 +32,7 @@ object VMWriter {
   }
 
   def ifexp(c: Seq[String], e1: Seq[String], e2: Seq[String], idx: Int) = {
-    ((c :+ VMWriter.ifg(s"IF_ELSE_${idx}")) ++ e1 ++
+    (c ++ Seq(VMWriter.uop("~"), VMWriter.ifg(s"IF_ELSE_${idx}")) ++ e1 ++
       Seq(VMWriter.goto(s"IF_END_${idx}"), VMWriter.label(s"IF_ELSE_${idx}")) ++ e2) :+
     VMWriter.label(s"IF_END_${idx}")
   }
