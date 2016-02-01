@@ -11,7 +11,7 @@ class VMConverter extends Converter {
   def toVM(s: Syntax, className: String, st: SymbolTable): Seq[String] = s match {
     case S_class(S_ident(className), varDecs, subroutines) => {
       val decs = varDecs.map(_.flatMap { e => toVM(e, className,st) }).getOrElse(Seq(""))
-      val srs = subroutines.map(_.flatMap { e => toVM(e, className,st) }).getOrElse(Seq(""))
+      val srs = subroutines.map(_.flatMap { e => toVM(e, className, st.newSymbolTable) }).getOrElse(Seq(""))
       decs ++ srs
     }
     case S_classVarDec(key, t, vnames) => {
@@ -20,9 +20,8 @@ class VMConverter extends Converter {
       List("")
     }
     case S_subroutineDec(S_keyword(k), t, S_ident(n), S_parameterList(plist), body) => {
-      val nst = st.newSymbolTable
-      plist.foreach (_.foreach { case (typ, S_ident(s)) => nst.defineIfNotExist(s, getTypeName(typ), ARG) })
-      List(VMWriter.func(s"${className}.${n}", body.localVarSize)) ++ toVM(body, className, nst)
+      plist.foreach (_.foreach { case (typ, S_ident(s)) => st.defineIfNotExist(s, getTypeName(typ), ARG) })
+      List(VMWriter.func(s"${className}.${n}", body.localVarSize)) ++ toVM(body, className, st)
     }
     case S_varNameList(l) => l.map { case S_ident(i) => i }
     case S_subroutineBody(decs, stats) => {

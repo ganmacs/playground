@@ -19,7 +19,7 @@ case class SymbolTable(parent: Option[SymbolTable]) {
 
   override def toString: String = m.toString
 
-  def newSymbolTable = SymbolTable(Some(this))
+  def newSymbolTable = SymbolTable(parent)
 
   def get(name: String): Option[SymbolValue] = m.get(name) orElse (parent.flatMap (_.get(name)))
   def getOrDie(name: String): SymbolValue = get(name) match {
