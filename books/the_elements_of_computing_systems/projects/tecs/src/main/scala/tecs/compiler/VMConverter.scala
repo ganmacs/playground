@@ -10,7 +10,7 @@ class VMConverter extends Converter {
 
   def toVM(s: Syntax, className: String, st: SymbolTable): Seq[String] = s match {
     case S_class(S_ident(className), varDecs, subroutines) => {
-      val decs = varDecs.map(_.flatMap { e => toVM(e, className,st) }).getOrElse(Seq(""))
+      val decs = varDecs.map(_.flatMap { e => toVM(e, className, st) }).getOrElse(Seq(""))
       val srs = subroutines.map(_.flatMap { e => toVM(e, className, st.newSymbolTable) }).getOrElse(Seq(""))
       decs ++ srs
     }
@@ -53,7 +53,7 @@ class VMConverter extends Converter {
       val b =  toVM(body, className, st)
       VMWriter.whielexp(c, b, counter.inc)
     }
-    case S_return(v) => v.map(VMWriter.ret +: toVM(_, className, st)).getOrElse(List("return"))
+    case S_return(v) => v.map(toVM(_, className, st)).getOrElse(List("")) :+ VMWriter.ret
     case S_subroutineCall(S_ident(n), recv, elist) => {
       val r = recv.collect { case S_ident(s) => s }.getOrElse(className)
       toVM(elist, className, st) :+ VMWriter.call(s"${r}.${n}", elist.size)
@@ -84,7 +84,7 @@ class VMConverter extends Converter {
     }
     case S_intConst(x) => Seq(VMWriter.push("constant", x))
     case S_keyword(x) => x match {
-      case "true" => Seq(VMWriter.push("constant", "0"), VMWriter.uop("~"))
+      case "true" => Seq(VMWriter.push("constant", "1"), VMWriter.uop("-"))
       case "false" => Seq(VMWriter.push("constant", "0"))
       case x => Seq(x)
     }
