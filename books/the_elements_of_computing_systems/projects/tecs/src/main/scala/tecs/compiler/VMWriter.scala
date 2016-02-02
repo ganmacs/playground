@@ -9,11 +9,13 @@ object VMWriter {
     case ARG => s"push argument $idx"
     case VAR => s"push local $idx"
     case FIELD => s"push this $idx"
+    case STATIC => s"push static $idx"
   }
   def pop(segment: Kind, idx: Int) = segment match {
     case ARG => s"pop argument $idx"
     case VAR => s"pop local $idx"
     case FIELD => s"pop this $idx"
+    case STATIC => s"pop static $idx"
   }
 
   def func(name: String, size: Int) = s"function $name $size"
