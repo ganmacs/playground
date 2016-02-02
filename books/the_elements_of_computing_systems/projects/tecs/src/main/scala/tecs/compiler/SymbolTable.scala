@@ -17,9 +17,9 @@ case class SymbolTable(parent: Option[SymbolTable]) {
   var argIdx = 0
   var varIdx = 0
 
-  override def toString: String = m.toString
+  override def toString: String = m.toString + "\n parent: " + parent.map(_.toString)
 
-  def newSymbolTable = SymbolTable(parent)
+  def newSymbolTable = SymbolTable(Some(this))
 
   def get(name: String): Option[SymbolValue] = m.get(name) orElse (parent.flatMap (_.get(name)))
   def getOrDie(name: String): SymbolValue = get(name) match {
@@ -52,13 +52,15 @@ case class SymbolTable(parent: Option[SymbolTable]) {
   }
 
   def varCount(kind: Kind) = kind match {
-    case STATIC => staticIdx - 1
-    case FIELD => fieldIdx - 1
-    case ARG => argIdx - 1
-    case VAR => varIdx - 1
+    case STATIC => staticIdx + 1
+    case FIELD => fieldIdx + 1
+    case ARG => argIdx + 1
+    case VAR => varIdx + 1
   }
 
+  def pVarCount(k: Kind): Int = parent map (_.varCount(k)) getOrElse(0)
+
   def kindOf(name: String): Option[Kind] = m.get(name) collect { case SymbolValue(_, k, _) => k }
-  def typOf(name: String): Option[String] = m.get(name) collect { case SymbolValue(t, _, _) => t }
+  def typeOf(name: String): Option[String] = m.get(name) collect { case SymbolValue(t, _, _) => t }
   def indexOf(name: String): Option[Int] = m.get(name) collect { case SymbolValue(_, _, i) => i }
 }

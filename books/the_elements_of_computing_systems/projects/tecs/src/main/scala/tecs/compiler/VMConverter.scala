@@ -20,8 +20,19 @@ class VMConverter extends Converter {
       List("")
     }
     case S_subroutineDec(S_keyword(k), t, S_ident(n), S_parameterList(plist), body) => {
+      val setup = k match {
+        case "constructor" => Seq(
+          VMWriter.push("constant", st.pVarCount(FIELD).toString),
+          VMWriter.call("Memory.alloc", 1),
+          VMWriter.pop("pointer", "0"))
+        case "method" =>  {
+          st.defineIfNotExist("this", className, ARG)
+          Seq(VMWriter.push("argument", "0"), VMWriter.pop("pointer", "0"))
+        }
+        case _ => Nil
+      }
       plist.foreach (_.foreach { case (typ, S_ident(s)) => st.defineIfNotExist(s, getTypeName(typ), ARG) })
-      List(VMWriter.func(s"${className}.${n}", body.localVarSize)) ++ toVM(body, className, st)
+      List(VMWriter.func(s"${className}.${n}", body.localVarSize)) ++ setup ++ toVM(body, className, st)
     }
     case S_varNameList(l) => l.map { case S_ident(i) => i }
     case S_subroutineBody(decs, stats) => {
@@ -41,7 +52,7 @@ class VMConverter extends Converter {
       val e22 = toVM(e2, className, st)
       e11 ++ e22 :+ VMWriter.pop(s.kind, s.i)
     }
-    case S_do(sc) => toVM(sc, className, st)
+    case S_do(sc) => toVM(sc, className, st) :+ VMWriter.pop("temp", "0")
     case S_if(cond, e1, e2) => {
       val c = toVM(cond, className, st)
       val e11 = toVM(e1, className, st)
@@ -53,10 +64,19 @@ class VMConverter extends Converter {
       val b =  toVM(body, className, st)
       VMWriter.whielexp(c, b, counter.inc)
     }
-    case S_return(v) => v.map(toVM(_, className, st)).getOrElse(List("")) :+ VMWriter.ret
+    case S_return(v) => (v match {
+      case Some(e) => toVM(e, className, st)
+      case None => Seq(VMWriter.push("constant", "0"))
+    }) :+ VMWriter.ret
     case S_subroutineCall(S_ident(n), recv, elist) => {
-      val r = recv.collect { case S_ident(s) => s }.getOrElse(className)
-      toVM(elist, className, st) :+ VMWriter.call(s"${r}.${n}", elist.size)
+      val na = recv match {
+        case Some(S_ident(rec)) => st.get(rec) match {
+          case Some(ss) => Seq(VMWriter.push(ss.kind, ss.i), VMWriter.call(s"${ss.typ}.${n}", elist.size + 1))
+          case None =>  Seq(VMWriter.call(s"${rec}.${n}", elist.size))
+        }
+        case None => Seq(VMWriter.push("pointer", "0"), VMWriter.call(s"${className}.${n}", elist.size + 1))
+      }
+      toVM(elist, className, st) ++ na
     }
     case S_expressionList(l) => l.map(_.flatMap { e => toVM(e, className,st) }).getOrElse(List(""))
     case S_expression(l, r) => {
@@ -86,6 +106,7 @@ class VMConverter extends Converter {
     case S_keyword(x) => x match {
       case "true" => Seq(VMWriter.push("constant", "1"), VMWriter.uop("-"))
       case "false" => Seq(VMWriter.push("constant", "0"))
+      case "this" => Seq(VMWriter.push("pointer", "0"))
       case x => Seq(x)
     }
   }

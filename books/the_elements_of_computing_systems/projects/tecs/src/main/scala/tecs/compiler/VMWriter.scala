@@ -8,16 +8,19 @@ object VMWriter {
   def push(segment: Kind, idx: Int) = segment match {
     case ARG => s"push argument $idx"
     case VAR => s"push local $idx"
+    case FIELD => s"push this $idx"
   }
   def pop(segment: Kind, idx: Int) = segment match {
     case ARG => s"pop argument $idx"
     case VAR => s"pop local $idx"
+    case FIELD => s"pop this $idx"
   }
 
   def func(name: String, size: Int) = s"function $name $size"
 
   def arithmetic(op: String) = op match {
     case "*" => "call Math.multiply 2"
+    case "/" => "call Math.divide 2"
     case "-" => "sub"
     case "+" => "add"
     case "=" => "eq"
