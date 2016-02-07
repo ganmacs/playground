@@ -1,4 +1,6 @@
 require 'thread'
+require_relative 'jobs'
+require_relative 'installer'
 
 module Worker
   class ThreadPool
@@ -9,6 +11,7 @@ module Worker
       @threads = Array.new(size) do |i|
         Thread.start { process(i) }
       end
+      trap('INT') { abort_threads }
     end
 
     def enq(obj)
@@ -33,5 +36,40 @@ module Worker
         @response_queue.enq @func.call(obj, i)
       end
     end
+
+    def abort_threads
+      @threads.each(&:exit)
+      exit 1
+    end
   end
 end
+
+class ThreadInstaller < Installer
+  private
+
+  def enqueue
+    @gems.each do |g|
+      worker_pool.enq g
+    end
+  end
+
+  def process
+    process_gem until @gems.all?(&:installed?)
+  ensure
+    worker_pool.stop
+  end
+
+  def process_gem
+    gem = worker_pool.deq
+    gem.installed = true
+  end
+
+  def worker_pool
+    @worker_pool ||= Worker::ThreadPool.new(@size) do |gem, worker_num|
+      gem.do_something_heavy_job(worker_num)
+    end
+  end
+end
+
+gems = JobsGenrator.call
+ThreadInstaller.new(4, gems).install!

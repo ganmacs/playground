@@ -22,6 +22,11 @@ class JobsGenrator
 
   GEMS = %w(rails rake bundler itamae specinfra kaminari rubocop).freeze
 
+  GEMS = {
+    rails: [:active_record, :bundler],
+
+  }%w(rails rake bundler itamae specinfra kaminari rubocop).freeze
+
   def self.call
     GEMS.map { |j| MyGem.new(j) }
   end
