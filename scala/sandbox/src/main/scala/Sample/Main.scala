@@ -5,8 +5,6 @@ object Main {
     check3
     check4
 
-
-
     // for {
     //   a <- check1(1).right
     //   b <- Some(1).toRight("asd").left
@@ -21,7 +19,6 @@ object Main {
     // }
 
   }
-
 
   def check1(a: Int): Either[String, (Int, String)] = a match {
     case 1 => Right((1, "aa"))
