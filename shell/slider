@@ -1,0 +1,70 @@
+#!/bin/bash
+
+
+USAGE="\
+Usage: slider [-e <extension>] slide_directory"
+PAGE=
+DIR=
+EXT="png"
+
+function imagecat_if_exist() {
+    local path="$DIR/$1.$EXT"
+
+    if [[ -f $path ]]; then
+        PAGE="$1"
+        imgcat "$path"
+    else
+        echo "Can't Find Such Page"
+    fi
+}
+
+function next_slide() {
+    local no=$(expr $PAGE + 1)
+    imagecat_if_exist $no
+}
+
+function prev_slide() {
+    local no=$(expr $PAGE - 1)
+    imagecat_if_exist $no
+}
+
+function jump_slide() {
+    read "no"
+    imagecat_if_exist $no
+}
+
+function start_slide() {
+    imagecat_if_exist 1
+
+    while read -r -n1 "key"; do
+        case $key in
+            "j" ) next_slide ;;
+            "k" ) prev_slide ;;
+            "g" ) jump_slide ;;
+            "q" )
+                clear
+                exit
+                ;;
+        esac
+    done
+}
+
+function main() {
+    while [[ "$#" > 1 ]]; do
+        case "$1" in
+            "-e" | "--ext" )
+                EXT=$2
+                shift
+                ;;
+            "-h" | "--help" )
+                echo "$USAGE"
+                exit
+        esac
+        shift
+    done
+
+    DIR="$1"
+    start_slide
+}
+
+main "$@"
