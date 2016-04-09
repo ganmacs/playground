@@ -1,0 +1,8 @@
+[package]
+name = "hello"
+version = "0.1.0"
+authors = ["ganmacs <ganmacs@gmail.com>"]
+
+[dependencies.semver]
+
+git = "https://github.com/rust-lang/semver.git"
