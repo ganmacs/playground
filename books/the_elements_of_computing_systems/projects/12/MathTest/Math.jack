@@ -1,0 +1,98 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/12/Math.jack
+
+/**
+ * A basic math library.
+ */
+class Math {
+
+    /** Initializes the library. */
+    function void init() {
+       return;
+    }
+
+    /** Returns the absolute value of x. */
+    function int abs(int x) {
+      if(x < 0) {
+       return -x;
+      } else {
+       return x;
+      }
+    }
+
+    /** Returns the product of x and y. */
+    function int multiply(int x, int y) {
+      var int bit, shiftedX, sum, a, py;
+
+      let shiftedX = Math.abs(x);
+      let py = Math.abs(y);
+      let sum = 0;
+      let bit = 1;
+
+      if ((x = 0) | (y = 0)) {
+        return 0;
+      } else {
+         while ( bit < 1025 ) {
+           if ((shiftedX & bit) = bit) {
+             let sum = sum + shiftedX;
+           }
+           let shiftedX = shiftedX + shiftedX;
+           let bit = bit + bit;
+         }
+      }
+
+      if (((x < 0) & (y > 0)) | ((x > 0) & (y < 0))) { let sum = -sum; }
+      return sum;
+    }
+
+    /** Returns the integer part of x/y. */
+    function int divide(int x, int y) {
+      var int q, yy, xx, sum;
+
+      let xx = Math.abs(x);
+      let yy = Math.abs(y);
+      let sum = 0;
+
+      if ( y = 0 ) { do Sys.error(3); }
+      if ( yy > x ) { return 0; }
+
+
+      let q = Math.divide(xx, yy * 2);
+
+      if ((xx - (2 * q * yy)) < yy) {
+        let sum = (2 * q);
+      } else {
+        let sum= (2 * q + 1);
+      }
+
+      if (((x < 0) & (y > 0)) | ((x > 0) & (y < 0))) { let sum = -sum; }
+      return sum;
+    }
+
+    /** Returns the integer part of the square root of x. */
+    function int sqrt(int x) {
+     var int y;
+
+     return y;
+    }
+
+    /** Returns the greater number. */
+    function int max(int a, int b) {
+      if(a < b) {
+        return b;
+      } else {
+        return a;
+      }
+    }
+
+    /** Returns the smaller number. */
+    function int min(int a, int b) {
+      if(a < b) {
+        return a;
+      } else {
+        return b;
+      }
+    }
+}
