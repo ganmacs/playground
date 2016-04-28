@@ -6,9 +6,9 @@ trait Parsers {
   // the type of input element.
   type Elem
 
-  //TODO fix E is Reader[E]. but we does not implement of Reader.
   private[parsers] class Parser[+T] (parse: Reader[Elem] => ParseResult[T, Elem]) extends Parserable[Elem, T] {
     def map [U] (f: T => U): Parserable[Elem, U] = Parser { in => parse(in).map(f) }
+    def seq [U] (f: => Parserable[Elem, U]): Parserable[Elem, ~[T, U]] = Parser { in => parse(in).seq(f) }
   }
 
   object Parser {
@@ -18,8 +18,9 @@ trait Parsers {
 
 /** Trait of parser
   * @tparam T Paring result
+  * @tparam E Paring result
   */
 trait Parserable [E, +T] {
   def map [U] (f: T => U): Parserable[E, U]
-
+  def seq [U] (f: => Parserable[E, U]): Parserable[E, ~[T, U]]
 }

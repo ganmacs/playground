@@ -1,8 +1,8 @@
 package parsers
 
  /**
-   * @paramt T parsing result type
-   * @paramt E input type
+   * @tparam T parsing result type
+   * @tparam E input type
    */
 trait ParseResult[+T, E] {
   def map[U](f: T => U): ParseResult[U, E]
