@@ -1,4 +1,4 @@
-package input
+package parsers.input
 
 trait Reader[+T] {
   def source: java.lang.CharSequence
@@ -6,6 +6,8 @@ trait Reader[+T] {
 
   def first: T
   def rest: Reader[T]
+
+  def atEnd: Boolean
 
   def drop(n: Int): Reader[T] = {
     var t: Reader[T] = this

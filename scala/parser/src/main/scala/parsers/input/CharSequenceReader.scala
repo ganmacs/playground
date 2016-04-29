@@ -1,4 +1,4 @@
-package input
+package parsers.input
 
 object CharSequenceReader {
   final val EofCh = '\u001a'
@@ -12,4 +12,6 @@ class CharSequenceReader(override val source: java.lang.CharSequence, override v
   def first = if (offset < source.length) source.charAt(offset) else EofCh
 
   def rest: CharSequenceReader = if (offset < source.length) new CharSequenceReader(source, offset + 1) else this
+
+  def atEnd: Boolean = offset >= source.length
 }
