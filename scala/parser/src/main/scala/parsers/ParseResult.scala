@@ -23,4 +23,7 @@ sealed abstract class NoSuccess[E](msg: String, next: Reader[E]) extends ParseRe
 case class Failure[E](msg: String, next: Reader[E]) extends NoSuccess[E](msg, next) {
 }
 
+case class Error[E](msg: String, next: Reader[E]) extends NoSuccess[E](msg, next) {
+}
+
 case class ~[+A, +B] (first: A, second: B)

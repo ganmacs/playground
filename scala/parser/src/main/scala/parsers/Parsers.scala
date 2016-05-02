@@ -16,9 +16,22 @@ trait Parsers {
 
   class Parser[+T] (parse: Reader[Elem] => ParseResult[T, Elem]) {
     def apply(in: Reader[Elem]): ParseResult[T, Elem] = parse(in)
+
+    def ~[U](p: Parser[U]): Parser[T ~ U] = seq(p)
+    def ^^[U] (f: T => U): Parser[U] = map(f)
+
+    def map[U](f: T => U): Parser[U] = Parser { in => parse(in).map(f) }
+    def seq[U](p: => Parser[U]): Parser[T ~ U] = Parser { in =>
+      parse(in) match {
+        case Success(x, y) => p(y) match {
+          case Success(x2, y2) => Success(new ~(x, x2), y2)
+        }
+        case Failure(x, y) => Failure(x, y)
+      }
+    }
+
     // def map [U] (f: T => U): Parser[U] = Parser { in => parse(in).map(f) }
     // def seq [U] (f: => Parser[Elem, U]): Parser[Elem, ~[T, U]] = Parser { in => parse(in).seq(f) }
-    def seq [U] (f: => Parser[U]): Parser[~[T, U]] = ???
   }
 
   object Parser {
