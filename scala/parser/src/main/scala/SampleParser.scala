@@ -32,6 +32,12 @@ object SampleParser extends Parsers {
   val h = elem('x').+(elem(','))  ^^ { case x => x }
 
   val h2 = elem('x').*(elem(','))  ^^ { case x => x }
+
+  val nonZero = elem("non zero", { n => n >= '1' && n <= '9' }) ^^ { _-'0' }
+
+  val i = elem("number", { n => n >= '0' && n <= '9' }) ~ elem('e') ^^ { case n ~ x => x + n }
+
+  val i2 = elem("WhiteSpace", Character.isWhitespace) ~> elem('e') ^^ { case x => x }
 }
 
 abstract class Result[+T] {

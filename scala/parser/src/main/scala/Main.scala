@@ -57,6 +57,10 @@ object Main {
     println( SampleParser.g2(new CharSequenceReader("4")) )
     println( SampleParser.h(new CharSequenceReader("x,x,x")) )
     println( SampleParser.h(new CharSequenceReader("x")) )
+    println( SampleParser.i(new CharSequenceReader("9e")) )
+    println( SampleParser.i2(new CharSequenceReader(" e")) )
+    println( SampleParser.i2(new CharSequenceReader(" e")) )
+    println( SampleParser.nonZero(new CharSequenceReader("9")) )
 
     // println(a)
     // b = -1

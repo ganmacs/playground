@@ -7,6 +7,7 @@ trait Parsers {
   type Elem
 
   def elem(e: Elem): Parser[Elem] = acceptIf(_ == e) ("`"+e+"' expected but " + _ + " found")
+  def elem(kind: String, p: Elem => Boolean): Parser[Elem] = acceptIf(p) (kind+" expected but "+ _ +"found")
 
   def acceptIf(cond: Elem => Boolean)(err: Elem => String): Parser[Elem] = Parser { in =>
     if (in.atEnd) Failure("end of input", in)
@@ -16,7 +17,7 @@ trait Parsers {
 
   def success[T](x: T): Parser[T] = Parser { in => Success(x, in) }
 
-  /** other class can't access type of Parser, Because Parser is inner class(visible in this class).
+  /** Other class can't access type of Parser, Because Parser is inner class of Parsers(only visible in Parsers).
     * So, Extending BaseParser (Reader[Elem] => ParseResult[T, Elem] ) allows
     * other classes to use Reader[Elem] => ParseResult[T, Elem] as a reciver type
     **/
