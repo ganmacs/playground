@@ -18,6 +18,10 @@ object SampleParser extends Parsers {
   val d = b2 | b
 
   val d2 = b3 | b2
+
+  val e = elem('2') ~> elem('4') ^^ identity
+
+  val f = elem('2') ~> elem('4') ^^^ "Success"
 }
 
 abstract class Result[+T] {

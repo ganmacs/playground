@@ -28,14 +28,17 @@ trait Parsers {
     def flatMap[U](f: T => Parser[U]): Parser[U] = Parser { in => parse(in).flatMapWithNext(f) }
     def orElse [U >: T](p: Parser[U]): Parser[U] = Parser { in => parse(in) orElse p(in) }
 
-    def seq[U](p: Parser[U]): Parser[T ~ U] = {
-      lazy val q = p
-      for ( a <- this; b <- q ) yield new ~(a, b)
+    def seq[U](f: Parser[U]): Parser[T ~ U] = {
+      lazy val p = f
+      for ( a <- this; b <- p ) yield new ~(a, b)
     }
 
-    def ~ [U](p: Parser[U]): Parser[T ~ U] = seq(p)
-    def | [U >: T](p: Parser[U]): Parser[U] = orElse(p)
+    def ~ [U](p: => Parser[U]): Parser[T ~ U] = seq(p)
+    def ~> [U] (p: => Parser[U]): Parser[U] = seq(p).map(_.second)
+    def <~ [U] (p: => Parser[U]): Parser[T] = seq(p).map(_.first)
+    def | [U >: T](p: => Parser[U]): Parser[U] = orElse(p)
     def ^^ [U] (f: T => U): Parser[U] = map(f)
+    def ^^^ [U] (f: => U): Parser[U] = map(_ => f)
   }
 
   private[parsers] object Parser {
