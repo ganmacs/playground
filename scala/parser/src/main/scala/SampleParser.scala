@@ -13,6 +13,8 @@ object SampleParser extends Parsers {
 
   val b3 = elem('2') ~ elem('3') ~ elem('5') ~ elem('7') ~ elem('8') ^^ (_ => 23578)
 
+  val b4 = elem('2').? ~ elem('8') ^^ { case a ~ b => a }
+
   val c = a | b
 
   val d = b2 | b
@@ -21,7 +23,15 @@ object SampleParser extends Parsers {
 
   val e = elem('2') ~> elem('4') ^^ identity
 
-  val f = elem('2') ~> elem('4') ^^^ "Success"
+  val f = elem('2') ~ elem('4') ^^^ "Success"
+
+  val g = elem('2').+ ~ elem('4') ^^ { case xs ~ x => x :: xs }
+
+  val g2 = elem('2').* ~ elem('4') ^^ { case xs ~ x => x :: xs }
+
+  val h = elem('x').+(elem(','))  ^^ { case x => x }
+
+  val h2 = elem('x').*(elem(','))  ^^ { case x => x }
 }
 
 abstract class Result[+T] {

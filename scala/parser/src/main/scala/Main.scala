@@ -48,11 +48,15 @@ object Main {
   // lazy val a = if(b < 0) "aaa" else  "bbb"
 
   def main(args: Array[String]) = {
-
     println( SampleParser.a(new CharSequenceReader("123")) )
     println( SampleParser.d2(new CharSequenceReader("2348")) )
     println( SampleParser.e(new CharSequenceReader("24")) )
     println( SampleParser.f(new CharSequenceReader("24")) )
+    println( SampleParser.b4(new CharSequenceReader("8")) )
+    println( SampleParser.g(new CharSequenceReader("2222222222224")) )
+    println( SampleParser.g2(new CharSequenceReader("4")) )
+    println( SampleParser.h(new CharSequenceReader("x,x,x")) )
+    println( SampleParser.h(new CharSequenceReader("x")) )
 
     // println(a)
     // b = -1
