@@ -14,4 +14,6 @@ class CharSequenceReader(override val source: java.lang.CharSequence, override v
   def rest: CharSequenceReader = if (offset < source.length) new CharSequenceReader(source, offset + 1) else this
 
   def atEnd: Boolean = offset >= source.length
+
+  def pos = new OffsetPosition(source, offset)
 }

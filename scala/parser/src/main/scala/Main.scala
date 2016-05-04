@@ -1,4 +1,3 @@
-import parsers._
 import parsers.input._
 
 object Main {
@@ -29,50 +28,76 @@ object Main {
   // }
   // def CC() = new CC { def a = 1 }
 
-  object A extends Parsers {
-    type Elem = Char
-    val a = elem('1') ~ elem('2') ~ elem('3') ^^ {
-      case a ~ b ~ c => a+b+c
-    }
-  }
 
-  def a(x: => Int): Int = {
-    println(4)
-    x
-  }
+  // def a(x: => Int): Int = {
+  //   println(4)
+  //   x
+  // }
 
-  abstract class Result[+T] {
-    def map[U](f: T => U): Result[U]
-    // = new Result(f(x))
-    def flatMap[U](f: T => Result[U]): Result[U]
+  // def rNone[T](x: T): Option[T] = None
+  // def rWrap[T](x: T): Option[T] = Some(x)
 
-    // = f(x) match {
-    //   case Result(v) => new Result(v)
-    //   case x => x
-    // }
-  }
+  // def lazyFn(q: => Int): (Int => Int) = {
+  //   println("2")
+  //   lazy val p = q
+  //   println("1")
+  //   _ => p
+  // }
 
-  case class Suc[+T](x: T) extends Result[T] {
-    def map[U](f: T => U): Suc[U] =  Suc(f(x))
-    def flatMap[U](f: T => Result[U]): Result[U] = f(x)
-  }
-
-  case object Err extends Result[Nothing] {
-    def map[U](f: Nothing => U) = Err
-    def flatMap[U](f: Nothing => Result[U]) = Err
-  }
-
-  object Result {
-    def apply[T](x: T): Result[T] = if (x == null) Err else Suc(x)
-  }
-
-  // (return x) >>= f == f x
-  // m >>= return == m
-  // (m >>= f) >>= g == m >>= (\x -> f x >>= g)
+  // var b = 10
+  // lazy val a = if(b < 0) "aaa" else  "bbb"
 
   def main(args: Array[String]) = {
-     val a = Result(10)
-    println(a.flatMap(x => Err).map(x => 10))
+
+    println( SampleParser.a(new CharSequenceReader("123")) )
+    println( SampleParser.d2(new CharSequenceReader("2348")) )
+
+    // println(a)
+    // b = -1
+    // println(a)
+
+    // val x = lazyFn({
+    //   println("xxx")
+    //   10})
+
+    // println(x(10))
+    // println(x(10))
+    // println(x(10))
+    // println(x(10))
+
+
+    // val a = Result(10)
+    // // println(a.flatMap(x => Err("null")).map(x => 10))
+    // val b = Result(null)
+
+    // val c = a match {
+    //   case Suc(x) => b match {
+    //     case Suc(y) => Suc(x + y)
+    //     case Err(y) => Err(y)
+    //   }
+    //   case Err(x) => Err(x)
+    // }
+
+    // val d = a.map( x => b.map ( y => x + y ))
+
+    // println(c)
+    // println(d)
+
+    // val c = for {
+    //   x <- a
+    //   y <- b
+    // } yield {
+    //   x + y
+    // }
+
+    // println(c)
+
+
+    // // val v = Some(1)
+    // val v = None
+    // println(v.flatMap(rWrap))
+    // // println(v.map(rWrap))
+
 
     // val a = Stat(10)
     // println(a.flatMap(x => Suc(x + 1)))

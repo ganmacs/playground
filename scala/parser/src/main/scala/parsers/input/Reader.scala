@@ -7,6 +7,7 @@ trait Reader[+T] {
   def first: T
   def rest: Reader[T]
 
+  def pos: Position
   def atEnd: Boolean
 
   def drop(n: Int): Reader[T] = {

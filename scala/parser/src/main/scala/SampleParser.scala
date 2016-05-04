@@ -6,6 +6,18 @@ object SampleParser extends Parsers {
   val a = elem('1') ~ elem('2') ~ elem('3') ^^ {
     case a ~ b ~ c => a.toInt + b.toInt + c.toInt
   }
+
+  val b = elem('2') ~ elem('3') ~ elem('4') ^^ (_ => 234)
+
+  val b2 = elem('2') ~ elem('3') ~ elem('4') ~ elem('7') ^^ (_ => 2347)
+
+  val b3 = elem('2') ~ elem('3') ~ elem('5') ~ elem('7') ~ elem('8') ^^ (_ => 23578)
+
+  val c = a | b
+
+  val d = b2 | b
+
+  val d2 = b3 | b2
 }
 
 abstract class Result[+T] {

@@ -14,27 +14,31 @@ trait Parsers {
     else Failure(err(in.first), in)
   }
 
-  class Parser[+T] (parse: Reader[Elem] => ParseResult[T, Elem]) {
+  /** other class can't access type of Parser, Because Parser is inner class(visible in this class).
+    * So, Extending BaseParser (Reader[Elem] => ParseResult[T, Elem] ) allows
+    * other classes to use Reader[Elem] => ParseResult[T, Elem] as a reciver type
+    **/
+  private type BaseParser[T] = Reader[Elem] => ParseResult[T, Elem]
+
+  //  T is type parameter of input type
+  private[parsers] class Parser[+T] (val parse: BaseParser[T]) extends BaseParser[T] {
     def apply(in: Reader[Elem]): ParseResult[T, Elem] = parse(in)
 
-    def ~[U](p: Parser[U]): Parser[T ~ U] = seq(p)
-    def ^^[U] (f: T => U): Parser[U] = map(f)
-
     def map[U](f: T => U): Parser[U] = Parser { in => parse(in).map(f) }
-    def seq[U](p: => Parser[U]): Parser[T ~ U] = Parser { in =>
-      parse(in) match {
-        case Success(x, y) => p(y) match {
-          case Success(x2, y2) => Success(new ~(x, x2), y2)
-        }
-        case Failure(x, y) => Failure(x, y)
-      }
+    def flatMap[U](f: T => Parser[U]): Parser[U] = Parser { in => parse(in).flatMapWithNext(f) }
+    def orElse [U >: T](p: Parser[U]): Parser[U] = Parser { in => parse(in) orElse p(in) }
+
+    def seq[U](p: Parser[U]): Parser[T ~ U] = {
+      lazy val q = p
+      for ( a <- this; b <- q ) yield new ~(a, b)
     }
 
-    // def map [U] (f: T => U): Parser[U] = Parser { in => parse(in).map(f) }
-    // def seq [U] (f: => Parser[Elem, U]): Parser[Elem, ~[T, U]] = Parser { in => parse(in).seq(f) }
+    def ~ [U](p: Parser[U]): Parser[T ~ U] = seq(p)
+    def | [U >: T](p: Parser[U]): Parser[U] = orElse(p)
+    def ^^ [U] (f: T => U): Parser[U] = map(f)
   }
 
-  object Parser {
+  private[parsers] object Parser {
     def apply[T] (f: Reader[Elem] => ParseResult[T, Elem]) = new Parser[T](f)
   }
 }
