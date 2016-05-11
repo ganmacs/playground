@@ -1,12 +1,10 @@
 mod options;
+mod ex;
 
 use std::env;
 use std::process;
 use options::Options;
-
-struct Ex {
-    options: Options
-}
+use ex::Ex;
 
 fn main() {
     let commands: Vec<String> = env::args().collect();
@@ -15,13 +13,14 @@ fn main() {
 
     println!("{:?}", program);
 
-    let k: Ex = match Options::parse(&args) {
-        Ok(opt) => Ex { options: opt },
+    match Options::parse(&args) {
+        Ok((opt, paths)) => {
+            let ex = Ex { options: opt };
+            ex.run(paths)
+        },
         Err(e) => {
             println!("{}", e);
             process::exit(e.exit_code());
         }
     };
-
-    println!("{:?}", k.options.matches.opt_present("l"));
 }

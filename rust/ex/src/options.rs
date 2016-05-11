@@ -7,7 +7,7 @@ pub struct Options {
 }
 
 impl Options {
-    pub fn parse(args: &Vec<String>) -> Result<Options, ErrStat>{
+    pub fn parse(args: &Vec<String>) -> Result <(Options, Vec<String>), ErrStat>{
         let opts = Options::build_opts();
 
         let matches: getopts::Matches = match opts.parse(args) {
@@ -27,7 +27,7 @@ impl Options {
             return Err(ErrStat::Version)
         }
 
-        return Ok(Options { matches: matches })
+        return Ok((Options { matches: matches.clone() }, matches.free))
     }
 
     fn build_opts() -> getopts::Options {
