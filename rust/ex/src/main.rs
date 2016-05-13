@@ -1,5 +1,6 @@
 mod options;
 mod ex;
+mod file;
 
 use std::env;
 use std::process;
