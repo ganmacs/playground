@@ -1,6 +1,7 @@
 use std::fs;
 use std::io::Result as IOResult;
 use std::path::{Path, PathBuf};
+use dir::Dir;
 
 pub struct File {
     pub name: String,
@@ -24,6 +25,10 @@ impl File {
             path: path.to_path_buf(),
             metadata: metadata
         }
+    }
+
+    pub fn to_dir(&self) -> IOResult<Dir>{
+        Dir::read(&self.path)
     }
 
     pub fn is_dirctory(&self) -> bool {

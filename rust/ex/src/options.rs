@@ -1,9 +1,9 @@
-extern crate getopts;
-
 use std::fmt;
 
+use getopts;
+
 pub struct Options {
-    pub matches:  getopts::Matches
+    pub matches: getopts::Matches
 }
 
 impl Options {
@@ -26,6 +26,7 @@ impl Options {
         else if matches.opt_present("version") {
             return Err(ErrStat::Version)
         }
+        println!("{:?}", matches.free);
 
         return Ok((Options { matches: matches.clone() }, matches.free))
     }
