@@ -10,10 +10,7 @@ impl Options {
     pub fn parse(args: &Vec<String>) -> Result <(Options, Vec<String>), ErrStat>{
         let opts = Options::build_opts();
 
-        let matches: getopts::Matches = match opts.parse(args) {
-            Ok(m) => m,
-            Err(e) => return Err(ErrStat::InvalidOptions(e))
-        };
+        let matches = try!(opts.parse(args).map_err( |e| ErrStat::InvalidOptions(e)));
 
         if matches.opt_present("help") {
             let mut msg: String = USAGE.to_owned();
@@ -42,7 +39,7 @@ impl Options {
     }
 }
 
-static USAGE:  &'static str = "Usage:\n  exa [options] [files...]\n";
+static USAGE: &'static str = "Usage:\n  exa [options] [files...]\n";
 
 static OPTIONS: &'static str = r##"
 DISPLAY OPTINS
