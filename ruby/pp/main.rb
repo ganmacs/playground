@@ -11,7 +11,6 @@ class Ary
         q.pp v
       end
     end
-
     q.println ']'
   end
 end

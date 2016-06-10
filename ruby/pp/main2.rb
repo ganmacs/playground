@@ -99,10 +99,6 @@ class PP
       end
     end
 
-    def create_new_printer
-      new(@depth + 1)
-    end
-
     private
 
     def flush

@@ -1,33 +1,37 @@
 use std::path::Path;
-use options::Options;
+use std::process;
+
 use dir::Dir;
 use file::File;
+use config::Config;
 
 pub struct Ex {
-    pub options: Options
+    config: Config,
 }
 
-
 impl Ex {
-    pub fn exec(&self, paths: Vec<String>)  {
-        match self.collect(paths) {
+    pub fn new() -> Self {
+        Ex {
+            config: Config::with_args()
+        }
+    }
+
+    pub fn run(&self)  {
+        match self.collect() {
             Ok((dir, files)) => self.pretty_print(dir, files),
             Err(e) => println!("{:?}", e)
         }
     }
 
-    fn pretty_print(&self, dirs: Vec<Dir>, files: Vec<File>) {
-    }
-
-    fn collect(&self, mut paths: Vec<String>) -> Result<(Vec<Dir>, Vec<File>), String> {
+    fn collect(&mut self) -> Result<(Vec<Dir>, Vec<File>), String> {
         let mut files: Vec<File> = Vec::new();
         let mut dirs: Vec<Dir> = Vec::new();
 
-        if paths.is_empty() {
-            paths.push(".".to_owned());
+        if self.paths.is_empty() {
+            self.paths.push(".".to_owned());
         }
 
-        for path in paths.iter() {
+        for path in self.paths.iter() {
             match File::from_path(&Path::new(&path)) {
                 Err(e) => {
                     println!("{}: {}", path, e);
@@ -45,5 +49,8 @@ impl Ex {
             }
         }
         Ok((dirs, files))
+    }
+
+    fn pretty_print(&self, dirs: Vec<Dir>, files: Vec<File>) {
     }
 }

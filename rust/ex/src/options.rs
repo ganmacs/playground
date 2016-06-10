@@ -1,14 +1,21 @@
 use std::fmt;
 
+use std::env;
 use getopts;
 
-pub struct Options {
-    pub matches: getopts::Matches
-}
+pub struct Options;
+
+static USAGE: &'static str = "Usage:\n  exa [options] [files...]\n";
+
+static OPTIONS: &'static str = r##"
+DISPLAY OPTINS
+  -l, --long         display extended details and attributes
+"##;
 
 impl Options {
-    pub fn parse(args: &Vec<String>) -> Result <(Options, Vec<String>), ErrStat>{
-        let opts = Options::build_opts();
+    pub fn parse() -> Result <getopts::Matches, ErrStat> {
+        let args = env::args().skip(1).collect();
+        let opts = Self::build_opts();
 
         let matches = try!(opts.parse(args).map_err( |e| ErrStat::InvalidOptions(e)));
 
@@ -23,9 +30,8 @@ impl Options {
         else if matches.opt_present("version") {
             return Err(ErrStat::Version)
         }
-        println!("{:?}", matches.free);
 
-        return Ok((Options { matches: matches.clone() }, matches.free))
+        return Ok(matches.clone());
     }
 
     fn build_opts() -> getopts::Options {
@@ -39,13 +45,17 @@ impl Options {
     }
 }
 
-static USAGE: &'static str = "Usage:\n  exa [options] [files...]\n";
+enum Display {
+    Detail,
+    Line,
+    Grid,
+}
 
-static OPTIONS: &'static str = r##"
-DISPLAY OPTINS
-  -l, --long         display extended details and attributes
-"##;
+impl Display {
+    fn deduce() -> Display {
 
+    }
+}
 
 #[derive(Debug)]
 pub enum ErrStat {
