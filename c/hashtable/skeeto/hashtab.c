@@ -100,3 +100,102 @@ ht_search(hashtab_t *hash, void *key, size_t key_size)
 
   return NULL;
 }
+
+void
+ht_destroy(hashtab_t *hash)
+{
+  hashtab_node_t *last_node, *next_node;
+
+  for (int i = 0; i < (int)hash->size; i++) {
+    next_node = hash->tbl[i];
+    while (next_node != NULL) {
+      free(next_node->value);
+      free(next_node->key);
+      last_node = next_node;
+      next_node = next_node->next;
+      free(last_node);
+    }
+  }
+
+  free(hash->tbl);
+  free(hash);
+}
+
+void
+ht_new_iter(hashtab_t *hash, hashtab_iter_t *iter)
+{
+  iter->internal.hashtbl = hash;
+  iter->internal.node = NULL;
+  iter->internal.index = - 1;
+
+  ht_iter_inc(iter);
+}
+
+void ht_iter_inc(hashtab_iter_t *iter)
+{
+  hashtab_t *hashtbl = iter->internal.hashtbl;
+  int index = iter->internal.index;
+
+  if (iter->internal.node == NULL || iter->internal.node->next == NULL) {
+    index++;
+  } else {
+    iter->internal.node = iter->internal.node->next;
+
+    iter->key = iter->internal.node->key;
+    iter->value = iter->internal.node->value;
+    iter->key_size = iter->internal.node->key_size;
+    iter->value_size = iter->internal.node->value_size;
+
+    return;
+  }
+
+  while (hashtbl->tbl[index] == NULL && index < (int)hashtbl->size) index++;
+
+  if (index >= (int)hashtbl->size) {
+    iter->internal.node = NULL;
+    iter->internal.index = hashtbl->size;
+
+    iter->key = NULL;
+    iter->value = NULL;
+    iter->key_size = 0;
+    iter->value_size = 0;
+    return;
+  }
+
+  iter->internal.node = hashtbl->tbl[index];
+  iter->internal.index = index;
+
+  iter->key = iter->internal.node->key;
+  iter->value = iter->internal.node->value;
+  iter->key_size = iter->internal.node->key_size;
+  iter->value_size = iter->internal.node->value_size;
+}
+
+void
+ht_remove(hashtab_t *hash, void *key, size_t key_size)
+{
+  int bin = ht_hash(key, key_size, hash->size);
+  hashtab_node_t *next_node = hash->tbl[bin];
+  hashtab_node_t *last_node = NULL;
+
+  if (next_node == NULL) return;
+
+  while (next_node != NULL) {
+    if (next_node->key_size == key_size && memcmp(next_node->key, key, key_size) == 0) {
+      free(next_node->value);
+      free(next_node->key);
+
+      if (last_node != NULL) {  /* first element of list or not */
+        last_node->next = next_node->next;
+      } else {
+        hash->tbl[bin] = next_node->next;
+      }
+
+      free(next_node);
+      return;
+    }
+
+    last_node = next_node;
+    next_node = next_node->next;
+  }
+}
