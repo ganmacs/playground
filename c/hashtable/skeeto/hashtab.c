@@ -199,3 +199,25 @@ ht_remove(hashtab_t *hash, void *key, size_t key_size)
     next_node = next_node->next;
   }
 }
+
+void *
+ht_grow(hashtab_t *old_hash, size_t new_size)
+{
+  hashtab_t *new_hash = ht_init(new_size);
+  if (new_hash == NULL) return NULL;
+
+  void *ret;
+
+  hashtab_iter_t iter;
+  ht_new_iter(new_hash, &iter);
+
+  for (; iter.key != NULL; ht_iter_inc(&iter)) {
+    if ((ret = ht_insert(new_hash, iter.key, iter.key_size, iter.value, iter.value_size)) == NULL) {
+      ht_destroy(new_hash);
+      return NULL;
+    }
+  }
+
+  ht_destroy(old_hash);
+  return new_hash;
+}

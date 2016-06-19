@@ -47,4 +47,6 @@ void ht_iter_inc(hashtab_iter_t *iter);
 
 void ht_remove(hashtab_t *hash, void *key, size_t key_size);
 
+void *ht_grow(hashtab_t *old_hash, size_t new_size);
+
 #endif
