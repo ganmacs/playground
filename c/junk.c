@@ -24,9 +24,33 @@ main(int argc, char *argv[])
   /* printf("%d\n",(int) sizeof(int *)); */
   /* printf("%d\n",(int) sizeof(void *)); */
 
-  /* for (int i = -128; i < 128; i++) { */
+  /* for (int i = 0; i < 128; i++) { */
   /*     printf("%c\n", i); */
   /* } */
+
+  /* unsigned int c = 4294967295; */
+  /* int *a = &c; */
+
+  char* e = "as0df";
+  /* e[3] = 'a'; */
+
+  if ((int)'\0' == 0) {
+    printf("%d\n", 10000);
+  }
+
+  /* printf("%s\n", e); */
+
+  for (int i = 0; i < 5; i++) {
+    printf("%c\n", e[i]);
+  }
+
+
+  /* printf("%d\n", *a + e[0]); */
+  /* puts(""); */
+  /* printf("%d\n", *(a + 0)); */
+
+
+  printf("%u\n", -1);
 
   /* char dest[50]; */
 
@@ -36,16 +60,18 @@ main(int argc, char *argv[])
   /*   printf("%c\n", src[i]); */
   /* } */
 
-  char src[10] = "asdf";
-  char dest[10];
-  printf("Before memcpy dest = %s\n", dest);
+  /* char src[10] = "asdf"; */
+  /* char dest[10]; */
+  /* printf("Before memcpy dest = %s\n", dest); */
 
-  printf("%d\n", strlen(src));
-  memcpy(dest, src, strlen(src)+1);
+  /* printf("%d\n", strlen(src)); */
+  /* memcpy(dest, src, strlen(src)+1); */
 
 
-  printf("After memcpy dest = %s\n", dest);
+  /* printf("After memcpy dest = %s\n", dest); */
 
-  a("7");
+
+
+  /* a("7"); */
   return 0;
 }
