@@ -6,13 +6,13 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define N 10
+#define N 100
 
 #define T_SHIFT 2
 #define T 4
 
-#define SHIFT 3
-#define WORD 8
+#define SHIFT 2
+#define WORD 4
 
 /* skip 10 check */
 
@@ -42,7 +42,7 @@ binc(int v, int base)
 void
 set(int v[], int i)
 {
-  v[i >> SHIFT] += binc(v[i >> SHIFT], ((WORD - 1) & i) * T);
+  v[i >> SHIFT] = binc(v[i >> SHIFT], (i & (WORD - 1)) * T);
 }
 
 int
@@ -57,14 +57,14 @@ main(int argc, char *argv[])
   for (int i = 0; i < N; i++) set(v, seed[i]);
 
   for (int i = 0; i < size; i++) {
-    for (int j = WORD - 1; j >= 0; j--) {
-      int k = (v[i] >> (j << T_SHIFT)) % 10;
-      printf("%d, ", k);
-      /* if () {   /\* 1111 *\/ */
-      /*   printf("%2d, ", (WORD * i) + j); */
-      /* } */
+    for (int j = 15; j >= 0; j--) {
+      if (((v[i] >> j) & 1) == 1) {
+        printf("%d",  1);
+      } else {
+        printf("%d",  0);
+      }
     }
+
     puts("");
   }
-
 }
