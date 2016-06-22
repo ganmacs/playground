@@ -1,11 +1,39 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define N 100
 #define WORD 8
 #define SHIFT 3
 
-#define INT_LEN(n) (int)(sizeof(n) / sizeof(int))
+void
+set(int v[], int i)
+{
+  v[i >> SHIFT] |= 1 << ((WORD - 1) & i);
+}
+
+void
+clear(int v[], int i)
+{
+  v[i >> SHIFT] &= ~(1 << ((WORD - 1) & i));
+}
+
+void
+fyshuffle(int* v, int n)
+{
+  srand((unsigned)time(NULL));
+
+  for (int i = 0; i < n; i++) {
+    v[i] = i;
+  }
+
+  for (int i = n - 1; i >= 0 ; i--) {
+    int rnd = rand() % n;
+    int tmp = v[i];
+    v[i] = v[rnd];
+    v[rnd] = tmp;
+  }
+}
 
 void
 print_bin(int v[], int size)
@@ -56,24 +84,11 @@ ppp(int v[], int size)
   puts("");
 }
 
-
-void
-set(int v[], int i)
-{
-  v[i >> SHIFT] |= 1 << ((WORD - 1) & i);
-}
-
-void
-clear(int v[], int i)
-{
-  v[i >> SHIFT] &= ~(1 << ((WORD - 1) & i));
-}
-
-
 int
 main(int argc, char *argv[])
 {
-  int seed[] = {0, 10, 77, 82, 30, 2, 40, 98, 1, 60, 4, 40, 99, 13, 83, 31, 69, 63, 8, 71, 97, 55, 86, 29};
+  int seed[N];
+  fyshuffle(seed, N);
 
   int size = N / WORD + 1;
   int result[size];
@@ -84,7 +99,7 @@ main(int argc, char *argv[])
 
   /* set */
 
-  for (int i = 0; i < INT_LEN(seed); i++) {
+  for (int i = 0; i < N; i++) {
     set(result, seed[i]);
   }
 
@@ -97,7 +112,7 @@ main(int argc, char *argv[])
 
   /* clear */
 
-  for (int i = 0; i < INT_LEN(seed); i++) {
+  for (int i = 0; i < N; i++) {
     clear(result, seed[i]);
   }
 

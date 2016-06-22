@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define N 100
-#define INT_LEN(n) (int)(sizeof(n) / sizeof(int))
 
 int
 comp_func (const void *c1, const void *c2)
@@ -12,15 +12,32 @@ comp_func (const void *c1, const void *c2)
   return i1 - i2;
 }
 
+void
+fyshuffle(int* v, int n)
+{
+  srand((unsigned)time(NULL));
+
+  for (int i = 0; i < n; i++) {
+    v[i] = i;
+  }
+
+  for (int i = n - 1; i >= 0 ; i--) {
+    int rnd = rand() % n;
+    int tmp = v[i];
+    v[i] = v[rnd];
+    v[rnd] = tmp;
+  }
+}
 
 int
 main(int argc, char *argv[])
 {
-  int seed[] = {10, 77, 82, 30, 2, 40, 100, 1, 60, 4, 40, 99, 13, 83, 31, 69, 63, 8, 71, 97, 55, 86, 29};
+  int seed[N];
+  fyshuffle(seed, N);
 
-  qsort(seed, INT_LEN(seed), sizeof(int), comp_func);
+  qsort(seed, N, sizeof(int), comp_func);
 
-  for (int i = 0; i < INT_LEN(seed); i++) {
+  for (int i = 0; i < N; i++) {
     printf("%d\n", seed[i]);
   }
 
