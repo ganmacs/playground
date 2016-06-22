@@ -12,7 +12,7 @@ ht_hash(void* key, size_t key_size, size_t hash_size)
 }
 
 hashtab_t *
-ht_init(size_t size)
+ht_init(size_t size, int (*ht_hash) (void *, size_t, size_t))
 {
   if ((int)size < 0) return NULL;
 
@@ -220,4 +220,22 @@ ht_grow(hashtab_t *old_hash, size_t new_size)
 
   ht_destroy(old_hash);
   return new_hash;
+}
+
+void
+ht_visualize(hashtab_t *hash)
+{
+  hashtab_node_t *node;
+
+  puts("");
+  for (int i = 0; i < (int)hash->size; i++) {
+    if (hash->tbl[i] == NULL) continue;
+    printf("|(%s => %s)", hash->tbl[i]->key, hash->tbl[i]->value);
+
+    node = hash->tbl[i]->next;
+    while (node != NULL) {
+      printf(" -> (%s => %s)", node->key, node->value);
+    }
+    puts("");
+  }
 }

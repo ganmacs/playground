@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 typedef struct hashtab_node_t {
   void *key;
@@ -33,7 +34,7 @@ typedef struct hashtab_iter_t {
 } hashtab_iter_t;
 
 
-hashtab_t *ht_init(size_t size);
+hashtab_t *ht_init(size_t size, int (*ht_hash) (void *, size_t, size_t));
 
 void *ht_insert(hashtab_t *hash, void *key, size_t key_size, void* value, size_t value_size);
 
@@ -49,4 +50,5 @@ void ht_remove(hashtab_t *hash, void *key, size_t key_size);
 
 void *ht_grow(hashtab_t *old_hash, size_t new_size);
 
+void ht_visualize(hashtab_t *hash);
 #endif

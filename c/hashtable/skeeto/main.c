@@ -18,11 +18,14 @@ main(int argc, char *argv[])
   hashtab_iter_t iter;
   ht_new_iter(tbl, &iter);
 
-  strht_remove(tbl, "key2");
+  /* strht_remove(tbl, "key2"); */
 
   for (; iter.key != NULL; ht_iter_inc(&iter)) {
     printf("%s => %s\n", (char *) iter.key, iter.value);
   }
+
+
+  ht_visualize(tbl);
 
   ht_destroy(tbl);
   return 0;
