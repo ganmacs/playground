@@ -8,9 +8,101 @@ void a(void* v)
   printf("%d\n", *((int *) v) - '0');
 }
 
+void pcp(char* a)
+{
+  printf("%p\n", a);
+}
+
+void ps(char a[])
+{
+  printf("%p\n", a);
+}
+
+
+void mpoi()
+{
+
+  char a1[] = "a";
+  char* a2 = "a";
+
+  printf("%p\n", a1);
+  printf("%p\n", a2);
+  printf("%p\n", "a");
+
+  ps(a1);
+  pcp(a1);
+  ps(a2);
+  pcp(a2);
+  printf("%p\n", "a");
+
+  /* a = malloc(sizeof(char*) * 5); */
+
+  /* printf("%p\n", a[0]); */
+  /* printf("%p\n", a[1]); */
+  /* printf("%p\n", a[2]); */
+  /* printf("%p\n", a[3]); */
+  /* printf("%p\n", a[4]); */
+
+  /* printf("%s\n", a[0]); */
+  /* printf("%s\n", a[1]); */
+  /* printf("%s\n", a[2]); */
+  /* printf("%s\n", a[3]); */
+  /* printf("%s\n", a[4]); */
+
+  /* char* a[] = {"asdf", "Asdf", "asfd"}; */
+
+  /* printf("%s\n", a[0]); */
+  /* printf("%s\n", a[1]); */
+  /* printf("%s\n", a[2]); */
+
+  /* printf("%p\n", a); */
+  /* printf("%p\n", a[0]); */
+  /* printf("%p\n", a[1]); */
+  /* printf("%p\n", a[2]); */
+
+  /* a = { "", "", "" }; */
+
+  /* a = malloc(sizeof(char) * 10); */
+  /* strcpy(a, "a"); */
+
+  /* a[0] = 'c'; */
+
+  /* printf("%p\n", "a"); */
+  /* printf("%p\n", a); */
+
+  /* printf("%s\n", a); */
+
+  /* char** k; */
+
+  /* k = malloc(sizeof(char)*4); */
+  /* printf("%p\n", k); */
+  /* printf("%p\n", k + 1); */
+
+  /* k[0] = "abc"; */
+  /* k[1] = "abc"; */
+
+  /* char* b; */
+  /* b = "asfadfasldfjadfkjadlfkjaldsfkja;dfjakdfa;ek"; */
+
+  /* printf("%c\n", *(b + 0)); */
+  /* printf("%c\n", *(b + 1)); */
+  /* printf("%c\n", *(b + 2)); */
+  /* printf("%c\n", *(b + 3)); */
+  /* printf("%c\n", *(b + 4)); */
+  /* printf("%c\n", *(b + 5)); */
+
+}
+
+
 int
 main(int argc, char *argv[])
 {
+  mpoi();
+  return 0;
+
+
+
+
   /* printf("void %d\n", (int)sizeof(void)); */
   /* printf("void* %d\n", (int)sizeof(void*)); */
   /* printf("int* %d\n", (int)sizeof(int*)); */
