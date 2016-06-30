@@ -93,12 +93,40 @@ void mpoi()
 
 }
 
+void maca(char v[])
+{
+  char *s = malloc(sizeof(char) * 10);
+  strcpy(s, "abcdefghij");
+  /* free(s); */
+  printf("%p\n", v);
+  strcpy(v, s);
+  printf("%p\n", v);
+
+  /* printf("%s\n", s); */
+  /* printf("%p\n", s); */
+
+  /* char *k = s; */
+  /* printf("%s\n", k); */
+  /* printf("%p\n", k); */
+
+  /* printf("%s\n", k); */
+  /* printf("%p\n", k); */
+  /* printf("%s\n", s); */
+  /* printf("%p\n", s); */
+}
+
+
 
 int
 main(int argc, char *argv[])
 {
-  mpoi();
+  char v[10];
+  printf("%p\n", v);
+  maca(v);
+  printf("%s\n", v);
+  printf("%p\n", v);
   return 0;
+  /* mpoi(); */
 
 
 
