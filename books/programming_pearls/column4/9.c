@@ -24,9 +24,7 @@
 
 int exp_r(int x, int n)
 {
-
   if (n == 0) return 1;
-  if (n == 1) return x;
   else if (n % 2 == 1) return x * exp_r(x, n - 1);
   else {
     int v = exp_r(x, n >> 1);
@@ -36,26 +34,43 @@ int exp_r(int x, int n)
 
 int exp_l(int x, int n)
 {
-  if (n == 0) return 1;
-
-  int v = x;
-  int i = 1;
-
-  while (n != 1) {
-    if (n % 2 == 1) {
-      v++;
-      n--;
-    } else {
-      v <<= 1;
-
-    }
+  int ret = 1;
+  while (n != 0) {
+    if ((n & 1) == 1) ret *= x;
+    x = x * x;
+    n >>= 1;
   }
+  return ret;
 }
 
 int main(int argc, char *argv[])
 {
+  printf("%d\n", exp_r(2, 0));
   printf("%d\n", exp_r(2, 1));
-  printf("%d\n", exp_l(2, 10));
+  printf("%d\n", exp_r(2, 2));
+  printf("%d\n", exp_r(2, 3));
+  printf("%d\n", exp_r(2, 4));
+  printf("%d\n", exp_r(2, 5));
+  printf("%d\n", exp_r(2, 6));
+  printf("%d\n", exp_r(2, 7));
+  printf("%d\n", exp_r(2, 8));
+  printf("%d\n", exp_r(2, 9));
+  printf("%d\n", exp_r(2, 10));
+  printf("%d\n", exp_r(2, 11));
+  printf("%d\n", exp_r(2, 12));
 
+  printf("%d\n", exp_l(2, 0));
+  printf("%d\n", exp_l(2, 1));
+  printf("%d\n", exp_l(2, 2));
+  printf("%d\n", exp_l(2, 3));
+  printf("%d\n", exp_l(2, 4));
+  printf("%d\n", exp_l(2, 5));
+  printf("%d\n", exp_l(2, 6));
+  printf("%d\n", exp_l(2, 7));
+  printf("%d\n", exp_l(2, 8));
+  printf("%d\n", exp_l(2, 9));
+  printf("%d\n", exp_l(2, 10));
+  printf("%d\n", exp_l(2, 11));
+  printf("%d\n", exp_l(2, 12));
   return 0;
 }
