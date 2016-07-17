@@ -1,10 +1,12 @@
 CFLAGS= -Wall
-OBJS = main.o
+OBJS = main.o parse.o debug.o
 
 mlisp: mlisp.h $(OBJS)
 	$(CC) -o $@ $(OBJS)
 
 $(OBJS): mlisp.h
+
+.PHONY: clean cleanobj test
 
 clean: cleanobj
 	rm mlisp
@@ -12,4 +14,7 @@ clean: cleanobj
 cleanobj:
 	rm -f *.o
 
-.PHONY: clean mlisp
+test: mlisp
+	@./test.sh
+
+all: mlisp clean mlisp

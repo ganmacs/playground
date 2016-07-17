@@ -1,9 +1,7 @@
-#include <stdio.h>
-
 #ifndef MLISP_H
 #define MLISP_H
 
-typedef struct Obj {
+typedef struct obj_t {
   /* type of object */
   int type;
 
@@ -14,10 +12,10 @@ typedef struct Obj {
   union {
     int value;
   };
-} Obj;
+} obj_t;
 
-enum {
+typedef enum {
   TINT = 1,
-};
+} type_t;
 
 #endif
