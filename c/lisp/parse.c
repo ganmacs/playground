@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "parse.h"
+#include "util.h"
 
 #define SYMBOL_MAX_LEN 50
 
@@ -16,12 +17,6 @@ static char peek() {
   char c = getchar();
   ungetc(c, stdin);
   return c;
-}
-
-static void error(char *msg)
-{
-  perror(msg);
-  exit(1);
 }
 
 ast_t *new_symbol(char *sym)
@@ -110,6 +105,27 @@ ast_t *read_int(char v)
 int is_nil(ast_t *ast)
 {
   return ast == Nil;
+}
+
+void destory_ast(ast_t *ast)
+{
+  if (ast == NULL)
+    return;
+
+  switch(ast->type) {
+  case AST_CELL:
+    destory_ast(ast->car);
+    destory_ast(ast->cdr);
+    free(ast);
+    return;
+  case AST_SYMBOL:
+    free(ast->name);
+    free(ast);
+    return;
+  case AST_INT:
+    free(ast);
+    return;
+  }
 }
 
 ast_t *parse()

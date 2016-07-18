@@ -30,3 +30,27 @@ void print_ast(ast_t *ast)
     }
   }
 }
+
+void print_obj(obj_t *obj)
+{
+  while (obj != NULL) {
+    switch(obj->type) {
+    case TNIL:
+      return;
+    case TPRIMITIVE:
+      /* printf("%s\n", obj->fn_name); */
+      return;
+    case TCELL:
+      print_obj(obj->car);
+      printf(" ");
+      print_obj(obj->cdr);
+      return;
+    case TINT:
+      printf("%d", obj->value);
+      return;
+    case TSYMBOL:
+      printf("%s", obj->name);
+      return;
+    }
+  }
+}
