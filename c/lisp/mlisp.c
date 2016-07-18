@@ -17,7 +17,7 @@ static int get_env_flag(char *name) {
   return val && val[0];
 }
 
-obj_t *prim_plus(env_t *env, obj_t *list)
+obj_t *prim_plus(env_t **env, obj_t *list)
 {
   int sum = 0;
 
@@ -29,7 +29,7 @@ obj_t *prim_plus(env_t *env, obj_t *list)
   return make_int(sum);
 }
 
-obj_t *prim_mul(env_t *env, obj_t *list)
+obj_t *prim_mul(env_t **env, obj_t *list)
 {
   int sum = 1;
 
@@ -41,7 +41,7 @@ obj_t *prim_mul(env_t *env, obj_t *list)
   return make_int(sum);
 }
 
-obj_t *prim_minus(env_t *env, obj_t *list)
+obj_t *prim_minus(env_t **env, obj_t *list)
 {
   obj_t *args = eval_list(env, list);
   int ret = 0;
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
     obj_t *obj = static_allocation(ast);
 
     define_primitives(&env);
-    print_obj(eval(env, obj));
+    print_obj(eval(&env, obj));
     destory_ast(ast);
     destroy_env(env);
   }

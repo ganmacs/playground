@@ -18,7 +18,7 @@ obj_t *reverse_list(obj_t* list)
   return head;
 }
 
-obj_t *eval_list(env_t *env, obj_t* obj)
+obj_t *eval_list(env_t **env, obj_t* obj)
 {
   obj_t *head = NIL;
   for (;obj != NIL; obj = obj->cdr) {
@@ -27,15 +27,15 @@ obj_t *eval_list(env_t *env, obj_t* obj)
   return reverse_list(head);
 }
 
-obj_t *apply(env_t *env, obj_t *fn, obj_t *args)
+obj_t *apply(env_t **env, obj_t *fn, obj_t *args)
 {
   if (args == NULL && args->type != TCELL)
     error("Must be a list at arguments of function");
 
-  return fn->fn(env, args);     /* SEGMENTATION FAULT */
+  return fn->fn(env, args);
 }
 
-obj_t *eval(env_t *env, obj_t* obj)
+obj_t *eval(env_t **env, obj_t* obj)
 {
   switch(obj->type) {
   case TNIL:
@@ -43,7 +43,7 @@ obj_t *eval(env_t *env, obj_t* obj)
   case TPRIMITIVE:
     return obj;
   case TSYMBOL: {
-    obj_t *o = find_variable(env, obj->name);
+    obj_t *o = find_variable(*env, obj->name);
     if (o == NULL) {
       printf("%s ", obj->name);
       error("Unkonw token");

@@ -7,7 +7,7 @@ typedef struct env_t {
   struct env_t *next;
 } env_t;
 
-typedef struct obj_t *primitive_t(struct env_t *env, struct obj_t *list);
+typedef struct obj_t *primitive_t(struct env_t **env, struct obj_t *list);
 
 typedef enum {
   TINT,
