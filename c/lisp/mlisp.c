@@ -29,6 +29,18 @@ obj_t *prim_plus(env_t *env, obj_t *list)
   return make_int(sum);
 }
 
+obj_t *prim_mul(env_t *env, obj_t *list)
+{
+  int sum = 1;
+
+  for (obj_t *args = eval_list(env, list); args != NIL; args = args->cdr) {
+    if (args->car->type != TINT)
+      error("Requre int value");
+    sum *= args->car->value;
+  }
+  return make_int(sum);
+}
+
 obj_t *prim_minus(env_t *env, obj_t *list)
 {
   obj_t *args = eval_list(env, list);
@@ -54,6 +66,7 @@ void define_primitives(env_t **env)
 {
   add_primitive(env, "+", prim_plus);
   add_primitive(env, "-", prim_minus);
+  add_primitive(env, "*", prim_mul);
 }
 
 int main(int argc, char *argv[])

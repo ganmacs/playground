@@ -45,3 +45,6 @@ parse_run "fun" "(inc 10)" "(inc 10)"
 eval_run add "(+ 1 2)" 3
 eval_run add_3_args "(+ 1 2 10)" 13
 eval_run minus "(- 2 1)" 1
+eval_run minus_3_args "(- 10 1 2)" 7
+eval_run mul "(* 2 10)" 20
+eval_run mul_3_args "(* 2 10 20)" 400
