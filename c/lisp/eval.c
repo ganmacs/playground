@@ -52,7 +52,6 @@ obj_t *eval(env_t *env, obj_t* obj)
   }
   case TCELL: {
     obj_t *fn = eval(env, obj->car);
-
     if (fn->type != TPRIMITIVE)
       error("Must be a function at head of list");
 

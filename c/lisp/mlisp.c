@@ -52,8 +52,16 @@ obj_t *prim_minus(env_t *env, obj_t *list)
       error("Requre int value");
     ret -= args->car->value;
   }
-
   return make_int(ret);
+}
+
+obj_t *prim_progn(env_t *env, obj_t *list)
+{
+  obj_t *o;
+  for (;list != NIL; list = list->cdr) {
+    o = eval(env, list->car);
+  }
+  return o;
 }
 
 void add_primitive(env_t **env, char *name, primitive_t *fn)
@@ -67,6 +75,7 @@ void define_primitives(env_t **env)
   add_primitive(env, "+", prim_plus);
   add_primitive(env, "-", prim_minus);
   add_primitive(env, "*", prim_mul);
+  add_primitive(env, "progn", prim_progn);
 }
 
 int main(int argc, char *argv[])

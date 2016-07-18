@@ -48,3 +48,7 @@ eval_run minus "(- 2 1)" 1
 eval_run minus_3_args "(- 10 1 2)" 7
 eval_run mul "(* 2 10)" 20
 eval_run mul_3_args "(* 2 10 20)" 400
+
+eval_run progn '(progn 1)' 1
+eval_run progn '(progn (+ 1 2) 1)' 1
+eval_run progn '(progn (+ 1 2) (+ 3 10))' 13
