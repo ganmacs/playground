@@ -55,7 +55,16 @@ obj_t *prim_minus(env_t **env, obj_t *list)
   return make_int(ret);
 }
 
-obj_t *prim_progn(env_t *env, obj_t *list)
+obj_t *prim_define(env_t **env, obj_t *list)
+{
+  obj_t *var = list->car;
+  obj_t *val = eval_list(env, list->cdr);
+
+  add_variable(env, var->name, val);
+  return var;
+}
+
+obj_t *prim_progn(env_t **env, obj_t *list)
 {
   obj_t *o;
   for (;list != NIL; list = list->cdr) {
@@ -75,6 +84,7 @@ void define_primitives(env_t **env)
   add_primitive(env, "+", prim_plus);
   add_primitive(env, "-", prim_minus);
   add_primitive(env, "*", prim_mul);
+  add_primitive(env, "define", prim_define);
   add_primitive(env, "progn", prim_progn);
 }
 

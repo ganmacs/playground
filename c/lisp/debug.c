@@ -38,12 +38,13 @@ void print_obj(obj_t *obj)
     case TNIL:
       return;
     case TPRIMITIVE:
-      /* printf("%s\n", obj->fn_name); */
       return;
     case TCELL:
       print_obj(obj->car);
-      printf(" ");
-      print_obj(obj->cdr);
+      if (obj->cdr != NIL) {
+        printf(" ");
+        print_obj(obj->cdr);
+      }
       return;
     case TINT:
       printf("%d", obj->value);

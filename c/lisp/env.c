@@ -18,7 +18,7 @@ env_t *new_env(obj_t *val, char* name, env_t *old_env)
 
 env_t *init_env()
 {
-  return new_env(NULL, NULL, NULL);                  /* FIX */
+  return new_env(NULL, NULL, NULL);
 }
 
 void destroy_env(env_t *env)

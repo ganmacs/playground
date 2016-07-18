@@ -35,13 +35,14 @@ eval_run() {
     MLISP_EVAL_TEST=1 run "$@"
 }
 
-# == parse test ==
+echo -e "\n== Parse test =="
 parse_run "list" "(+ 1 2 10 1000 100000)" "(+ 1 2 10 1000 100000)"
 parse_run "list2" "(+ a bc cde abc10)" "(+ a bc cde abc10)"
 parse_run "dot" "(10 . 20)" "(10 . 20)"
 parse_run "fun" "(inc 10)" "(inc 10)"
+parse_run "inner cell" "(- (+ 10 11) (+ 12 13))" "(- (+ 10 11) (+ 12 13))"
 
-# == eval test ==
+echo -e "\n== Eval test =="
 eval_run add "(+ 1 2)" 3
 eval_run add_3_args "(+ 1 2 10)" 13
 eval_run minus "(- 2 1)" 1
@@ -52,3 +53,5 @@ eval_run mul_3_args "(* 2 10 20)" 400
 eval_run progn '(progn 1)' 1
 eval_run progn '(progn (+ 1 2) 1)' 1
 eval_run progn '(progn (+ 1 2) (+ 3 10))' 13
+
+eval_run define '(progn (define x 7) x)' 7
