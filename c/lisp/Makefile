@@ -1,7 +1,7 @@
 CFLAGS= -Wall
-OBJS = main.o parse.o debug.o util.o gc.o
+OBJS = mlisp.o parse.o debug.o util.o gc.o env.o eval.o
 
-mlisp: mlisp.h $(OBJS)
+mlisp:  $(OBJS)
 	$(CC) -o $@ $(OBJS)
 
 $(OBJS): mlisp.h

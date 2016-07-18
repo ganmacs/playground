@@ -86,7 +86,7 @@ obj_t *make_cell(obj_t *car, obj_t *cdr)
 
 obj_t *make_primitive(primitive_t *fn)
 {
-  obj_t *obj = alloc(TPRIMITIVE, sizeof(primitive_t));
+  obj_t *obj = alloc(TPRIMITIVE, sizeof(primitive_t *));
   obj->fn = fn;
   return obj;
 }

@@ -43,3 +43,5 @@ parse_run "fun" "(inc 10)" "(inc 10)"
 
 # == eval test ==
 eval_run add "(+ 1 2)" 3
+eval_run add_3_args "(+ 1 2 10)" 13
+eval_run minus "(- 2 1)" 1
