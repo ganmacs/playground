@@ -60,7 +60,7 @@ obj_t *prim_define(env_t **env, obj_t *list)
   obj_t *var = list->car;
   obj_t *val = eval_list(env, list->cdr);
 
-  add_variable(env, var->name, val);
+  add_variable(env, var->name, val->car);
   return var;
 }
 

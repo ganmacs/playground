@@ -55,3 +55,5 @@ eval_run progn '(progn (+ 1 2) 1)' 1
 eval_run progn '(progn (+ 1 2) (+ 3 10))' 13
 
 eval_run define '(progn (define x 7) x)' 7
+eval_run varible '(progn (define x 7) (+ x 10))' 17
+eval_run varible '(progn (define x 7) (define y 10) (+ x y))' 17
