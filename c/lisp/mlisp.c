@@ -55,6 +55,12 @@ obj_t *prim_minus(env_t **env, obj_t *list)
   return make_int(ret);
 }
 
+obj_t *prim_quote(env_t **env, obj_t *list)
+{
+  return list->car;
+}
+
+
 obj_t *prim_define(env_t **env, obj_t *list)
 {
   obj_t *var = list->car;
@@ -86,6 +92,7 @@ void define_primitives(env_t **env)
   add_primitive(env, "*", prim_mul);
   add_primitive(env, "define", prim_define);
   add_primitive(env, "progn", prim_progn);
+  add_primitive(env, "quote", prim_quote);
 }
 
 int main(int argc, char *argv[])

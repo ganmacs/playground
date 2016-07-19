@@ -40,11 +40,14 @@ void print_obj(obj_t *obj)
     case TPRIMITIVE:
       return;
     case TCELL:
+      printf("(");
       print_obj(obj->car);
-      if (obj->cdr != NIL) {
+
+      for (obj_t *o = obj->cdr; o != NIL; o = o->cdr) {
         printf(" ");
-        print_obj(obj->cdr);
+        print_obj(o->car);
       }
+      printf(")");
       return;
     case TINT:
       printf("%d", obj->value);

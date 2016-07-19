@@ -56,6 +56,12 @@ ast_t *reverse(ast_t *cell)
   return ret;
 }
 
+ast_t *read_quote()
+{
+  ast_t *v = new_cell(parse(), Nil);
+  return new_cell(new_symbol("quote"), v);
+}
+
 ast_t *read_lists()
 {
   ast_t *head = Nil;
@@ -136,6 +142,8 @@ ast_t *parse()
     return read_lists();
   if (c == ' ')
     return parse();
+  if (c == '\'')
+    return read_quote();
   if (c == ')')
     return RParen;
   if (c == '.')

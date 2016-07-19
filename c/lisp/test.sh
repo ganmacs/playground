@@ -41,6 +41,7 @@ parse_run "list2" "(+ a bc cde abc10)" "(+ a bc cde abc10)"
 parse_run "dot" "(10 . 20)" "(10 . 20)"
 parse_run "fun" "(inc 10)" "(inc 10)"
 parse_run "inner cell" "(- (+ 10 11) (+ 12 13))" "(- (+ 10 11) (+ 12 13))"
+parse_run quote "'(1 2 3)" "(quote (1 2 3))"
 
 echo -e "\n== Eval test =="
 eval_run add "(+ 1 2)" 3
@@ -57,3 +58,5 @@ eval_run progn '(progn (+ 1 2) (+ 3 10))' 13
 eval_run define '(progn (define x 7) x)' 7
 eval_run varible '(progn (define x 7) (+ x 10))' 17
 eval_run varible '(progn (define x 7) (define y 10) (+ x y))' 17
+
+eval_run quote "'(1 2 3)" "(1 2 3)"
