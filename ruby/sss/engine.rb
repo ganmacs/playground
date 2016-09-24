@@ -14,6 +14,7 @@ class Engine
       while worker.running
         begin
           worker.heart_beat(Time.now.to_s)
+          sleep 1
         rescue => e
           $log.warn "#{e} in Engine#run"
         end
@@ -30,8 +31,10 @@ class Engine
     end
 
     trap :TERM do
-      pm.stop
-      puts 'recieve SIGTERM'
+      Thread.new do
+        $log.warn 'Recieved SIGTEMR, kill all workers'
+        pm.stop
+      end.join
     end
   end
 end

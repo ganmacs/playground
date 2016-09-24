@@ -8,5 +8,5 @@ require 'engine'
 
 $log = Logger.new(STDOUT)
 Engine.new(
-  worker_size: 3
+  worker_size: 10
 ).run

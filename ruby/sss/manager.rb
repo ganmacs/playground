@@ -24,36 +24,18 @@ class WorkerManager
   end
 
   def create_worker(i)
-    c_read, p_write = IO.pipe
-    p_read, c_write = IO.pipe
-
-    pid = Process.fork do
-      begin
-        p_read.close
-        p_write.close
-
-        heart_beat(c_read, c_write)
-      ensure
-        c_read.close
-        c_write.close
-      end
+    Worker.create(i) do |read_io, write_io|
+      heart_beat(read_io, write_io)
     end
-
-    c_read.close
-    c_write.close
-
-    Worker.new(pid, p_read, p_write, i)
   end
 
   def heart_beat(c_read, c_write)
-    begin
-      loop do
-        v = c_read.gets
-        v.chomp!
-        c_write.puts(v + '+ack')
-      end
-    rescue SignalException
-      $log.warn "signal execption"
+    loop do
+      v = c_read.gets
+      v.chomp!
+      c_write.puts(v + '+ack')
     end
+  rescue SignalException
+    $log.warn 'signal execption'
   end
 end
