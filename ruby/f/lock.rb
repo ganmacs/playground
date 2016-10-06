@@ -41,7 +41,7 @@ class CleaupThread
         next if Time.now - SLEEP_SEC > @store.get(key).now
 
         if mutex.try_lock
-          m = @dict.delete(key)     # `m` is same as `mutex`
+          m = @dict.delete(key) # `m` is same as `mutex`
           mutex.unlock
 
           # Check a waiting queue of lock.
