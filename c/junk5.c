@@ -24,19 +24,38 @@ int main()
   unsigned long addr_size = sizeof(void *);
 
   memcpy(foo, "abcdefg", addr_size);
-  memcpy(foo + 8, "a2c3e4g", addr_size);
+  memcpy(foo + 8, "k2c3e4g", addr_size);
 
   printf("%s\n", foo);
   printf("%s\n", foo + 8);
 
   void **foobar = foo;
 
-  puts("\n=============================== start print");
+  printf("%c\n", foobar[0]);
+  printf("%c\n", foobar[1]);
 
-  for (int i = 0; i < 10; i++) {
-    printf("%p\n", foobar);
-    printf("%s\n", foobar[i]);
+  /* printf("%zu\n", sizeof(double)); */
+
+  double i[3] = {1.2, 2.3, 3.4};
+  double **ii = i;
+
+  printf("%p\n", ii);
+
+  for (int i = 0; i < 3; i++) {
+    printf("%f\n", ii);
   }
+
+  /* printf("%f\n", *(i + 1)); */
+
+
+
+
+  /* puts("\n=============================== start print"); */
+
+  /* for (int i = 0; i < 10; i++) { */
+  /*   printf("%p\n", foobar); */
+  /*   printf("%s\n", foobar[i]); */
+  /* } */
 
   return 0;
 }
