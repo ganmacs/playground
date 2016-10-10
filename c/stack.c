@@ -191,6 +191,10 @@ void saikou2(void *root, int *v)
 
   int k = 1000;
   saikou3(root, &k);
+
+  puts("\n===================================== start print");
+
+  printer(root);
 }
 
 void saikou(void *root, int *v)
