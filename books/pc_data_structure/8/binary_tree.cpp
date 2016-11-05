@@ -59,7 +59,7 @@ int dd(int i, int d)
 
 int main(int argc, char *argv[])
 {
-  int i, k, p = 0;
+  int i, k, p = 0, l, r;
   cin >> n;
 
   for (i = 0; i < n; i++) {
@@ -67,9 +67,11 @@ int main(int argc, char *argv[])
   }
 
   for (i = 0; i < n; i++) {
-    cin >> k >> node[k].l >> node[k].r;
-    if (node[k].l != -1) node[node[k].l].p = k;
-    if (node[k].r != -1) node[node[k].r].p = k;
+    cin >> k >> l >> r;
+    node[k].l = l;
+    node[k].r = r;
+    if (l != -1) node[l].p = k;
+    if (r != -1) node[r].p = k;
   }
 
   for (i = 0; i < n; i++) {
