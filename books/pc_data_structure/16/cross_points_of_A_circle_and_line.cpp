@@ -12,6 +12,16 @@ double cross(double x1, double y1, double x2, double y2) { return (x1 * y2) - (y
 double norm(double x, double y) { return (x * x) + (y * y); }
 double aabs(double x ,double y) { return sqrt(norm(x, y));}
 
+pair<double, double> project(double xp1, double yp1, double xp2, double yp2, double xp, double yp)
+{
+  int base_x = xp2 - xp1;
+  int base_y = yp2 - yp1;
+
+  double in = dot(base_x, base_y, xp - xp1,  yp - yp1);
+  double ss = in / norm(base_x, base_y);
+  return make_pair(xp1 + base_x * ss, yp1 + base_y * ss);
+}
+
 static const int COUNTER_CLOCKWISE = 1;
 static const int CLOCKWISE = -1;
 static const int ONLINE_BACK = 2;
@@ -62,13 +72,33 @@ double distance_sp(double x1, double y1, double x2, double y2, double x3, double
              min(distance_sp(x3, y3, x4, y4, x1, y1), distance_sp(x3, y3, x4, y4, x2, y2)));
 }
 
+pair<pair<double, double>, pair<double, double> > cross_point(int r, double cx, double cy, double xp0, double yp0, double xp1, double yp1) {
+
+  pair<double, double> pr = project(xp0, yp0, xp1, yp1, cx, cy);
+  double b = sqrt((r * r) - norm(pr.first - cx, pr.second - cy));
+
+  double ex = (xp1 - xp0) / aabs(xp1 - xp0, yp1 - yp0);
+  double ey = (yp1 - yp0) / aabs(xp1 - xp0, yp1 - yp0);
+
+  return make_pair(make_pair(pr.first - ex * b, pr.second - ey * b),
+                   make_pair(pr.first + ex * b, pr.second + ey * b));
+}
+
 int main()
 {
+  int cx, cy, r;
+  cin >> cx >> cy >> r;
   cin >> n;
-  int xp0, yp0, xp1, yp1, xp2, yp2, xp3, yp3;
+  int xp0, yp0, xp1, yp1;
 
   for (int i = 0; i < n; i++) {
-    cin >> xp0 >> yp0 >> xp1 >> yp1 >> xp2 >> yp2 >> xp3 >> yp3;
-    printf("%0.10f\n", distance_sp(xp0, yp0, xp1, yp1, xp2, yp2, xp3, yp3));
+    cin >> xp0 >> yp0 >> xp1 >> yp1;
+    pair<pair<double, double>, pair<double, double> > p = cross_point(r, cx, cy, xp0, yp0, xp1, yp1);
+
+    if ((p.first.first < p.second.first) || ((p.first.first == p.second.first) && (p.first.second < p.second.second))) {
+      printf("%0.8f %0.8f %0.8f %0.8f\n", p.first.first, p.first.second, p.second.first, p.second.second);
+    } else {
+      printf("%0.8f %0.8f %0.8f %0.8f\n", p.second.first, p.second.second, p.first.first, p.first.second);
+    }
   }
 }
