@@ -5,9 +5,8 @@
 
 using namespace std;
 
-const int MAXN = 100;
-const int MAXW = 10000;
-const int INF = (1 << 30);
+const int MAXN = 150;
+const int MAXW = 10050;
 
 int n, w;
 pair<int, int> in[MAXN];
@@ -30,7 +29,7 @@ int main()
   }
 
   for (int i = 1; i <= n; i++) {
-    for (int j = 1; j <= w; j++) {
+    for (int j = 0; j <= w; j++) {
       if (j - in[i].second >= 0) {
         ANS[i][j] = max(ANS[i-1][j], in[i].first + ANS[i-1][j - in[i].second]);
       } else {
@@ -38,7 +37,6 @@ int main()
       }
     }
   }
-
   cout << ANS[n][w] << endl;
   return 0;
 }

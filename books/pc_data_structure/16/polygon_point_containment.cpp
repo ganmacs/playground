@@ -82,10 +82,44 @@ pair<pair<double, double>, pair<double, double> > cross_point(int r, double cx, 
                    make_pair(pr.first + ex * b, pr.second + ey * b));
 }
 
+struct P { double x, y; };
+P g[200];
+int n, l;
+
+int contains(int x, int y)
+{
+  double ax, ay, bx, by;
+  bool ans = false;
+  for (int i = 0; i < n; i++) {
+    ax = g[i].x - x;
+    ay = g[i].y - y;
+    bx = g[(i + 1) % n].x - x;
+    by = g[(i + 1) % n].y - y;
+
+    if (abs(cross(ax, ay, bx, by)) < EPS && dot(ax, ay, bx, by) < EPS) return 1;
+    if (ay > by) {
+      swap(ax, bx);
+      swap(ay, by);
+    }
+    if (ay < EPS && by > EPS && cross(ax, ay, bx, by) > EPS) ans = !ans;
+  }
+  return (ans ? 2 : 0);
+}
+
 int main()
 {
-  int cx0, cy0, r0;
-  int cx1, cy1, r1;
-  cin >> cx0 >> cy0 >> r0 >> cx1 >> cy1 >> r1;
+  int x, y;
+  cin >> n;
 
+  for (int i = 0; i < n; i++) {
+    cin >> x >> y;
+    g[i].x = x; g[i].y = y;
+  }
+
+  cin >> l;
+
+  for (int j = 0; j < l; j++) {
+    cin >> x >> y;
+    cout << contains(x, y) << endl;
+  }
 }

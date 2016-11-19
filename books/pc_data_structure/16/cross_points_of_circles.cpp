@@ -82,11 +82,23 @@ pair<pair<double, double>, pair<double, double> > cross_point(int r, double cx, 
                    make_pair(pr.first + ex * b, pr.second + ey * b));
 }
 
+pair<double, double> polar(double a, double r) { return make_pair(a * cos(r), a * sin(r)); }
+
 int main()
 {
-  int cx0, cy0, r0;
   int cx1, cy1, r1;
-  cin >> cx0 >> cy0 >> r0 >> cx1 >> cy1 >> r1;
+  int cx2, cy2, r2;
+  cin >> cx1 >> cy1 >> r1 >> cx2 >> cy2 >> r2;
 
+  double d = aabs(cx2 - cx1, cy2 - cy1);
+  double a = acos(((r1 * r1) +  (d * d) - (r2 * r2)) / (2 * r1 * d));
+  double t = atan2(cy2 - cy1, cx2 - cx1);
+  pair<double, double> dd1 = polar(r1, t + a);
+  pair<double, double> dd2 = polar(r1, t - a);
 
+  if ((dd1.first < dd2.first) || ((dd1.first == dd2.first) && (dd1.second < dd2.second))) {
+    printf("%0.8f %0.8f %0.8f %0.8f\n", cx1 + dd1.first, cy1 + dd1.second, cx1 + dd2.first, cy1 + dd2.second);
+  } else {
+    printf("%0.8f %0.8f %0.8f %0.8f\n", cx1 + dd2.first, cy1 + dd2.second, cx1 + dd1.first, cy1 + dd1.second);
+  }
 }
