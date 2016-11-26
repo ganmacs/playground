@@ -12,9 +12,9 @@
 using namespace std;
 static const int MAX = 2000;
 
-struct team { int i, count, duration, miss_count; };
+struct team { int i, count, duration, miss_count[11]; };
 
-team tt[MAX + 1];
+team tt[MAX + 10];
 int n;
 int M, T, P, R;
 int m, t, p, j;
@@ -39,17 +39,16 @@ int main(){
       tt[i].i = i;
       tt[i].count = 0;
       tt[i].duration = 0;
-      tt[i].miss_count = 0;
+      for (int j = 0; j < 11; j++) tt[i].miss_count[j] = 0;
     }
 
     for (int i = 0; i < R; i++) {
       cin >> m >> t >> p >> j;
       if (j == 0) {
         tt[t].count++;
-        tt[t].duration += (m + (20 * tt[t].miss_count));
-        tt[t].miss_count = 0;
+        tt[t].duration += (m + tt[t].miss_count[p]);
       } else {
-        tt[t].miss_count++;
+        tt[t].miss_count[p] += 20;
       }
     }
 
