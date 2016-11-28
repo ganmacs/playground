@@ -13,50 +13,51 @@ using namespace std;
 static const int MAX = 200001;
 
 struct T {
-  int idx, count, time;
+  int idx, score, time;
 
   bool operator < (const T &o) const {
-    if (count == o.count) return idx > o.idx;
-    return o.count > count;
+    if (score == o.score) return idx > o.idx;
+    return score < o.score;
   }
 };
 
 int main(){
-  T teams[100000];
+  T teams[100000 + 1];
   int N, R, L;
   cin >> N >> R >> L;
   priority_queue<T> p;
 
-  for (int i = 0; i < N; i++) {
+  for (int i = 1; i <= N; i++) {
     teams[i].idx = i;
-    teams[i].count = 0;
+    teams[i].score = 0;
     teams[i].time = 0;
+    p.push(teams[i]);
   }
+
 
   int d, t, x, last = 0;
   for (int i = 0; i < R; i++) {
     cin >> d >> t >> x;
 
-    if (!p.empty()) {
-      T tt = p.top(); p.pop();
-      teams[tt.idx].time += (last-x);
-      p.push(teams[tt.idx]);
-    }
+    while (!p.empty() && teams[p.top().idx].score != p.top().score)  p.pop();
 
-    teams[d].count += t;
-    last = x;
-
+    teams[d].score += x;
+    teams[p.top().idx].time += (t - last);
     p.push(teams[d]);
+    last = t;
   }
 
-  T tt = teams[d];
-  tt.time += (L - last);
-  p.push(tt);
+  while (!p.empty() && teams[p.top().idx].score != p.top().score)  p.pop();
+  teams[p.top().idx].time +=  (L - last);
 
-  for (int i = 0; i < N; i++) {
-    printf("%d ", teams[i].count);
+  int max = 0;
+  int id = - 1;
+  for (int i = 1; i <= N; i++) {
+    if (max < teams[i].time) {
+      max = teams[i].time;
+      id = teams[i].idx;
+    }
   }
-  cout << endl;
 
-  cout << p.top().idx << endl;
+  cout << id << endl;
 }
