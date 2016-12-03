@@ -4,83 +4,75 @@
 #include <vector>
 
 using namespace std;
+static const int MAX_I = 210;
+static const int MAX = 30000;
 typedef pair<int, int> P;
-static const int MAX_I = 201;
+typedef pair<int, P> PP;
 
 struct union_find {
 private:
-  vector<int> vec;
+  int vec[MAX];
 public:
-  union_find(int n) { vec.resize(n, -1); }
-  int find(int x) { return (vec[x] ==  -1) ? x : vec[x] = find(vec[x]); }
-  void unite(int x, int y) { vec[x] = find(y); }
+  union_find(int n) { for (int i = 0; i < n; i++) vec[i] = i; }
+  void reset(int n) { for (int i = 0; i < n; i++) vec[i] = i; }
+  int find(int x) { return (vec[x] ==  x) ? x : vec[x] = find(vec[x]); }
+  void unite(int x, int y) { vec[find(x)] = find(y); }
   bool same(int x, int y) { return find(x) == find(y); };
-  bool all(int n) {
-    // if (vec.size() == 0) return true;
-    // int v = vec[0];
-    // for (int i = 1; i < (int)vec.size(); i++) {
-    //   if (v != vec[i]) return false;
-    // }
-
-    for (int i = 0; i < n; i++) {
-      cout << vec[i] << endl;
-    }
-    return true;
-  }
-};
-
-struct E {
-  int l, r, c;
-  bool used;
-  E(int a, int b, int cc) { l = a; r = b; c = cc; used = false; }
-  bool operator < (const E &o) const {
-    return c < o.c;
-  }
 };
 
 int main(){
-  int n, m, h, a, b, c;
+  int N, M, h, a, b, c;
   P p[MAX_I];
-  vector<E> es;
+  PP es[MAX];
 
-  while (cin >> n >> m, n || m) {
-    for (int i = 0; i < n; i++) {
+  while (cin >> N >> M, N || M) {
+    for (int i = 0; i < N; i++) {
       cin >> h;
-      p[i] = P(h, i);
+      p[i] = P(-h, i);
     }
 
-    for (int i = 0; i < m; i++) {
+    for (int i = 0; i < M; i++) {
       cin >> a >> b >> c;
-      es.push_back(E(a-1, b-1, c));
+      es[i] = PP(c, P(a-1, b-1));
     }
 
-    sort(p, p + n);
-    sort(es.begin(), es.end());
+    sort(p, p + N);
+    sort(es, es + M);
+
     int sum = 0;
+    int comp = 0;
+    union_find uf(N);
+    bool cand[MAX_I] = {};
+    fill_n(cand, N, false);
 
-    union_find uf(n);
-    for (int i = 0; i < n; i++) {
-      int idx = p[i].second;
+    for (int i = 0; i < N; i++) {
+      cand[p[i].second] = true;
+      comp++;
 
-      for (int j = 0; j < m; j++) {
-        if (es[j].used) continue;
+      while (i + 1 < N && p[i].first == p[i + 1].first) {
+        i++;
+        cand[p[i].second] = true;
+        comp++;
+      }
 
-        int ll = es[j].l;
-        int rr = es[j].r;
-        if (ll != idx && rr != idx) continue;
-        if (uf.same(ll, rr)) continue;
+      for (int j = 0; j < M; j++) {
+        int ll = es[j].second.first;
+        int rr = es[j].second.second;
 
-        es[j].used = true;
-        sum += es[j].c;
-        uf.unite(es[j].l, es[j].r);
-        break;
+        if (!uf.same(ll, rr) && cand[ll] && cand[rr]) {
+          uf.unite(ll, rr);
+          sum += es[j].first;
+          comp--;
+        }
+      }
+
+      if (comp != 1) {
+        sum = 0;
+        uf.reset(N);
+        comp = i + 1;
       }
     }
 
-    cout << uf.all(n) << endl;
-
     cout << sum << endl;
-
-    break;
   }
 }
