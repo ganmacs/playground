@@ -40,14 +40,15 @@ int main(){
     }
   }
 
-  for (int i = 1; i < (GMAX + 1); i++) {
-    for (int j = 1; j < (k + 1); j++) {
-      for (int l = 1; l <= j && (l < (int)g[i].size()); l++) {
-        dp[i][j] = max(dp[i][j], dp[i-1][j-l] + p[i][l]);
+  for (int i = 0; i < GMAX; i++) {
+    for (int j = 0; j < k; j++) {
+      for (int l = 1; l < (int)g[i].size()+1; l++) {
+        if (j + 1 - l >= 0) {
+          dp[i + 1][j + 1] = max(dp[i + 1][j + 1], dp[i][j+1-l] + p[i][l]);
+        }
       }
-      dp[i + 1][j] = dp[i][j];
     }
+    for (int j = 0; j < (k + 1); j++) dp[i + 1][j] = max(dp[i + 1][j], dp[i][j]);
   }
-
   cout << dp[GMAX][k] << endl;
 }
