@@ -27,7 +27,7 @@ int tsp()
     for (int j = 0; j < n; j++) {
       for (int k = 0; k < n; k++) {
         if ((i >> k) & 1) continue; // already visited
-        dp[i][j] = min(dp[i][j], M[j][k] + dp[i | 1 << k][k]);
+        dp[i][j] = min(dp[i][j], dp[i | 1 << k][k] + M[j][k]);
       }
     }
   }
