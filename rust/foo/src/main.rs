@@ -97,7 +97,14 @@ fn eval(ast: Node) -> Result<Node, &'static str> {    // specific type
                 _ => Err("others")
             }
         },
-        _ => Ok(Node::Nil)
+        x => Ok(x)
+    }
+}
+
+fn lprint(result: Node) {
+    match result {
+        Node::Int { v: v } => println!("{}", v),
+        x => println!("{:?}", x)
     }
 }
 
@@ -106,7 +113,10 @@ fn main() {
     match parse(&mut input.chars().peekable())  {
         Ok(ast) => {
             println!("{:?}", ast);
-            println!("{:?}", eval(ast));
+            match eval(ast) {
+                Ok(result) => lprint(result),
+                Err(v) => println!("{:?}", v)
+            }
         },
         Err(v) => println!("{:?}", v)
     };
