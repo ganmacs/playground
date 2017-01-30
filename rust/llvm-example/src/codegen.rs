@@ -13,12 +13,15 @@ pub unsafe fn codegen(insts: Vec<Node>) {
 
     let int_type = llvm::core::LLVMInt64TypeInContext(context);
     let function_type = llvm::core::LLVMFunctionType(int_type, ptr::null_mut(), 0, 0);
-    let function = llvm::core::LLVMAddFunction(module, b"cool_module\0".as_ptr() as *const _, function_type);
-
-    let bb = llvm::core::LLVMAppendBasicBlockInContext(context, function, b"entry\0".as_ptr() as *const _);
+    let function =
+        llvm::core::LLVMAddFunction(module, b"cool_module\0".as_ptr() as *const _, function_type);
+    let bb = llvm::core::LLVMAppendBasicBlockInContext(context,
+                                                       function,
+                                                       b"entry\0".as_ptr() as *const _);
     llvm::core::LLVMPositionBuilderAtEnd(builder, bb);
 
     let env = &mut HashMap::new();
+    let int_type = llvm::core::LLVMInt64TypeInContext(context);
     let zero = llvm::core::LLVMConstInt(int_type, 0, 0);
     let mut ret = zero;
 
@@ -31,69 +34,104 @@ pub unsafe fn codegen(insts: Vec<Node>) {
 
     // Dump the module as IR to stdout.
     llvm::core::LLVMDumpModule(module);
+    let out_file = CString::new("out.ll").unwrap();
+    llvm::core::LLVMPrintModuleToFile(module, out_file.as_ptr(), ptr::null_mut());
+
 
     // Clean up. Values created in the context mostly get cleaned up there.
     llvm::core::LLVMDisposeBuilder(builder);
     llvm::core::LLVMDisposeModule(module);
-
     llvm::core::LLVMContextDispose(context);
 }
 
-unsafe fn codegen_node(ctx: LLVMContextRef, builder: LLVMBuilderRef, func: LLVMValueRef, env: &mut HashMap<String, LLVMValueRef>, n: Node) -> LLVMValueRef {
+unsafe fn codegen_node(cxt: LLVMContextRef,
+                       builder: LLVMBuilderRef,
+                       func: LLVMValueRef,
+                       env: &mut HashMap<String, LLVMValueRef>,
+                       n: Node)
+                       -> LLVMValueRef {
     match n {
-        Node::Aref(ref n) => {
-            *env.get(n).unwrap()
-        },
+        Node::Aref(n) => {
+            let val = env.get(&n).unwrap();
+            let name = CString::new(n).unwrap();
+            llvm::core::LLVMBuildLoad(builder, *val, name.as_ptr())
+        }
         Node::Assgn(name, value) => {
-            let nv = codegen_node(ctx, builder, func, env, *value);
-            env.insert(name, nv);
-            nv
-        },
+            let new_value = codegen_node(cxt, builder, func, env, *value);
+
+            let pointer = llvm_alloc_int(cxt, builder, &name);
+            llvm::core::LLVMBuildStore(builder, new_value, pointer);
+            env.insert(name.to_owned(), pointer);
+
+            new_value
+        }
         Node::Int(n) => {
-            let v = llvm::core::LLVMInt64TypeInContext(ctx);
+            let v = llvm::core::LLVMInt64TypeInContext(cxt);
             llvm::core::LLVMConstInt(v, n, 0)
-        },
+        }
         Node::Add(l, r) => {
-            let ll = codegen_node(ctx, builder, func, env, *l);
-            let rr = codegen_node(ctx, builder, func, env, *r);
+            let ll = codegen_node(cxt, builder, func, env, *l);
+            let rr = codegen_node(cxt, builder, func, env, *r);
             let name = CString::new("add_value").unwrap();
             llvm::core::LLVMBuildAdd(builder, ll, rr, name.as_ptr())
         }
-        Node::If(cond, then_body, else_body) => {
-            let evaled_cond = codegen_node(ctx, builder, func, env, *cond);
-
-            let int_type = llvm::core::LLVMInt64TypeInContext(ctx);
+        Node::Sub(l, r) => {
+            let ll = codegen_node(cxt, builder, func, env, *l);
+            let rr = codegen_node(cxt, builder, func, env, *r);
+            let name = CString::new("sub_value").unwrap();
+            llvm::core::LLVMBuildSub(builder, ll, rr, name.as_ptr())
+        }
+        Node::If(condition, then_body, else_body) => {
+            let condition_value = codegen_node(cxt, builder, func, env, *condition);
+            let int_type = llvm::core::LLVMInt64TypeInContext(cxt);
             let zero = llvm::core::LLVMConstInt(int_type, 0, 0);
-            // `is_nonzero` is a 1-bit integer
+
             let name = CString::new("is_nonzero").unwrap();
             let is_nonzero = llvm::core::LLVMBuildICmp(builder,
                                                        llvm::LLVMIntPredicate::LLVMIntNE,
-                                                       evaled_cond,
+                                                       condition_value,
                                                        zero,
                                                        name.as_ptr());
 
-            let then_name = CString::new("ifcond.then").unwrap();
-            let else_name = CString::new("ifcond.else").unwrap();
-            let end_name = CString::new("ifcond.end").unwrap();
-            let then_block = llvm::core::LLVMAppendBasicBlockInContext(ctx, func, then_name.as_ptr());
-            let else_block = llvm::core::LLVMAppendBasicBlockInContext(ctx, func, else_name.as_ptr());
-            let end_block = llvm::core::LLVMAppendBasicBlockInContext(ctx, func, end_name.as_ptr());
+            let entry_name = CString::new("entry").unwrap();
+            let then_block =
+                llvm::core::LLVMAppendBasicBlockInContext(cxt, func, entry_name.as_ptr());
+            let else_block =
+                llvm::core::LLVMAppendBasicBlockInContext(cxt, func, entry_name.as_ptr());
+            let merge_block =
+                llvm::core::LLVMAppendBasicBlockInContext(cxt, func, entry_name.as_ptr());
 
             llvm::core::LLVMBuildCondBr(builder, is_nonzero, then_block, else_block);
 
             // then
             llvm::core::LLVMPositionBuilderAtEnd(builder, then_block);
-            codegen_node(ctx, builder, func, env, *then_body);
-
-            llvm::core::LLVMBuildBr(builder, end_block);
+            let then_return = codegen_node(cxt, builder, func, env, *then_body);
+            llvm::core::LLVMBuildBr(builder, merge_block);
+            let then_block = llvm::core::LLVMGetInsertBlock(builder);
 
             // else
             llvm::core::LLVMPositionBuilderAtEnd(builder, else_block);
-            codegen_node(ctx, builder, func, env, *else_body);
+            let else_return = codegen_node(cxt, builder, func, env, *else_body);
+            llvm::core::LLVMBuildBr(builder, merge_block);
+            let else_block = llvm::core::LLVMGetInsertBlock(builder);
 
-            // end
-            llvm::core::LLVMPositionBuilderAtEnd(builder, end_block);
-            zero
-        },
+            llvm::core::LLVMPositionBuilderAtEnd(builder, merge_block);
+
+            let phi_name = CString::new("iftmp").unwrap();
+
+            let phi = llvm::core::LLVMBuildPhi(builder, int_type, phi_name.as_ptr());
+
+            let mut values = vec![then_return, else_return];
+            let mut blocks = vec![then_block, else_block];
+
+            llvm::core::LLVMAddIncoming(phi, values.as_mut_ptr(), blocks.as_mut_ptr(), 2);
+            phi
+        }
     }
+}
+
+unsafe fn llvm_alloc_int(cxt: LLVMContextRef, builder: LLVMBuilderRef, name: &str) -> LLVMValueRef {
+    let int_type = llvm::core::LLVMInt64TypeInContext(cxt);
+    let cname = CString::new(name.as_bytes()).unwrap();
+    llvm::core::LLVMBuildAlloca(builder, int_type, cname.as_ptr())
 }
