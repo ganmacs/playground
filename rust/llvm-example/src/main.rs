@@ -3,7 +3,7 @@ extern crate llvm_example;
 use llvm_example::*;
 use llvm_example::node::*;
 
-fn test1() {
+fn test() {
     let v1 = assgn("foo", iint(11));
     let v3 = assgn("foo", sub(aref("foo"), iint(10)));
     let i = ifexpr(aref("foo"),
@@ -14,13 +14,11 @@ fn test1() {
     compile(vec![v1, v3, i, ret]);
 }
 
-fn test2() {
-    unsafe {
-        codegen::playground();
-    }
-}
-
 fn main() {
-    // test1()
-    test2()
+    match 2 {
+        0 => test(),
+        1 => unsafe { llvm1::run() },
+        2 => unsafe { llvm2::run() },
+        _ => test(),
+    }
 }

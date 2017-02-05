@@ -130,36 +130,7 @@ unsafe fn codegen_node(cxt: LLVMContextRef,
     }
 }
 
-pub unsafe fn playground() {
-    // Get context
-    let context = llvm::core::LLVMGetGlobalContext();
-    // this instr is the same to `LLVMModuleCreateWithNameInCotnext("~~~~~", LLVMGetGlobalContext)`
-    // let module = llvm::core::LLVMModuleCreateWithName("playground\0".as_ptr() as *const _);
-    let module = llvm::core::LLVMModuleCreateWithNameInContext("playground\0".as_ptr() as *const _,
-                                                               context);
-    // Create a bulder not in a global context, but in this context
-    // let builder = llvm::core::LLVMCreateBuilder();
-    // LLVMCreateBuilder() is the same as LLVMCreateBuilderInContext(Get)
-    let builder = llvm::core::LLVMCreateBuilderInContext(context);
 
-    let int_type = get_int64_in_context(context);
-    let function_type = llvm::core::LLVMFunctionType(int_type, ptr::null_mut(), 0, 0);
-    let function =
-        llvm::core::LLVMAddFunction(module, b"main\0".as_ptr() as *const _, function_type);
-
-
-    // output stdout
-    llvm::core::LLVMDumpModule(module);
-
-    // Clean up. Values created in the context mostly get cleaned up there.
-    llvm::core::LLVMDisposeBuilder(builder);
-    llvm::core::LLVMDisposeModule(module);
-    llvm::core::LLVMContextDispose(context);
-}
-
-fn get_int64_in_context(ctx: LLVMContextRef) -> LLVMTypeRef {
-    unsafe { llvm::core::LLVMInt64TypeInContext(ctx) }
-}
 
 unsafe fn llvm_alloc_int(ctx: LLVMContextRef, builder: LLVMBuilderRef, name: &str) -> LLVMValueRef {
     let int_type = llvm::core::LLVMInt64TypeInContext(ctx);
