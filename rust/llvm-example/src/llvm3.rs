@@ -1,4 +1,4 @@
-// create if expression without phi fnction.
+// create if expression using phi fnction.
 // -------------------------------
 // int main() {
 //     a = 2;
