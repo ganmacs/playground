@@ -9,4 +9,3 @@ dependencies = [
 name = "getopts"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-

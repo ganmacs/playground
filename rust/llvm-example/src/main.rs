@@ -2,6 +2,7 @@ extern crate llvm_example;
 
 use llvm_example::*;
 use llvm_example::node::*;
+use std::env;
 
 fn test() {
     let v1 = assgn("foo", iint(11));
@@ -15,10 +16,11 @@ fn test() {
 }
 
 fn main() {
-    match 2 {
-        0 => test(),
-        1 => unsafe { llvm1::run() },
-        2 => unsafe { llvm2::run() },
+    let args: String = env::args().skip(1).collect();
+    match args.as_ref() {
+        "0" => test(),
+        "1" => unsafe { llvm1::run() },
+        "2" => unsafe { llvm2::run() },
         _ => test(),
     }
 }

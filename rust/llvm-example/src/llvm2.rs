@@ -15,26 +15,20 @@ use std::ffi::CString;
 use std::ptr;
 
 pub unsafe fn run() {
-    // Get context
     let context = llvm::core::LLVMGetGlobalContext();
-    // this instr is the same to `LLVMModuleCreateWithNameInCotnext("~~~~~", LLVMGetGlobalContext)`
-    // let module = llvm::core::LLVMModuleCreateWithName("playground\0".as_ptr() as *const _);
-    let v = CString::new("playground").unwrap();
-    let module = llvm::core::LLVMModuleCreateWithNameInContext(v.as_ptr(), context);
-    // Create a bulder not in a global context, but in this context
-    // let builder = llvm::core::LLVMCreateBuilder();
-    // LLVMCreateBuilder() is the same as LLVMCreateBuilderInContext(Get)
+    let mod_name = CString::new("playground").unwrap();
+    let module = llvm::core::LLVMModuleCreateWithNameInContext(mod_name.as_ptr(), context);
     let builder = llvm::core::LLVMCreateBuilderInContext(context);
 
-    // build  a function named "main"
+    // build a function named "main"
     let int_type = llvm::core::LLVMInt64TypeInContext(context);
     let fun_type = llvm::core::LLVMFunctionType(int_type, ptr::null_mut(), 0, 0);
     let fun_name = CString::new("main").unwrap();
     let fun = llvm::core::LLVMAddFunction(module, fun_name.as_ptr(), fun_type);
 
-    // create basic block in a global context
+    // create basic block named "entry"
     let bb_name = CString::new("entry").unwrap();
-    let bb = llvm::core::LLVMAppendBasicBlock(fun, bb_name.as_ptr());
+    let bb = llvm::core::LLVMAppendBasicBlockInContext(context, fun, bb_name.as_ptr());
 
     // Set next insert positoin
     llvm::core::LLVMPositionBuilderAtEnd(builder, bb);
@@ -54,33 +48,48 @@ pub unsafe fn run() {
     let new_a = llvm::core::LLVMBuildLoad(builder, pointer_a, name.as_ptr());
 
     // create if statment
+    let condition_value = new_a;
+    // create 0 value
+    let int_type = llvm::core::LLVMInt64TypeInContext(context);
+    let zero = llvm::core::LLVMConstInt(int_type, 0, 0);
 
-    // let condition_value = codegen_node(cxt, builder, func, env, *condition);
-    // let int_type = llvm::core::LLVMInt64TypeInContext(cxt);
-    // let zero = llvm::core::LLVMConstInt(int_type, 0, 0);
+    // create an icmp instruction which compare whether a condition value is not zero
+    let name = CString::new("is_nonzero").unwrap();
+    let is_nonzero = llvm::core::LLVMBuildICmp(builder,
+                                               llvm::LLVMIntPredicate::LLVMIntNE,
+                                               condition_value,
+                                               zero,
+                                               name.as_ptr());
 
-    // let name = CString::new("is_nonzero").unwrap();
-    // let is_nonzero = llvm::core::LLVMBuildICmp(builder,
-    //                                            llvm::LLVMIntPredicate::LLVMIntNE,
-    //                                            condition_value,
-    //                                            zero,
-    //                                                    name.as_ptr());
+    // create a basic blocks "then", "else", "merge"
+    let entry_name = CString::new("entry").unwrap();
+    let then_block = llvm::core::LLVMAppendBasicBlockInContext(context, fun, entry_name.as_ptr());
+    let else_block = llvm::core::LLVMAppendBasicBlockInContext(context, fun, entry_name.as_ptr());
+    let merge_block = llvm::core::LLVMAppendBasicBlockInContext(context, fun, entry_name.as_ptr());
 
-    //         let entry_name = CString::new("entry").unwrap();
-    //         let then_block =
-    //             llvm::core::LLVMAppendBasicBlockInContext(cxt, func, entry_name.as_ptr());
-    //         let else_block =
-    //             llvm::core::LLVMAppendBasicBlockInContext(cxt, func, entry_name.as_ptr());
-    //         let merge_block =
-    //             llvm::core::LLVMAppendBasicBlockInContext(cxt, func, entry_name.as_ptr());
+    llvm::core::LLVMBuildCondBr(builder, is_nonzero, then_block, else_block);
 
-    //         llvm::core::LLVMBuildCondBr(builder, is_nonzero, then_block, else_block);
+    // -- Then block --
+    // set a inserstion position in "then" basic block
+    llvm::core::LLVMPositionBuilderAtEnd(builder, then_block);
 
-    //         // then
-    //         llvm::core::LLVMPositionBuilderAtEnd(builder, then_block);
-    //         let then_return = codegen_node(cxt, builder, func, env, *then_body);
-    //         llvm::core::LLVMBuildBr(builder, merge_block);
-    //         let then_block = llvm::core::LLVMGetInsertBlock(builder);
+    // allocate a
+    // let int_type = llvm::core::LLVMInt64TypeInContext(context);
+    // let cname = CString::new("a").unwrap();
+    // let pointer_a = llvm::core::LLVMBuildAlloca(builder, int_type, cname.as_ptr());
+
+    // load a to then_a
+    // let name = CString::new("then_a").unwrap();
+    // let then_a = llvm::core::LLVMBuildLoad(builder, pointer_a, name.as_ptr());
+
+    // a = 10
+    let typ = llvm::core::LLVMInt64TypeInContext(context);
+    let iv = llvm::core::LLVMConstInt(typ, 10, 0);
+    llvm::core::LLVMBuildStore(builder, iv, pointer_a);
+
+    // let then_return = codegen_node(cxt, builder, func, env, *then_body);
+    // llvm::core::LLVMBuildBr(builder, merge_block);
+    // let then_block = llvm::core::LLVMGetInsertBlock(builder);
 
     //         // else
     //         llvm::core::LLVMPositionBuilderAtEnd(builder, else_block);
@@ -101,11 +110,14 @@ pub unsafe fn run() {
     //         phi
 
 
-
-
-
     // output stdout
+    // llvm::core::LLVMDumpModule(module);
+
+    // Instead of dumping to stdout, let's write out the IR to `out.ll`
+    // let out_file = CString::new("out.ll").unwrap();
+    // llvm::core::LLVMPrintModuleToFile(module, out_file.as_ptr(), ptr::null_mut());
     llvm::core::LLVMDumpModule(module);
+
 
     // Clean up. Values created in the context mostly get cleaned up there.
     llvm::core::LLVMDisposeBuilder(builder);

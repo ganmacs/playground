@@ -12,7 +12,6 @@ extern crate llvm_sys as llvm;
 
 use std::ffi::CString;
 use std::ptr;
-use self::llvm::prelude::*;
 
 pub unsafe fn run() {
     // Get context
