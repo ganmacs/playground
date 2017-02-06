@@ -92,7 +92,7 @@ pub unsafe fn run() {
     // set a insertion pos
     llvm::core::LLVMPositionBuilderAtEnd(builder, else_block);
 
-    // a = 11
+    // a + 2
     let name = CString::new("e_a").unwrap();
     let p_a = llvm::core::LLVMBuildLoad(builder, pointer_a, name.as_ptr());
 
