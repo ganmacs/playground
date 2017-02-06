@@ -1,13 +1,13 @@
 extern crate llvm_sys as llvm;
 use std::ffi::CString;
 use std::ptr;
-
+use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use self::llvm::prelude::*;
 use node::*;
-use std::collections::HashMap;
 
 // a = 10
-//
+
 // if (a) {
 //   a = a + 1
 // } else {
@@ -17,21 +17,13 @@ use std::collections::HashMap;
 
 pub fn run() {
     // a = 10
-    // let inst1 = assign("a", inum(10));
-
-    // // if ( ~ ) { ~ }  else { ~ }
-    // let inst2 = ifexpr(refe("a"),
-    //                    assign("a", add(refe("a"), inum(1))),
-    //                    assign("a", add(refe("a"), inum(2))));
-    // // a
-    // let inst3 = refe("a");
-    // unsafe { codegen(vec![inst1, inst2, inst3]) }
-
-    // let inst1 = assign("a", inum(10));
-    // unsafe { codegen(vec![inst1, inst3]) }
-
     let inst1 = assign("a", inum(10));
-    let inst2 = assign("a", add(refe("a"), inum(1)));
+
+    // if (a) { a = a + 1 } else { a = a + 2 }
+    let inst2 = ifexpr(refe("a"),
+                       assign("a", add(refe("a"), inum(1))),
+                       assign("a", add(refe("a"), inum(2))));
+    // a
     let inst3 = refe("a");
     unsafe { codegen(vec![inst1, inst2, inst3]) }
 }
@@ -94,13 +86,17 @@ unsafe fn gen_node(ctx: LLVMContextRef,
         }
         Node::Assign(name, val) => {
             let nval = gen_node(ctx, builder, fun, env, *val);
-
-            let int_type = llvm::core::LLVMInt64TypeInContext(ctx);
-            let cname = CString::new(name.as_bytes()).unwrap();
-            let ptr = llvm::core::LLVMBuildAlloca(builder, int_type, cname.as_ptr());
-
+            let ptr = match env.entry(name.to_owned()) {
+                Entry::Occupied(occu) => *occu.get(),
+                Entry::Vacant(en) => {
+                    let int_type = llvm::core::LLVMInt64TypeInContext(ctx);
+                    let cname = CString::new(name).unwrap();
+                    let ptr = llvm::core::LLVMBuildAlloca(builder, int_type, cname.as_ptr());
+                    en.insert(ptr);
+                    ptr
+                }
+            };
             llvm::core::LLVMBuildStore(builder, nval, ptr);
-            env.insert(name, ptr);
             nval
         }
         Node::Add(lh, rh) => {
@@ -110,9 +106,62 @@ unsafe fn gen_node(ctx: LLVMContextRef,
             let tv = llvm::core::LLVMBuildAdd(builder, lh, rh, name.as_ptr());
             tv
         }
-        // Node::If(cond, then_body, else_body) => {}
-        _ => panic!("tmp"),
-        // Node::Sub(lh, rh) => {}
+        Node::Sub(lh, rh) => {
+            let lh = gen_node(ctx, builder, fun, env, *lh);
+            let rh = gen_node(ctx, builder, fun, env, *rh);
+            let name = CString::new("sub_value").unwrap();
+            let tv = llvm::core::LLVMBuildSub(builder, lh, rh, name.as_ptr());
+            tv
+        }
+        Node::If(cond, then_body, else_body) => {
+            let cond = gen_node(ctx, builder, fun, env, *cond);
+
+            let int_type = llvm::core::LLVMInt64TypeInContext(ctx);
+            let zero = llvm::core::LLVMConstInt(int_type, 0, 0);
+
+            let name = CString::new("is_nonzero").unwrap();
+            let is_nonzero = llvm::core::LLVMBuildICmp(builder,
+                                                       llvm::LLVMIntPredicate::LLVMIntNE,
+                                                       cond,
+                                                       zero,
+                                                       name.as_ptr());
+
+            let entry_lable = CString::new("entry").unwrap();
+
+            let then_block =
+                llvm::core::LLVMAppendBasicBlockInContext(ctx, fun, entry_lable.as_ptr());
+            let else_block =
+                llvm::core::LLVMAppendBasicBlockInContext(ctx, fun, entry_lable.as_ptr());
+            let merge_block =
+                llvm::core::LLVMAppendBasicBlockInContext(ctx, fun, entry_lable.as_ptr());
+
+            llvm::core::LLVMBuildCondBr(builder, is_nonzero, then_block, else_block);
+
+            // then
+            llvm::core::LLVMPositionBuilderAtEnd(builder, then_block);
+            let then_return = gen_node(ctx, builder, fun, env, *then_body);
+            llvm::core::LLVMBuildBr(builder, merge_block);
+            let then_block = llvm::core::LLVMGetInsertBlock(builder);
+
+            // else
+            llvm::core::LLVMPositionBuilderAtEnd(builder, else_block);
+            let else_return = gen_node(ctx, builder, fun, env, *else_body);
+            llvm::core::LLVMBuildBr(builder, merge_block);
+            let else_block = llvm::core::LLVMGetInsertBlock(builder);
+
+            // merge
+            llvm::core::LLVMPositionBuilderAtEnd(builder, merge_block);
+            // phi
+            let phi_name = CString::new("iftmp").unwrap();
+            let phi = llvm::core::LLVMBuildPhi(builder, int_type, phi_name.as_ptr());
+
+            let mut values = vec![then_return, else_return];
+            let mut blocks = vec![then_block, else_block];
+
+            llvm::core::LLVMAddIncoming(phi, values.as_mut_ptr(), blocks.as_mut_ptr(), 2);
+
+            phi
+        }
     };
     v
 }
