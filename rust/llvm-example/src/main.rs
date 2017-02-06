@@ -5,12 +5,12 @@ use llvm_example::node::*;
 use std::env;
 
 fn test() {
-    let v1 = assgn("foo", iint(11));
-    let v3 = assgn("foo", sub(aref("foo"), iint(10)));
-    let i = ifexpr(aref("foo"),
-                   assgn("foo", iint(1000)),
-                   assgn("foo", iint(10)));
-    let ret = aref("foo");
+    let v1 = assign("foo", inum(11));
+    let v3 = assign("foo", sub(refe("foo"), inum(10)));
+    let i = ifexpr(refe("foo"),
+                   assign("foo", inum(1000)),
+                   assign("foo", inum(10)));
+    let ret = refe("foo");
 
     compile(vec![v1, v3, i, ret]);
 }

@@ -51,12 +51,12 @@ unsafe fn codegen_node(cxt: LLVMContextRef,
                        n: Node)
                        -> LLVMValueRef {
     match n {
-        Node::Aref(n) => {
+        Node::Ref(n) => {
             let val = env.get(&n).unwrap();
             let name = CString::new(n).unwrap();
             llvm::core::LLVMBuildLoad(builder, *val, name.as_ptr())
         }
-        Node::Assgn(name, value) => {
+        Node::Assign(name, value) => {
             let new_value = codegen_node(cxt, builder, func, env, *value);
 
             let pointer = llvm_alloc_int(cxt, builder, &name);
