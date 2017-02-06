@@ -76,10 +76,11 @@ pub unsafe fn run() {
 
     // a = 10
     let typ = llvm::core::LLVMInt64TypeInContext(context);
-    let iv = llvm::core::LLVMConstInt(typ, 10, 0);
-    llvm::core::LLVMBuildStore(builder, iv, pointer_a);
+    let tv = llvm::core::LLVMConstInt(typ, 10, 0);
+    llvm::core::LLVMBuildStore(builder, tv, pointer_a);
     // add branch inst
     llvm::core::LLVMBuildBr(builder, merge_block);
+    let then_block = llvm::core::LLVMGetInsertBlock(builder);
 
     // -- else block ---
     // set a insertion pos
@@ -87,25 +88,29 @@ pub unsafe fn run() {
 
     // a = 11
     let typ = llvm::core::LLVMInt64TypeInContext(context);
-    let iv = llvm::core::LLVMConstInt(typ, 11, 0);
-    llvm::core::LLVMBuildStore(builder, iv, pointer_a);
+    let ev = llvm::core::LLVMConstInt(typ, 11, 0);
+    llvm::core::LLVMBuildStore(builder, ev, pointer_a);
     // add branch inst
     llvm::core::LLVMBuildBr(builder, merge_block);
+    let else_block = llvm::core::LLVMGetInsertBlock(builder);
 
     // -- merge block --
     llvm::core::LLVMPositionBuilderAtEnd(builder, merge_block);
 
-    // load a to ret (register)
-    let name = CString::new("ret").unwrap();
-    let ret = llvm::core::LLVMBuildLoad(builder, pointer_a, name.as_ptr());
+    let phi_name = CString::new("iftmp").unwrap();
+    let phi = llvm::core::LLVMBuildPhi(builder, int_type, phi_name.as_ptr());
 
-    llvm::core::LLVMBuildRet(builder, ret);
+    let mut values = vec![tv, ev];
+    let mut blocks = vec![then_block, else_block];
+
+    llvm::core::LLVMAddIncoming(phi, values.as_mut_ptr(), blocks.as_mut_ptr(), 2);
+
+    llvm::core::LLVMBuildRet(builder, phi);
 
     // Instead of dumping to stdout, let's write out the IR to `out.ll`
     let out_file = CString::new("out.ll").unwrap();
     llvm::core::LLVMPrintModuleToFile(module, out_file.as_ptr(), ptr::null_mut());
     // llvm::core::LLVMDumpModule(module);
-
 
     // Clean up. Values created in the context mostly get cleaned up there.
     llvm::core::LLVMDisposeBuilder(builder);
