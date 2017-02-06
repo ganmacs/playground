@@ -22,6 +22,7 @@ fn main() {
         "1" => unsafe { llvm1::run() },
         "2" => unsafe { llvm2::run() },
         "3" => unsafe { llvm3::run() },
+        "4" => unsafe { llvm4::run() },
         _ => test(),
     }
 }
