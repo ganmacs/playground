@@ -23,6 +23,7 @@ fn main() {
         "2" => unsafe { llvm2::run() },
         "3" => unsafe { llvm3::run() },
         "4" => unsafe { llvm4::run() },
+        "5" => codegen2::run(),
         _ => test(),
     }
 }
