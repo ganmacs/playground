@@ -5,6 +5,7 @@ pub mod llvm4;
 pub mod llvm5;
 pub mod codegen;
 pub mod codegen2;
+pub mod codegen3;
 pub mod node;
 
 use node::Node;

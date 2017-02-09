@@ -25,6 +25,7 @@ fn main() {
         "4" => unsafe { llvm4::run() },
         "5" => codegen2::run(),
         "6" => unsafe { llvm5::run() },
+        "7" => codegen3::run(),
         _ => test(),
     }
 }
