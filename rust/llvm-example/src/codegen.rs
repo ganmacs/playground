@@ -127,6 +127,7 @@ unsafe fn codegen_node(cxt: LLVMContextRef,
             llvm::core::LLVMAddIncoming(phi, values.as_mut_ptr(), blocks.as_mut_ptr(), 2);
             phi
         }
+        _ => panic!("not support"),
     }
 }
 

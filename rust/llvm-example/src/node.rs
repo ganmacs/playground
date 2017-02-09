@@ -1,5 +1,7 @@
 pub enum Node {
     Ref(String),
+    Def(String, String, Box<Node>), // name args body (now, the number of args should be one)
+    Call(String, Box<Node>), // name args (now, the number of args should be one)
     Assign(String, Box<Node>),
     Int(u64),
     Add(Box<Node>, Box<Node>),

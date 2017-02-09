@@ -162,6 +162,7 @@ unsafe fn gen_node(ctx: LLVMContextRef,
 
             phi
         }
+        _ => panic!("not support"),
     };
     v
 }
