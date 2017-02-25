@@ -2,19 +2,38 @@
 name = "hello"
 version = "0.1.0"
 dependencies = [
- "semver 0.3.0 (git+https://github.com/rust-lang/semver.git)",
+ "futures 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "semver 0.6.0 (git+https://github.com/rust-lang/semver.git)",
 ]
 
 [[package]]
-name = "nom"
-version = "1.2.2"
+name = "futures"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "log"
+version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "semver"
-version = "0.3.0"
-source = "git+https://github.com/rust-lang/semver.git#af1208bb5ed50425c212610213049d2ec504527c"
+version = "0.6.0"
+source = "git+https://github.com/rust-lang/semver.git#7378540e5e05ed4bb41392d9ee1fa342b2a1494b"
 dependencies = [
- "nom 1.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "semver-parser 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
+[[package]]
+name = "semver-parser"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[metadata]
+"checksum futures 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)" = "c1913eb7083840b1bbcbf9631b7fda55eaf35fe7ead13cca034e8946f9e2bc41"
+"checksum log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)" = "ab83497bf8bf4ed2a74259c1c802351fcd67a65baa86394b6ba73c36f4838054"
+"checksum semver 0.6.0 (git+https://github.com/rust-lang/semver.git)" = "<none>"
+"checksum semver-parser 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
