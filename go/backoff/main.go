@@ -90,9 +90,33 @@ func Retry(o Operation) error {
 }
 
 func main() {
-	t0()
-	t1()
-	t2()
+	// t0()
+	// t1()
+	// t2()
+	t3()
+}
+
+func timeout(t time.Duration, op Operation) {
+	c := make(chan error)
+
+	go func() {
+		c <- op()
+	}()
+
+	select {
+	case res := <-c:
+		fmt.Println(res)
+	case <-time.After(t):
+		fmt.Println("timeout 1")
+	}
+}
+
+func t3() {
+	timeout(1*time.Second, func() error {
+		for {
+		}
+		// return nil
+	})
 }
 
 func t2() {
