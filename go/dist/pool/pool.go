@@ -11,7 +11,7 @@ import (
 
 var (
 	MaxWorker = os.Getenv("MAX_WORKERS")
-	// MaxQueue  = os.Getenv("MAX_QUEUE")
+	MaxQueue  = os.Getenv("MAX_QUEUE")
 )
 
 type Job struct {
@@ -78,6 +78,7 @@ func (w *Worker) Start() {
 
 type Server interface {
 	Run()
+	handle()
 }
 
 type Client interface {
@@ -85,15 +86,15 @@ type Client interface {
 }
 
 type ChanServer struct {
-	ReadChan   chan Job
+	queue      chan Job
 	workerPool WorkerPool
 }
 
 type ChanClient struct {
-	WriteChan chan Job
+	queue chan Job
 }
 
-func NewChanServer(c chan Job) (*ChanServer, error) {
+func NewServerWithChan(q chan Job) (Server, error) {
 	defaultMaxWorker := 5
 
 	if MaxWorker != "" {
@@ -109,13 +110,13 @@ func NewChanServer(c chan Job) (*ChanServer, error) {
 	})
 
 	return &ChanServer{
-		ReadChan:   c,
+		queue:      q,
 		workerPool: *wp,
 	}, nil
 }
 
-func NewChanClient(c chan Job) *ChanClient {
-	return &ChanClient{WriteChan: c}
+func NewChanClient(q chan Job) *ChanClient {
+	return &ChanClient{queue: q}
 }
 
 func (serv *ChanServer) Run() {
@@ -126,7 +127,7 @@ func (serv *ChanServer) Run() {
 func (serv *ChanServer) handle() {
 	for {
 		select {
-		case j := <-serv.ReadChan:
+		case j := <-serv.queue:
 			go func(j Job) {
 				serv.workerPool.Handle(j)
 			}(j)
@@ -135,20 +136,31 @@ func (serv *ChanServer) handle() {
 }
 
 func (serv *ChanClient) Call(s string) {
-	serv.WriteChan <- Job{s}
+	log.Printf("[Enqueued] {%v}\n", s)
+	serv.queue <- Job{s}
 }
 
 func Run() {
-	channel := make(chan Job)
+	defaultMaxQueue := 30
+	if MaxQueue != "" {
+		v, err := strconv.Atoi(MaxQueue)
+		if err != nil {
+			log.Fatal(err)
+			os.Exit(1)
+		}
+		defaultMaxQueue = v
+	}
 
-	server, err := NewChanServer(channel)
+	queue := make(chan Job, defaultMaxQueue)
+
+	server, err := NewServerWithChan(queue)
 	if err != nil {
 		log.Fatalln(err)
 		os.Exit(1)
 	}
 	server.Run()
 
-	client := NewChanClient(channel)
+	client := NewChanClient(queue)
 
 	for i := 0; i < 100; i++ {
 		v := fmt.Sprintf("Invokeing : %d", i)
