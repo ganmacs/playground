@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -20,6 +21,7 @@ type Job struct {
 
 type Server interface {
 	Start()
+	Stop()
 }
 
 type Client interface {
@@ -29,6 +31,7 @@ type Client interface {
 type ChanServer struct {
 	queue      chan Job
 	MaxWorkers int
+	wg         sync.WaitGroup
 }
 
 type ChanClient struct {
@@ -52,15 +55,16 @@ func NewChanClient(q chan Job) Client {
 }
 
 func (serv *ChanServer) Start() {
-	// wg    sync.WaitGroup
-	// d.wg.Add(maxWorkers)
-
 	for i := 0; i < serv.MaxWorkers; i++ {
+		serv.wg.Add(1)
+
 		go func() {
+			defer serv.wg.Done()
+
 			for job := range serv.queue {
 				log.Printf("[Start] processing {%s} \n", job.value)
+				// something heavy job
 				for i := 0; i <= rand.Intn(10000000000000); i++ {
-					// something heavy job
 				}
 				log.Printf("[Finish] processing {%s}\n", job.value)
 			}
@@ -68,9 +72,14 @@ func (serv *ChanServer) Start() {
 	}
 }
 
-func (serv *ChanClient) Call(job Job) {
+func (serv *ChanServer) Stop() {
+	close(serv.queue)
+	serv.wg.Wait()
+}
+
+func (c *ChanClient) Call(job Job) {
 	log.Printf("[Enqueued] {%v}\n", job.value)
-	serv.queue <- job
+	c.queue <- job
 }
 
 func Run() {
