@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/ganmacs/playground/go/dist/future"
+	"github.com/ganmacs/playground/go/dist/pool"
+	"github.com/ganmacs/playground/go/dist/rpcg"
 )
 
 func futureTest() {
@@ -51,7 +53,13 @@ func promiseTest() {
 
 }
 
+func rpcTest() {
+	rpcg.Foo()
+}
+
 func main() {
-	futureTest()
-	promiseTest()
+	// futureTest()
+	// promiseTest()
+	// rpcTest()
+	pool.Run()
 }
