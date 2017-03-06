@@ -82,7 +82,7 @@ type Server interface {
 }
 
 type Client interface {
-	Call()
+	Call(Job)
 }
 
 type ChanServer struct {
@@ -115,7 +115,7 @@ func NewServerWithChan(q chan Job) (Server, error) {
 	}, nil
 }
 
-func NewChanClient(q chan Job) *ChanClient {
+func NewChanClient(q chan Job) Client {
 	return &ChanClient{queue: q}
 }
 
@@ -135,9 +135,9 @@ func (serv *ChanServer) handle() {
 	}
 }
 
-func (serv *ChanClient) Call(s string) {
-	log.Printf("[Enqueued] {%v}\n", s)
-	serv.queue <- Job{s}
+func (serv *ChanClient) Call(job Job) {
+	log.Printf("[Enqueued] {%v}\n", job.value)
+	serv.queue <- job
 }
 
 func Run() {
@@ -150,7 +150,6 @@ func Run() {
 		}
 		defaultMaxQueue = v
 	}
-
 	queue := make(chan Job, defaultMaxQueue)
 
 	server, err := NewServerWithChan(queue)
@@ -164,7 +163,7 @@ func Run() {
 
 	for i := 0; i < 100; i++ {
 		v := fmt.Sprintf("Invokeing : %d", i)
-		client.Call(v)
+		client.Call(Job{v})
 	}
 
 	time.Sleep(1000 * time.Second)
