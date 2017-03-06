@@ -7,6 +7,7 @@ import (
 	"github.com/ganmacs/playground/go/dist/future"
 	"github.com/ganmacs/playground/go/dist/pool"
 	"github.com/ganmacs/playground/go/dist/pool2"
+	"github.com/ganmacs/playground/go/dist/pool3"
 	"github.com/ganmacs/playground/go/dist/rpcg"
 )
 
@@ -66,10 +67,15 @@ func pool2Test() {
 	pool2.Run()
 }
 
+func pool3Test() {
+	pool3.Run()
+}
+
 func main() {
 	// futureTest()
 	// promiseTest()
 	// rpcTest()
 	// poolTest()
-	pool2Test()
+	// pool2Test()
+	pool3Test()
 }
