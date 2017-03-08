@@ -71,11 +71,56 @@ func pool3Test() {
 	pool3.Run()
 }
 
-func main() {
-	// futureTest()
-	// promiseTest()
-	// rpcTest()
-	// poolTest()
-	// pool2Test()
-	pool3Test()
+const (
+	Pending   = iota
+	Fulfilled = iota
+)
+
+type Future struct {
+	State int
+	ch    chan int
 }
+
+func (f *Future) Get() int {
+	select {
+	case v := <-f.ch:
+		return v
+	}
+}
+
+func NewFuture(fn func() int) *Future {
+	f := Future{
+		State: Pending,
+		ch:    make(chan int),
+	}
+
+	go func() {
+		ret := fn()
+		f.State = Fulfilled
+		f.ch <- ret
+	}()
+
+	return &f
+}
+
+func main() {
+	f := NewFuture(func() int {
+		// a time-consuming code
+		return 10
+	})
+
+	if f.State == Fulfilled {
+		f.Get() // 10
+	} else {
+		// something code
+
+		f.Get() // 10
+	}
+}
+
+// futureTest()
+// promiseTest()
+// rpcTest()
+// poolTest()
+// pool2Test()
+// pool3Test()
