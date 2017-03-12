@@ -21,4 +21,4 @@ c.attach(event_loop)
 c.send(:hello)
 
 event_loop.run
-# sleep(10000)                    # fix
+sleep(10000)                    # fix

@@ -1,5 +1,4 @@
 require 'json'
-require 'pp'
 
 require 'leader/connection'
 require 'leader/handler'
@@ -28,11 +27,8 @@ module Leader
       # broadcast
     end
 
-    def on_response(conn, metho)
-    end
-
     def on_request(conn, method_name, params)
-      handle_request(method_name, params)
+      handle_request(conn, method_name, params)
     end
 
     private
@@ -48,10 +44,8 @@ module Leader
     end
 
     def attach
-      @conn = Cool.io::TCPServer.new(@host, @port, Leader::ServerConnection, self)
-
       begin
-        @loop.attach(@conn)
+        @loop.attach(server)
         clients.each do |c|
           c.attach(@loop)
         end
@@ -61,16 +55,22 @@ module Leader
       end
     end
 
+    def server
+      @server ||= Cool.io::TCPServer.new(@host, @port, Leader::ServerConnection, self)
+    end
+
     def clients
       @clients ||= @nodes.map do |port|
         Leader::Client.new(host: 'localhost', port: port)
       end
     end
 
-    def handle_request(method_name, params)
-      @handler.send(method_name, params)
+    def handle_request(conn, method_name, params)
+      r = @handler.send(method_name, params)
+      conn.send_response(result: r, error: [])
     rescue => e                 # should restrict
       Leader.logger.error("raised error at dispatch #{e}")
+      conn.send_response(result: nil, error: [e])
     end
   end
 
