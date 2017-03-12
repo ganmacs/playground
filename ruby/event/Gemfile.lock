@@ -1,0 +1,13 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    cool.io (1.4.6)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  cool.io
+
+BUNDLED WITH
+   1.13.7
