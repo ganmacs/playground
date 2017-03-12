@@ -2,6 +2,7 @@ require 'json'
 
 require 'leader/connection'
 require 'leader/handler'
+require 'leader/ticker'
 
 module Leader
   class Node
@@ -20,11 +21,11 @@ module Leader
     def start
       Leader.logger.info("starting ... #{@host}:#{@port}")
       attach                    # TODO manage attached node
-      Thread.new do
+      t = Thread.new do
         @loop.run
       end
-      # should run heartbeat thread
-      # broadcast
+      start_heartbeat
+      t.join                    # block
     end
 
     def on_request(conn, method_name, params)
@@ -32,6 +33,11 @@ module Leader
     end
 
     private
+
+    def start_heartbeat
+      t = Leader::Ticker.new(5) { broadcast }
+      t.start
+    end
 
     def broadcast
       threads = clients.map do |e|
