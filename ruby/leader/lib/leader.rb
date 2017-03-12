@@ -3,8 +3,7 @@ require 'logger'
 
 module Leader
   def self.logger
-    @logger ||= begin
-      l = Logger.new(STDOUT)
+    @logger ||= Logger.new(STDOUT).tap do |l|
       l.level = ENV['LOG_LEVEL'] || :info
     end
   end

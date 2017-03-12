@@ -7,15 +7,15 @@ module Leader
     end
 
     def initialize
-      @node = Node.new(host, port)
+      @node = Node.new
     end
 
     def start
       @node.start
     end
 
-    def stop
-      @node.stop
-    end
+    # def stop
+    #   @node.stop
+    # end
   end
 end
