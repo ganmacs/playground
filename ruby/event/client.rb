@@ -21,9 +21,16 @@ class Client
       @buffer = SafeBuffer.new
       @mutex = Mutex.new
       @connected = false
-      @future = Future.new(self) do |result, _|
-        close
-        result
+      @future = Future.new(self) do |result, err|
+        if err == "connection failed"
+          err
+        elsif err
+          close
+          err
+        else
+          close
+          result
+        end
       end
     end
 
@@ -48,6 +55,12 @@ class Client
       $logger.info("[CLIENT] returned from server: #{data}")
     end
 
+    def on_connect_failed
+      $logger.error("connect failed, meaning our connection to their port was rejected")
+      @future.cancel("connection failed")
+      close if connected?
+    end
+
     private
 
     def connected?
@@ -63,6 +76,4 @@ class Client
       @buffer.reset
     end
   end
-
-
 end

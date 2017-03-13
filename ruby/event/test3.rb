@@ -1,6 +1,4 @@
-require_relative 'util'
-require_relative 'server'
-require_relative 'client'
+require_relative 'agent'
 require "logger"
 
 ADDR = "127.0.0.1"
@@ -10,13 +8,10 @@ $logger = Logger.new(STDOUT)
 
 event_loop = Cool.io::Loop.default
 
-Server.new(ADDR, PORT, event_loop).listen
-i = 0
+# leader
+Agent.new(ADDR, PORT, event_loop, client_ports: [4230]).start
 
-Ticker.start(5) do
-  client = Client.new(ADDR, PORT, event_loop)
-  client.request("hello!! #{i}")
-  i += 1
-end
+Agent.new(ADDR, 4230, event_loop).start
+
 
 event_loop.run

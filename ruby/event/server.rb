@@ -1,3 +1,4 @@
+require_relative "client"
 require "cool.io"
 
 class Server

@@ -83,6 +83,12 @@ class Future
     end
   end
 
+  def cancel(reason = "canceled")
+    @set = true
+    @err = reason
+    @thread.wakeup
+  end
+
   def set(data, err = nil)
     @set = true
     @result = data
