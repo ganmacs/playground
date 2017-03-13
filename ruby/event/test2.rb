@@ -1,3 +1,5 @@
+require_relative 'util'
+
 require "cool.io"
 require "logger"
 
@@ -5,31 +7,6 @@ ADDR = "127.0.0.1"
 PORT = 4321
 
 $logger = Logger.new(STDOUT)
-
-class Ticker
-  def self.start(duraiton, &block)
-    new.start(duraiton, block)
-  end
-
-  def start(duraiton, block)
-    t = Thread.current
-    @t = Thread.new do
-      loop do
-        begin
-          block.call
-          sleep duraiton
-        rescue => e
-          t.raise(e)            # ok?
-          break
-        end
-      end
-    end
-  end
-
-  def stop
-    @t.kill
-  end
-end
 
 class EchoServerConnection < Cool.io::TCPSocket
   def on_connect
@@ -50,39 +27,22 @@ class ClientConnection < Cool.io::TCPSocket
     super
     @buffer = SafeBuffer.new
     @mutex = Mutex.new
-    @connect = false
+    @connected = false
+    @future = Future.new(self) do |result, _|
+      close
+      result
+    end
   end
 
   def send_request(data)
     @buffer.add(data)
-    # reach following code before estaching connection
     flash if connected?
-  end
-
-  def detach
-    case
-    when connected? && @buffer.buffered?
-      flash
-      super
-      $logger.info("[CLIENT] detach #{remote_addr}:#{remote_port}")
-    when !connected? && @buffer.buffered?
-      Thread.new do
-        sleep(0.1) until connected?        # how it goes when connection alread done
-        flash
-        super
-        $logger.info("[CLIENT] detach #{remote_addr}:#{remote_port}")
-      end
-    else
-      super
-      $logger.info("[CLIENT] detach #{remote_addr}:#{remote_port}")
-    end
+    @future
   end
 
   def on_connect
     $logger.info("[CLIENT] connected #{remote_addr}:#{remote_port}")
-    @mutex.synchronize do
-      @connect = true
-    end
+    @mutex.synchronize { @connected = true }
     flash
   end
 
@@ -91,15 +51,15 @@ class ClientConnection < Cool.io::TCPSocket
   end
 
   def on_read(data)
+    @future.set(data)
     $logger.info("[CLIENT] returned from server: #{data}")
-    close
   end
 
   private
 
   def connected?
     @mutex.synchronize do
-      @connect
+      @connected
     end
   end
 
@@ -108,45 +68,6 @@ class ClientConnection < Cool.io::TCPSocket
     write @buffer.to_data
     $logger.info("[CLIENT] trying sending...")
     @buffer.reset
-  end
-
-  class SafeBuffer
-    def initialize
-      @mutex = Mutex.new
-      @buffer = ""
-    end
-
-    def to_data
-      @mutex.synchronize do
-        @buffer
-      end
-    end
-
-    def flash
-      return false unless buffered?
-      write @buffer
-      reset_buffer
-      true
-    end
-
-    def add(data)
-      v = data.to_s           # is #to_s ok?
-      @mutex.synchronize do
-        @buffer << v
-      end
-    end
-
-    def reset
-      @mutex.synchronize do
-        @buffer = ""
-      end
-    end
-
-    def buffered?
-      @mutex.synchronize do
-        !@buffer.empty?
-      end
-    end
   end
 end
 
@@ -164,10 +85,8 @@ Ticker.start(5) do
   begin
     client = ClientConnection.connect(ADDR, PORT)
     client.attach(event_loop)
-    client.send_request("hello!!")
-    $logger.info "Echo client connecting to #{ADDR}:#{PORT}"
-  ensure
-    client.detach
+    future = client.send_request("hello!!")
+    $logger.info("[CLIENT] #{future.get}") # blocking
   end
 end
 
