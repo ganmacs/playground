@@ -9,7 +9,7 @@ module Eve
     DEFAULT_ADDR = "127.0.0.1"
     DEFAULT_PORT = 4321
     DEFAULT_LOOP = Cool.io::Loop.default
-    DEFAULT_HEARTBEAT_RATE = 1      # 1 sec
+    DEFAULT_HEARTBEAT_RATE = 5      # 5 sec
 
     def initialize(options)
       @addr = options.fetch(:addr, DEFAULT_ADDR)
@@ -17,8 +17,8 @@ module Eve
       @loop = options.fetch(:evloop, DEFAULT_LOOP)
       @heartbeat_rate = options.fetch(:heartbeat_rate, DEFAULT_HEARTBEAT_RATE)
       @cluster = options.fetch(:cluster, []) # ['127.0.0.1:1234', ...]
-      @logger = Logger.new(options.fetch(:log_output, STDOUT))
-      @logger.level = ENV['LOG_LEVEL'] || Logger::INFO
+      @logger = ::Logger.new(options.fetch(:log_output, STDOUT))
+      @logger.level = log_level
 
       @server = Server.new(@addr, @port, @loop, @logger, options[:name])
       @clients = @cluster.map do |c|
@@ -38,6 +38,15 @@ module Eve
 
     private
 
+    def log_level
+      case ENV['LOG_LEVEL']
+      when "debug", 'DEBUG'
+        ::Logger::DEBUG
+      else
+        ::Logger::INFO
+      end
+    end
+
     def leader?
       !@clients.empty?
     end
@@ -45,6 +54,7 @@ module Eve
     def heartbeat
       @clients.each do |c|
         Thread.new(c) do |cc|
+          @logger.debug("heartbeat")
           cc.request("ping")
         end
       end
