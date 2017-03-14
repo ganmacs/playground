@@ -9,7 +9,7 @@ module Eve
     DEFAULT_ADDR = "127.0.0.1"
     DEFAULT_PORT = 4321
     DEFAULT_LOOP = Cool.io::Loop.default
-    DEFAULT_HEARTBEAT_RATE = 5      # 5 sec
+    DEFAULT_HEARTBEAT_RATE = 3      # 3 sec
 
     def initialize(options)
       @addr = options.fetch(:addr, DEFAULT_ADDR)
@@ -23,7 +23,7 @@ module Eve
       @server = Server.new(@addr, @port, @loop, @logger, options[:name])
       @clients = @cluster.map do |c|
         addr, port = c.split(":")
-        Client.new(addr, port, @loop, @logger) # adder should be fixed
+        Client.new(addr, port.to_i, @loop, @logger) # adder should be fixed
       end
     end
 

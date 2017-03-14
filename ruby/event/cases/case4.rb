@@ -23,4 +23,4 @@ opt = if p == 3000
       end
 
 Eve::Agent.new(opt).start
-evloop.run
+evloop.run(0.01)
