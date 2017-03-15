@@ -11,10 +11,12 @@ module Leader
         loop do
           begin
             @block.call
+            sleep(@duration)
           rescue => e
             current.raise(e)
+            break
           end
-          sleep(@duration)
+
         end
       end
     end

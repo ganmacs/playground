@@ -18,17 +18,19 @@ module Leader
 
     def on_resolve_failed
       Leader.logger.error("DNS resolve failed")
+      # close
     end
 
     def on_connect_failed
       Leader.logger.error("connect failed, meaning our connection to their port was rejected")
+      # close
     end
 
     private
 
     def send_data(data)
       d = data.to_json
-      Leader.logger.debug("#{self} #{remote_addr}:#{remote_port} send data #{d}")
+      Leader.logger.debug("try sending data to #{self} #{remote_addr}:#{remote_port} with #{d}")
       write d
     end
 
@@ -54,11 +56,11 @@ module Leader
 
     def read_message(data)
       super(data) do |d|
-        on_request(d['method'], d['params'] || [])
+        on_request(d['method'], d['params'])
       end
     end
 
-    def on_request(method_name, params)
+    def on_request(method_name, params = [])
       Leader.logger.debug("#{self} #{remote_addr}:#{remote_port} requested")
       @server.on_request(self, method_name, params)
     end
@@ -80,6 +82,7 @@ module Leader
     end
 
     def on_response(result, err)
+      # Do something?
       Leader.logger.debug("returnd value #{result}")
     end
   end
