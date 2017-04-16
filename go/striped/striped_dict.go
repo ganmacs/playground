@@ -6,31 +6,32 @@ import (
 
 type StripedDict struct {
 	stripes []*stripe
-	dict    map[string]int64
+	dict    map[string]int
 }
 
 type stripe struct {
 	lock *sync.Mutex
 }
 
-var stripedSize = 16
+var stripedSize = 8
 
 func NewStripedDict() *StripedDict {
 	return &StripedDict{
 		stripes: newStripes(stripedSize),
-		dict:    make(map[string]int64),
+		dict:    make(map[string]int),
 	}
 }
 
-func (d StripedDict) Set(key string, val int64) {
+func (d StripedDict) Set(key string, val int) {
 	stripe := d.getStripe(key)
 	stripe.lock.Lock()
-	defer stripe.lock.Unlock()
 
 	d.dict[key] = val
+
+	stripe.lock.Unlock()
 }
 
-func (d StripedDict) Get(key string) int64 {
+func (d StripedDict) Get(key string) int {
 	stripe := d.getStripe(key)
 	stripe.lock.Lock()
 	defer stripe.lock.Unlock()
