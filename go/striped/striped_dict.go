@@ -5,58 +5,65 @@ import (
 )
 
 type StripedDict struct {
-	stripes []*stripe
-	dict    map[string]int
+	buckets []*bucket
 }
 
-type stripe struct {
+type bucket struct {
 	lock *sync.Mutex
+	dict map[string]int
 }
 
-var stripedSize = 8
+// bucketsSize is only 2^n
+var bucketSize = 8
 
 func NewStripedDict() *StripedDict {
 	return &StripedDict{
-		stripes: newStripes(stripedSize),
-		dict:    make(map[string]int),
+		buckets: newBuckets(bucketSize),
 	}
 }
 
 func (d StripedDict) Set(key string, val int) {
-	stripe := d.getStripe(key)
-	stripe.lock.Lock()
+	bucket := d.getBucket(key)
 
-	d.dict[key] = val
-
-	stripe.lock.Unlock()
+	bucket.lock.Lock()
+	bucket.set(key, val)
+	bucket.lock.Unlock()
 }
 
 func (d StripedDict) Get(key string) int {
-	stripe := d.getStripe(key)
-	stripe.lock.Lock()
-	defer stripe.lock.Unlock()
+	bucket := d.getBucket(key)
+	bucket.lock.Lock()
+	defer bucket.lock.Unlock()
 
-	return d.dict[key]
+	return bucket.get(key)
 }
 
-func newStripes(stripeSize int) []*stripe {
-	stripes := make([]*stripe, stripeSize)
+func newBuckets(bucketSize int) []*bucket {
+	buckets := make([]*bucket, bucketSize)
 
-	for i := 0; i < stripeSize; i++ {
-		stripes[i] = &stripe{
+	for i := 0; i < bucketSize; i++ {
+		buckets[i] = &bucket{
 			lock: new(sync.Mutex),
+			dict: make(map[string]int),
 		}
 	}
 
-	return stripes
+	return buckets
 }
 
-func (d StripedDict) getStripe(key string) *stripe {
+func (d StripedDict) getBucket(key string) *bucket {
 	hashedKey := fnvPrime(key)
 
-	// only use for a power of 2 - 1
-	i := uint((stripedSize - 1)) & hashedKey
-	return d.stripes[i]
+	i := uint((bucketSize - 1)) & hashedKey
+	return d.buckets[i]
+}
+
+func (b *bucket) get(key string) int {
+	return b.dict[key]
+}
+
+func (b *bucket) set(key string, val int) {
+	b.dict[key] = val
 }
 
 // fnv hash function
