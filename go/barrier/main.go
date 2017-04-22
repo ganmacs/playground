@@ -24,38 +24,35 @@ func (b *CyclicBarrier) Wait() {
 	atomic.AddInt32(&b.waitCount, 1)
 
 	if atomic.LoadInt32(&b.waitCount) == b.num {
-		n := int(b.num)
-		for i := 1; i < n; i++ {
-			b.c <- 0
-		}
+		b.broadcast()
 	} else {
 		<-b.c
 	}
 }
 
-func Process(n int, b CyclicBarrier, c chan int) {
-	fmt.Printf("[Start] Process%d\n", n)
+func (b *CyclicBarrier) broadcast() {
+	n := int(b.num)
+	for i := 1; i < n; i++ {
+		b.c <- 0
+	}
+}
 
-	time.Sleep(time.Second * time.Duration(n)) // your code
+func Process(n int, b *CyclicBarrier) {
+	fmt.Printf("[Start] Process %d\n", n)
 
-	fmt.Printf("[Wait] Process%d\n", n)
+	time.Sleep(time.Second * time.Duration(n))
+
+	fmt.Printf("[Wait] Process %d\n", n)
 	b.Wait()
-
-	fmt.Printf("[Done] Process%d\n", n)
-	c <- 0
 }
 
 func main() {
-	b := NewCyclicBarrier(4)
-	c := make(chan int)
+	b := NewCyclicBarrier(3)
 
-	go Process(1, *b, c)
-	go Process(2, *b, c)
-	go Process(4, *b, c)
-	go Process(3, *b, c)
+	go Process(4, b)
+	go Process(1, b)
+	go Process(2, b)
 
-	<-c
-	<-c
-	<-c
-	<-c
+	Process(3, b)
+	fmt.Println("Done!")
 }
