@@ -1,30 +1,18 @@
 package main
 
 import (
-	"fmt"
-	"strconv"
-	"time"
+	"github.com/ganmacs/playground/go/test/pointer"
+	"github.com/ganmacs/playground/go/test/worker"
 )
 
-func worker(cap int) chan int {
-	c := make(chan int, cap)
+func runWorker() {
+	worker.Run()
+}
 
-	go func() {
-		for i := 0; i < 100; i++ {
-			fmt.Println("push " + strconv.Itoa(i))
-			c <- i
-		}
-		close(c)
-	}()
-
-	return c
+func runPointer() {
+	pointer.Run()
 }
 
 func main() {
-	c := worker(10)
-
-	for v := range c {
-		time.Sleep(1 * time.Second)
-		fmt.Println(v)
-	}
+	runPointer()
 }
