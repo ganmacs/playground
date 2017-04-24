@@ -9,7 +9,7 @@ func main() {
 	tvar := istm.NewTVar(10)
 
 	go func() {
-		istm.Atomically(func(t *istm.Txn) (*istm.TVar, error) {
+		istm.Atomically(func(t *istm.Transaction) (*istm.TVar, error) {
 			v := tvar.Read(t)
 			tvar.Write(t, v+1)
 			return tvar, nil
@@ -19,7 +19,7 @@ func main() {
 	}()
 
 	go func() {
-		istm.Atomically(func(t *istm.Txn) (*istm.TVar, error) {
+		istm.Atomically(func(t *istm.Transaction) (*istm.TVar, error) {
 
 			return tvar, nil
 		})

@@ -1,23 +1,41 @@
 package istm
 
+import (
+	"sync"
+)
+
 type TVar struct {
-	value int
+	generation int32
+	value      int
+	mu         *sync.RWMutex
 }
 
 func NewTVar(v int) *TVar {
 	return &TVar{
-		value: v,
+		generation: 0,
+		value:      v,
+		mu:         new(sync.RWMutex),
 	}
 }
 
-func (t *TVar) Read(txn *Txn) int {
-	return 0
+func (t *TVar) Read(txn *Transaction) int {
+	return txn.read(t)
 }
 
-func (t *TVar) Write(txn *Txn, v int) {
-
+func (t *TVar) Write(txn *Transaction, v int) { // result?
+	txn.write(t, v)
 }
 
-func (t *TVar) commit(txn *Txn) error {
-	return txn.commit(t)
+func (t *TVar) readAtomic() int {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	return t.value
+}
+
+func (t *TVar) toKey() {
+}
+
+func (t *TVar) nextGenration() {
+	t.generation++ // atomic?
 }
