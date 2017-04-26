@@ -82,15 +82,14 @@ func (txn *Transaction) write(tvar *TVar, v int) {
 	}
 }
 
-func (txn *Transaction) read(tvar *TVar) (ret int) {
+func (txn *Transaction) read(tvar *TVar) int {
 	if op, ok := txn.varLog[tvar]; ok {
-		ret = op.read()
+		return op.read()
 	} else {
 		ret := tvar.readAtomic()
 		txn.varLog[tvar] = newReadTVarLog(ret)
+		return ret
 	}
-
-	return
 }
 
 func (txn *Transaction) clear() {
