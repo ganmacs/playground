@@ -26,8 +26,8 @@ func (t *TVar) Write(txn *Transaction, v int) { // result?
 }
 
 func (t *TVar) readAtomic() int {
-	t.mu.Lock()
-	defer t.mu.Unlock()
+	t.mu.RLock()
+	defer t.mu.RUnlock()
 
 	return t.value
 }

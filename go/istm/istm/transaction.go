@@ -63,7 +63,7 @@ func (txn *Transaction) commit() error {
 	}
 
 	for tvar, _ := range readOps {
-		tvar.mu.Unlock()
+		tvar.mu.RUnlock()
 	}
 
 	for tvar, log := range writeOps {
