@@ -7,20 +7,20 @@ type operation struct {
 }
 
 const (
-	readOperation = 0
+	readOperation = iota
 	writeOperation
 	readWriteOperation
 )
 
-func newReadTVarLog(v int) operation {
-	return operation{
+func newReadTVarLog(v int) *operation {
+	return &operation{
 		kind:      readOperation,
 		readValue: v,
 	}
 }
 
-func newWriteTVarLog(v int) operation {
-	return operation{
+func newWriteTVarLog(v int) *operation {
+	return &operation{
 		kind:       writeOperation,
 		writeValue: v,
 	}

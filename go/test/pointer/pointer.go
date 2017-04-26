@@ -76,6 +76,26 @@ func aMap() {
 	fmt.Printf("a2=%v\n", a2)
 }
 
+func pointer1() {
+	fmt.Println("-- pointer1 Map --")
+
+	a1 := newA1()
+	a2 := newA2()
+	a3 := a1 // copy
+	// a4 := a2
+	m := make(map[A]int)
+
+	m[a1] = 1
+	m[*a2] = 2
+	// fmt.Println(&a1 == a2)
+	fmt.Println(&a3 == &a1)
+	// fmt.Println(a4 == a2)
+	// fmt.Println(*a4 == *a2)
+
+	fmt.Println(m[a1])
+	fmt.Println(m[*a2])
+}
+
 func Run() {
 	a1 := newA1()
 	a2 := newA2()
@@ -91,4 +111,6 @@ func Run() {
 
 	pMap()
 	aMap()
+
+	pointer1()
 }

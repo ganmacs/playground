@@ -1,12 +1,16 @@
 package istm
 
+import (
+	"errors"
+)
+
 type Transaction struct {
-	varLog map[TVar]operation // is it better to use a defined map?
+	varLog map[*TVar]*operation // is it better to use a defined map?
 }
 
 func NewTransaction() *Transaction {
 	return &Transaction{
-		varLog: make(map[TVar]operation),
+		varLog: make(map[*TVar]*operation),
 	}
 }
 
@@ -30,34 +34,65 @@ retry:
 func (txn *Transaction) commit() error {
 	// should lock
 	log := txn.varLog // copy
-	txn.varLog = make(map[TVar]operation)
+	txn.varLog = make(map[*TVar]*operation)
+
+	readOps := make(map[*TVar]*operation)
+	writeOps := make(map[*TVar]*operation)
 
 	for tvar, op := range log {
-		// tvar.generation
+		switch op.kind {
+		case readOperation:
+			tvar.mu.RLock()
+
+			if tvar.value != op.readValue {
+				return errors.New("changed at readOperation")
+			}
+			readOps[tvar] = op
+		case writeOperation:
+			tvar.mu.Lock()
+
+			writeOps[tvar] = op
+		case readWriteOperation:
+			tvar.mu.Lock()
+
+			if tvar.value != op.readValue {
+				return errors.New("changed at readWriteOperation")
+			}
+			writeOps[tvar] = op
+		}
+	}
+
+	for tvar, _ := range readOps {
+		tvar.mu.Unlock()
+	}
+
+	for tvar, log := range writeOps {
+		tvar.value = log.writeValue // commit
+		tvar.mu.Unlock()
 	}
 
 	return nil
 }
 
 func (txn *Transaction) write(tvar *TVar, v int) {
-	if val, ok := txn.varLog[*tvar]; ok {
-		val.write(v)
+	if op, ok := txn.varLog[tvar]; ok {
+		op.write(v)
 	} else {
-		// tvar should be copied
-		txn.varLog[*tvar] = newWriteTVarLog(v)
+		txn.varLog[tvar] = newWriteTVarLog(v)
 	}
 }
 
-func (txn *Transaction) read(tvar *TVar) int {
-	if log, ok := txn.varLog[*tvar]; ok {
-		return log.read()
+func (txn *Transaction) read(tvar *TVar) (ret int) {
+	if op, ok := txn.varLog[tvar]; ok {
+		ret = op.read()
 	} else {
-		value := tvar.readAtomic()
-		// tvar should be copied
-		txn.varLog[*tvar] = newReadTVarLog(value)
-		return value
+		ret := tvar.readAtomic()
+		txn.varLog[tvar] = newReadTVarLog(ret)
 	}
+
+	return
 }
 
 func (txn *Transaction) clear() {
+	txn.varLog = make(map[*TVar]*operation)
 }
