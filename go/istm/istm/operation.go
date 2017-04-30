@@ -27,7 +27,11 @@ func newWriteTVarLog(v int) *operation {
 }
 
 func (t *operation) read() int {
-	return t.readValue
+	if t.kind == readOperation {
+		return t.readValue
+	}
+
+	return t.writeValue
 }
 
 func (t *operation) write(v int) {
