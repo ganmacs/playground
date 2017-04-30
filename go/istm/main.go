@@ -42,11 +42,10 @@ func main() {
 
 	go func() {
 		tv, _ := istm.Atomically(func(t *istm.Transaction) (int, error) {
-			tvar.Write(t, 100)
 			v := tvar.Read(t)
+			tvar.Write(t, v+100)
 			return v, nil
 		})
-
 		fmt.Printf("t4: %v\n", tv)
 	}()
 

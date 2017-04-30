@@ -2,11 +2,12 @@ package istm
 
 import (
 	"errors"
-	"fmt"
 )
 
+var TransactionAborted = errors.New("Transction Aborted")
+
 type Transaction struct {
-	varLog map[*TVar]*operation // is it better to use a defined map?
+	varLog map[*TVar]*operation
 }
 
 func NewTransaction() *Transaction {
@@ -15,20 +16,24 @@ func NewTransaction() *Transaction {
 	}
 }
 
-func (txn *Transaction) Do(f func(*Transaction) (int, error)) (int, error) {
+func (txn *Transaction) Run(f func(*Transaction) (int, error)) (int, error) {
 	for {
 		tvar, err := f(txn)
 
 		if err != nil {
-			fmt.Printf("failed at invoking closure: %v\n", err)
 			txn.clear()
-			continue
+			if err == TransactionAborted {
+				continue
+			}
+			return 0, err
 		}
 
 		if err := txn.commit(); err != nil {
-			fmt.Printf("failed at commit: %v\n", err)
 			txn.clear()
-			continue
+			if err == TransactionAborted {
+				continue
+			}
+			return 0, err
 		}
 
 		return tvar, nil
@@ -39,6 +44,16 @@ func (txn *Transaction) commit() error {
 	readOps := make(map[*TVar]*operation)
 	writeOps := make(map[*TVar]*operation)
 
+	defer func() {
+		for tvar, _ := range readOps {
+			tvar.mu.RUnlock()
+		}
+
+		for tvar, _ := range writeOps {
+			tvar.mu.Unlock()
+		}
+	}()
+
 	for tvar, op := range txn.varLog {
 		switch op.kind {
 		case readOperation:
@@ -46,16 +61,7 @@ func (txn *Transaction) commit() error {
 
 			if tvar.value != op.readValue {
 				tvar.mu.RUnlock()
-
-				for tvar, _ := range readOps {
-					tvar.mu.RUnlock()
-				}
-
-				for tvar, _ := range writeOps {
-					tvar.mu.Unlock()
-				}
-
-				return errors.New("changed at readOperation")
+				return TransactionAborted
 			}
 
 			readOps[tvar] = op
@@ -68,29 +74,15 @@ func (txn *Transaction) commit() error {
 
 			if tvar.value != op.readValue {
 				tvar.mu.Unlock()
-
-				for tvar, _ := range readOps {
-					tvar.mu.RUnlock()
-				}
-
-				for tvar, _ := range writeOps {
-					tvar.mu.Unlock()
-				}
-
-				return errors.New("changed at readWriteOperation")
+				return TransactionAborted
 			}
 
 			writeOps[tvar] = op
 		}
 	}
 
-	for tvar, _ := range readOps {
-		tvar.mu.RUnlock()
-	}
-
 	for tvar, log := range writeOps {
 		tvar.value = log.writeValue // commit
-		tvar.mu.Unlock()
 	}
 
 	return nil
