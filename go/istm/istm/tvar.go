@@ -5,7 +5,6 @@ import (
 )
 
 type TVar struct {
-	// generation int32
 	value int
 	mu    *sync.RWMutex
 }
@@ -31,7 +30,3 @@ func (t *TVar) readAtomic() int {
 
 	return t.value
 }
-
-// func (t *TVar) nextGenration() {
-// 	t.generation++ // atomic?
-// }

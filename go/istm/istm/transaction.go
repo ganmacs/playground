@@ -2,6 +2,7 @@ package istm
 
 import (
 	"errors"
+	"fmt"
 )
 
 type Transaction struct {
@@ -14,25 +15,27 @@ func NewTransaction() *Transaction {
 	}
 }
 
-func (txn *Transaction) Do(f func(*Transaction) (*TVar, error)) int {
-retry:
-	tvar, err := f(txn)
+func (txn *Transaction) Do(f func(*Transaction) (*TVar, error)) *TVar {
+	for {
+		tvar, err := f(txn)
 
-	if err != nil {
-		txn.clear()
-		goto retry
+		if err != nil {
+			fmt.Printf("failed at invoking closure: %v\n", err)
+			txn.clear()
+			continue
+		}
+
+		if err := txn.commit(); err != nil {
+			fmt.Printf("failed at commit: %v\n", err)
+			txn.clear()
+			continue
+		}
+
+		return tvar
 	}
-
-	if err := txn.commit(); err != nil {
-		txn.clear()
-		goto retry
-	}
-
-	return tvar.readAtomic() // ok?
 }
 
 func (txn *Transaction) commit() error {
-	// should lock
 	log := txn.varLog // copy
 	txn.varLog = make(map[*TVar]*operation)
 
@@ -45,8 +48,19 @@ func (txn *Transaction) commit() error {
 			tvar.mu.RLock()
 
 			if tvar.value != op.readValue {
+				tvar.mu.RUnlock()
+
+				for tvar, _ := range readOps {
+					tvar.mu.RUnlock()
+				}
+
+				for tvar, _ := range writeOps {
+					tvar.mu.Unlock()
+				}
+
 				return errors.New("changed at readOperation")
 			}
+
 			readOps[tvar] = op
 		case writeOperation:
 			tvar.mu.Lock()
@@ -56,8 +70,19 @@ func (txn *Transaction) commit() error {
 			tvar.mu.Lock()
 
 			if tvar.value != op.readValue {
+				tvar.mu.Unlock()
+
+				for tvar, _ := range readOps {
+					tvar.mu.RUnlock()
+				}
+
+				for tvar, _ := range writeOps {
+					tvar.mu.Unlock()
+				}
+
 				return errors.New("changed at readWriteOperation")
 			}
+
 			writeOps[tvar] = op
 		}
 	}
