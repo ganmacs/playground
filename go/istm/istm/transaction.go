@@ -15,7 +15,7 @@ func NewTransaction() *Transaction {
 	}
 }
 
-func (txn *Transaction) Do(f func(*Transaction) (*TVar, error)) *TVar {
+func (txn *Transaction) Do(f func(*Transaction) (int, error)) (int, error) {
 	for {
 		tvar, err := f(txn)
 
@@ -31,18 +31,15 @@ func (txn *Transaction) Do(f func(*Transaction) (*TVar, error)) *TVar {
 			continue
 		}
 
-		return tvar
+		return tvar, nil
 	}
 }
 
 func (txn *Transaction) commit() error {
-	log := txn.varLog // copy
-	txn.varLog = make(map[*TVar]*operation)
-
 	readOps := make(map[*TVar]*operation)
 	writeOps := make(map[*TVar]*operation)
 
-	for tvar, op := range log {
+	for tvar, op := range txn.varLog {
 		switch op.kind {
 		case readOperation:
 			tvar.mu.RLock()

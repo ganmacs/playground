@@ -11,23 +11,43 @@ func main() {
 	tvar := istm.NewTVar(10)
 
 	go func() {
-		tv := istm.Atomically(func(t *istm.Transaction) (*istm.TVar, error) {
+		tv, _ := istm.Atomically(func(t *istm.Transaction) (int, error) {
 			v := tvar.Read(t)
 			tvar.Write(t, v+1)
-			return tvar, nil
+			return v, nil
 		})
 
 		fmt.Printf("t1: %v\n", tv)
 	}()
 
 	go func() {
-		tv := istm.Atomically(func(t *istm.Transaction) (*istm.TVar, error) {
+		tv, _ := istm.Atomically(func(t *istm.Transaction) (int, error) {
 			v := tvar.Read(t)
 			tvar.Write(t, v+1)
-			return tvar, nil
+			return v, nil
 		})
 
 		fmt.Printf("t2: %v\n", tv)
+	}()
+
+	go func() {
+		tv, _ := istm.Atomically(func(t *istm.Transaction) (int, error) {
+			time.Sleep(time.Millisecond * 10)
+			v := tvar.Read(t)
+			return v, nil
+		})
+
+		fmt.Printf("t3: %v\n", tv)
+	}()
+
+	go func() {
+		tv, _ := istm.Atomically(func(t *istm.Transaction) (int, error) {
+			tvar.Write(t, 100)
+			v := tvar.Read(t)
+			return v, nil
+		})
+
+		fmt.Printf("t4: %v\n", tv)
 	}()
 
 	time.Sleep(time.Second * 2)
