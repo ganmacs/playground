@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ganmacs/playground/go/dpool"
+	"github.com/ganmacs/playground/go/dypool"
 )
 
 func heavy(n int) {
@@ -14,7 +14,7 @@ func heavy(n int) {
 }
 
 func main() {
-	dpool := dpool.NewDPool(10, 2, heavy)
+	dpool := dypool.NewDyPool(10, 2, heavy)
 	time.Sleep(time.Second * 1)
 
 	v := 0
