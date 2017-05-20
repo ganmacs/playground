@@ -2,7 +2,6 @@ package rumor
 
 import (
 	"log"
-	"net"
 	"os"
 	"sync"
 )
@@ -14,7 +13,7 @@ type Rumor struct {
 	nodeLock *sync.RWMutex
 	nodeMap  map[string]*node
 	nodes    []*node
-	nodeNum  uint
+	nodeNum  int
 
 	transport  Transport
 	shutdownCh chan (int)
@@ -67,7 +66,15 @@ func newRumor(config *Config) (*Rumor, error) {
 
 	go ru.listenStream()
 	go ru.listenPacket()
+	// scheduling sending mesage?
+
 	return ru, nil
+}
+
+func (ru *Rumor) Join(addr string) (int, error) {
+	for {
+	}
+	return ru.nodeNum, nil
 }
 
 // Listen port by tcp
@@ -80,7 +87,23 @@ func (ru *Rumor) listenStream() {
 	}
 }
 
-func (ru *Rumor) handleStream(conn net.Conn) {
+func (ru *Rumor) handleStream(stream *stream) {
+	ru.logger.Printf("Established connection from %s", stream.conn.RemoteAddr())
+
+	msgType, err := readMsgType(stream)
+	if err != nil {
+		ru.logger.Println(err)
+		return
+	}
+
+	switch msgType {
+	case pingMsg:
+		ru.logger.Println("Recived pingMsg")
+		return
+	case aliveMsg:
+		ru.logger.Println("Recived aliveMsg")
+		return
+	}
 }
 
 // Listen port by udp
@@ -94,7 +117,6 @@ func (ru *Rumor) listenPacket() {
 }
 
 func (ru *Rumor) handlePacket(packet *packet) {
-
 }
 
 func (ru *Rumor) becomeAlive() error {
@@ -103,7 +125,7 @@ func (ru *Rumor) becomeAlive() error {
 	// node, ok := ru.nodeMap[ru.Name]
 
 	// if !ok {
-	// 	return nil
+	// return nil
 	// }
 
 	return nil

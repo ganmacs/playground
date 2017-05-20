@@ -11,7 +11,7 @@ const (
 
 // implement for transport
 type DefautTranport struct {
-	streamCh chan net.Conn
+	streamCh chan *stream
 	packetCh chan *packet
 
 	tcpListener *net.TCPListener
@@ -30,7 +30,7 @@ type DefautTranportConfig struct {
 
 func NewDefaultTransport(config *DefautTranportConfig) (*DefautTranport, error) {
 	tr := &DefautTranport{
-		streamCh:   make(chan (net.Conn)),
+		streamCh:   make(chan (*stream)),
 		packetCh:   make(chan (*packet)),
 		shutdownCh: make(chan (int)),
 		logger:     config.logger,
@@ -87,7 +87,7 @@ func (tr *DefautTranport) listenTCP() {
 			continue
 		}
 
-		tr.streamCh <- conn
+		tr.streamCh <- newStream(conn)
 	}
 }
 
@@ -97,7 +97,7 @@ func (tr *DefautTranport) listenUDP() {
 
 		n, addr, err := tr.udpListener.ReadFromUDP(buf)
 		if err != nil {
-			tr.logger.Printf("[ERROR] could not accept %v", err)
+			tr.logger.Printf("[ERROR] could not read %v", err)
 			continue
 		}
 
@@ -105,7 +105,7 @@ func (tr *DefautTranport) listenUDP() {
 	}
 }
 
-func (tr *DefautTranport) StreamCh() chan (net.Conn) {
+func (tr *DefautTranport) StreamCh() chan (*stream) {
 	return tr.streamCh
 }
 
