@@ -13,6 +13,7 @@ type Config struct {
 
 	RumorIterval   time.Duration
 	RumorNodeCount int
+	transport      Transport
 }
 
 func DefaultConfig() *Config {
