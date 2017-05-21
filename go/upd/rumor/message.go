@@ -1,9 +1,5 @@
 package rumor
 
-import (
-	"net"
-)
-
 type messageType uint8
 
 const (
@@ -15,9 +11,9 @@ type message interface {
 	messageType() messageType
 }
 
-type avlie struct {
+type alive struct {
 	nodeName string
-	addr     net.Addr
+	addr     string
 	port     int
 }
 

@@ -17,6 +17,7 @@ type Rumor struct {
 
 	transport  Transport
 	shutdownCh chan (int)
+	config     *Config // NEED?
 
 	logger *log.Logger
 }
@@ -61,6 +62,7 @@ func newRumor(config *Config) (*Rumor, error) {
 		nodeLock:   new(sync.RWMutex),
 		transport:  tr,
 		logger:     logger,
+		config:     config,
 		shutdownCh: make(chan (int), 1),
 	}
 
@@ -120,13 +122,32 @@ func (ru *Rumor) handlePacket(packet *packet) {
 }
 
 func (ru *Rumor) becomeAlive() error {
+	aliveMsg := &alive{
+		nodeName: ru.config.Name,
+		port:     ru.config.BindPort,
+		addr:     ru.config.BindAddr,
+	}
+
+	return ru.setAliveState(aliveMsg)
+}
+
+func (ru *Rumor) setAliveState(a *alive) error {
 	ru.nodeLock.Lock()
 	defer ru.nodeLock.Unlock()
-	// node, ok := ru.nodeMap[ru.Name]
+	nd, ok := ru.nodeMap[ru.Name]
 
-	// if !ok {
-	// return nil
-	// }
+	if !ok {
+		nd = &node{
+			addr:      a.addr,
+			port:      a.port,
+			stateType: deadState,
+		}
+	}
+
+	ru.nodes = append(ru.nodes, nd)
+	ru.nodeNum += 1
+
+	nd.AliveState()
 
 	return nil
 }

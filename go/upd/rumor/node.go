@@ -1,11 +1,21 @@
 package rumor
 
 import (
-	"net"
+	"time"
 )
 
 type node struct {
-	stateType stateType
-	addr      net.Addr
-	port      int
+	addr        string
+	port        int
+	stateType   stateType
+	stateChange time.Time
+}
+
+func (node *node) AliveState() {
+	if node.stateType == aliveState {
+		return
+	}
+
+	node.stateType = aliveState
+	node.stateChange = time.Now()
 }
