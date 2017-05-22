@@ -4,12 +4,8 @@ import (
 	"log"
 	"net"
 	"os"
-)
 
-type messageType uint8
-
-const (
-	pingMsg messageType = iota
+	"github.com/ganmacs/playground/go/upd/message"
 )
 
 type Packet struct {
@@ -18,11 +14,8 @@ type Packet struct {
 	From net.Addr
 }
 
+// start sever
 func main() {
-	startServer()
-}
-
-func startServer() {
 	ch := make(chan *Packet)
 
 	udpAddr := &net.UDPAddr{
@@ -36,9 +29,10 @@ func startServer() {
 		os.Exit(1)
 	}
 
+	go startHandler(ch)
+
 	buf := make([]byte, 65536)
 	log.Println("Starting server...")
-	i := 0
 
 	for {
 		n, addr, err := updLn.ReadFromUDP(buf)
@@ -49,23 +43,23 @@ func startServer() {
 		}
 
 		pcket := &Packet{Buf: buf[:n], From: addr}
-		i += 1
 		ch <- pcket
-		go handlePacket(pcket)
-		log.Println(i)
 	}
 }
 
 func startHandler(ch chan *Packet) {
 	for {
-		c := <-ch
-		handlePacket(c)
+		select {
+		case c := <-ch:
+			go handlePacket(c)
+			// select timeout
+		}
 	}
 }
 
 func handlePacket(packet *Packet) {
 	buf := packet.Buf
-	if messageType(buf[0]) == pingMsg {
+	if message.MessageType(buf[0]) == message.PingMsg {
 		handlePing(packet)
 	} else {
 		log.Fatalln("unknown message type")

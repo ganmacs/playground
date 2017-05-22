@@ -6,20 +6,12 @@ import (
 	"net"
 	"os"
 	"time"
-)
 
-type messageType uint8
-
-const (
-	pingMsg messageType = iota
+	"github.com/ganmacs/playground/go/upd/message"
 )
 
 func main() {
-	go send()
-	go send()
-
 	send()
-	time.Sleep(time.Second * 2)
 }
 
 func send() {
@@ -32,13 +24,14 @@ func send() {
 	msg := composePing()
 
 	msg.WriteString("hello this is it")
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10; i++ {
 		conn.Write(msg.Bytes())
+		time.Sleep(time.Second * 1)
 	}
 }
 
 func composePing() *bytes.Buffer {
 	buf := bytes.NewBuffer(nil)
-	buf.WriteByte(uint8(pingMsg))
+	buf.WriteByte(uint8(message.PingMsg))
 	return buf
 }

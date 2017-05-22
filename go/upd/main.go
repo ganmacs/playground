@@ -3,29 +3,30 @@ package main
 // idobata
 
 import (
-	"fmt"
+	// "fmt"
 
 	"github.com/ganmacs/playground/go/upd/rumor"
 )
 
 func main() {
-	config := rumor.DefaultConfig()
-	config.BindAddr = "127.0.0.1"
-	config.BindPort = 3000
+	// config := rumor.DefaultConfig()
+	// config.BindAddr = "127.0.0.1"
+	// config.BindPort = 3000
 
-	rumor, err := rumor.New(config)
-	if err != nil {
-		panic(err)
-	}
+	// rumor, err := rumor.New(config)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	clusterSize, err := rumor.Join("127.0.0.1:3000")
-	if err != nil {
-		panic(err)
-	}
+	// clusterSize, err := rumor.Join("127.0.0.1:3000")
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	fmt.Println(clusterSize)
+	// fmt.Println(clusterSize)
 
-	// rumor.Start()
+	// // rumor.Start()
 
-	fmt.Println(rumor)
+	// fmt.Println(rumor)
+	rumor.ExampleMarshal()
 }
