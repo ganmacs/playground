@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ganmacs/playground/go/upd/message"
+	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
 func main() {
@@ -21,17 +22,19 @@ func send() {
 		os.Exit(1)
 	}
 	defer conn.Close()
-	msg := composePing()
 
-	msg.WriteString("hello this is it")
+	b, err := msgpack.Marshal(&message.Alive{Name: "foo", Inc: 10})
+
 	for i := 0; i < 10; i++ {
-		conn.Write(msg.Bytes())
+		conn.Write(b)
+		log.Println(err)
+
 		time.Sleep(time.Second * 1)
 	}
 }
 
 func composePing() *bytes.Buffer {
 	buf := bytes.NewBuffer(nil)
-	buf.WriteByte(uint8(message.PingMsg))
+	// buf.WriteByte(uint8(message.PingMsg))
 	return buf
 }

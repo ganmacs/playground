@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/ganmacs/playground/go/upd/message"
+	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
 type Packet struct {
@@ -59,6 +60,12 @@ func startHandler(ch chan *Packet) {
 
 func handlePacket(packet *Packet) {
 	buf := packet.Buf
+
+	a := new(message.Alive)
+	msgpack.Unmarshal(buf, a)
+
+	log.Println(a.Name)
+
 	if message.MessageType(buf[0]) == message.PingMsg {
 		handlePing(packet)
 	} else {

@@ -1,10 +1,11 @@
 package message
 
-import (
-	"fmt"
+// import (
+// 	"fmt"
+// 	"io"
 
-	"gopkg.in/vmihailenco/msgpack.v2"
-)
+// 	"gopkg.in/vmihailenco/msgpack.v2"
+// )
 
 type MessageType uint8
 
@@ -13,31 +14,29 @@ const (
 	AckMsg
 )
 
-type codec interface {
-	Encode(interface{}) []byte
-	Decode()
-}
+// type codec interface {
+// 	Encode(interface{}) []byte
+// 	Decode()
+// }
 
 type Alive struct {
 	Name string
 	Inc  int
 }
 
-func (a *Alive) Encode() {
-	msgpack.NewEncoder()
-	// b, err := msgpack.Marshal(&Item{Foo: "bar"})
-}
+// func (a *Alive) Encode() {
+// }
 
-func ExampleMarshal() {
-	if err != nil {
-		panic(err)
-	}
+// func ExampleMarshal() {
+// 	if err != nil {
+// 		panic(err)
+// 	}
 
-	var item Item
-	err = msgpack.Unmarshal(b, &item)
-	if err != nil {
-		panic(err)
-	}
+// 	var item Item
+// 	err = msgpack.Unmarshal(b, &item)
+// 	if err != nil {
+// 		panic(err)
+// 	}
 
-	fmt.Println(item.Foo)
-}
+// 	fmt.Println(item.Foo)
+// }
