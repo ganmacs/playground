@@ -1,14 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"log"
 	"net"
 	"os"
-	"time"
 
 	"github.com/ganmacs/playground/go/upd/message"
-	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
 func main() {
@@ -23,18 +20,14 @@ func send() {
 	}
 	defer conn.Close()
 
-	b, err := msgpack.Marshal(&message.Alive{Name: "foo", Inc: 10})
+	msg, err := message.Encode(
+		message.PingMsg,
+		&message.Alive{Name: "ganmacs", Inc: 10},
+	)
 
-	for i := 0; i < 10; i++ {
-		conn.Write(b)
-		log.Println(err)
-
-		time.Sleep(time.Second * 1)
+	if err != nil {
+		os.Exit(1)
 	}
-}
 
-func composePing() *bytes.Buffer {
-	buf := bytes.NewBuffer(nil)
-	// buf.WriteByte(uint8(message.PingMsg))
-	return buf
+	conn.Write(msg.Bytes())
 }

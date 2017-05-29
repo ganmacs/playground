@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/ganmacs/playground/go/upd/message"
-	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
 type Packet struct {
@@ -61,23 +60,23 @@ func startHandler(ch chan *Packet) {
 func handlePacket(packet *Packet) {
 	buf := packet.Buf
 
-	a := new(message.Alive)
-	msgpack.Unmarshal(buf, a)
+	msgType := message.MessageType(buf[0])
+	packt := &Packet{Buf: buf[1:], From: packet.From}
 
-	log.Println(a.Name)
-
-	if message.MessageType(buf[0]) == message.PingMsg {
-		handlePing(packet)
-	} else {
-		log.Fatalln("unknown message type")
+	switch msgType {
+	case message.PingMsg:
+		handlePing(packt)
+	default:
+		log.Println("nothing")
 	}
 }
 
 func handlePing(packet *Packet) {
-	s := decode(packet.Buf[1:])
-	log.Printf(s)
-}
+	var msg = new(message.Alive)
+	err := message.Decode(packet.Buf, msg)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
-func decode(buf []byte) string {
-	return string(buf[:])
+	log.Println(msg)
 }
