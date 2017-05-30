@@ -41,13 +41,13 @@ func newRumor(config *Config) (*Rumor, error) {
 
 	tr := config.transport
 	if tr == nil {
-		trConfig := &DefautTranportConfig{
+		trConfig := &TranportConfig{
 			bindAddr: config.BindAddr,
 			bindPort: config.BindPort,
 			logger:   logger,
 		}
 
-		dtr, err := NewDefaultTransport(trConfig)
+		dtr, err := NewTransport(trConfig)
 		if err != nil {
 			logger.Println(err)
 			return nil, err
@@ -70,6 +70,8 @@ func newRumor(config *Config) (*Rumor, error) {
 }
 
 func (ru *Rumor) Start() {
+	go ru.listenPacket()
+	go ru.startGossip()
 }
 
 func (ru *Rumor) Join(ip string) (int, error) {
@@ -78,15 +80,36 @@ func (ru *Rumor) Join(ip string) (int, error) {
 
 // Listen port by udp
 func (ru *Rumor) listenPacket() {
-	select {
-	case packet := <-ru.transport.PacketCh():
-		go ru.handlePacket(packet)
-	case <-ru.shutdownCh:
-		return
+	for {
+		select {
+		case packet := <-ru.transport.PacketCh():
+			go ru.handlePacket(packet)
+		case <-ru.shutdownCh:
+			return
+		}
 	}
 }
 
 func (ru *Rumor) handlePacket(packet *packet) {
+	msgType, err := packet.messageType()
+	if err != nil {
+		ru.logger.Fatalln(err)
+	}
+
+	switch msgType {
+	case pingMsg:
+		ru.handlePing(packet)
+	default:
+		ru.logger.Printf("Unkonow message type: %d\n", msgType)
+	}
+}
+
+func (ru *Rumor) handlePing(packet *packet) {
+	ru.logger.Println("Handling Ping messsage...")
+	ru.transport.sendMessage(ackMsg, packet.from)
+}
+
+func (ru *Rumor) startGossip() {
 }
 
 func (ru *Rumor) becomeAlive() error {

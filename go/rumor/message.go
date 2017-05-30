@@ -5,6 +5,7 @@ type messageType uint8
 const (
 	pingMsg messageType = iota
 	aliveMsg
+	ackMsg
 )
 
 type message interface {

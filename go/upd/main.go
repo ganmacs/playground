@@ -25,7 +25,7 @@ func main() {
 
 	// fmt.Println(clusterSize)
 
-	// // rumor.Start()
+	// rumor.Start()
 
 	// fmt.Println(rumor)
 	rumor.ExampleMarshal()
