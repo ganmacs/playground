@@ -15,7 +15,7 @@ type Rumor struct {
 	nodes    []*node
 	nodeNum  int
 
-	transport  Transport
+	transport  *Transport
 	shutdownCh chan (int)
 	config     *Config // NEED?
 
@@ -66,46 +66,14 @@ func newRumor(config *Config) (*Rumor, error) {
 		shutdownCh: make(chan (int), 1),
 	}
 
-	go ru.listenStream()
-	go ru.listenPacket()
-	// scheduling sending mesage?
-
 	return ru, nil
 }
 
-func (ru *Rumor) Join(addr string) (int, error) {
-	for {
-	}
-	return ru.nodeNum, nil
+func (ru *Rumor) Start() {
 }
 
-// Listen port by tcp
-func (ru *Rumor) listenStream() {
-	select {
-	case conn := <-ru.transport.StreamCh():
-		go ru.handleStream(conn)
-	case <-ru.shutdownCh:
-		return
-	}
-}
-
-func (ru *Rumor) handleStream(stream *stream) {
-	ru.logger.Printf("Established connection from %s", stream.conn.RemoteAddr())
-
-	msgType, err := readMsgType(stream)
-	if err != nil {
-		ru.logger.Println(err)
-		return
-	}
-
-	switch msgType {
-	case pingMsg:
-		ru.logger.Println("Recived pingMsg")
-		return
-	case aliveMsg:
-		ru.logger.Println("Recived aliveMsg")
-		return
-	}
+func (ru *Rumor) Join(ip string) (int, error) {
+	return 0, nil
 }
 
 // Listen port by udp

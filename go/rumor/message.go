@@ -16,12 +16,3 @@ type alive struct {
 	addr     string
 	port     int
 }
-
-func readMsgType(stream *stream) (messageType, error) {
-	buf := [1]byte{0}
-	if _, err := stream.Read(buf[:]); err != nil {
-		return 0, err
-	}
-
-	return messageType(buf[0]), nil
-}
