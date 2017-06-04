@@ -22,7 +22,7 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println(clusterSize)
+	fmt.Printf("cluster size is %d\n", clusterSize)
 
 	rumor.Start()
 

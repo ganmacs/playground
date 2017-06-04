@@ -5,10 +5,15 @@ import (
 )
 
 type node struct {
+	name        string
 	addr        string
 	port        int
 	stateType   stateType
 	stateChange time.Time
+}
+
+func (node *node) Address() string {
+	return node.addr
 }
 
 func (node *node) AliveState() {

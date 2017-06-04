@@ -12,6 +12,16 @@ type message interface {
 	messageType() messageType
 }
 
+type ping struct {
+	name string
+	id   int
+}
+
+type ack struct {
+	name string
+	id   int
+}
+
 type alive struct {
 	nodeName string
 	addr     string

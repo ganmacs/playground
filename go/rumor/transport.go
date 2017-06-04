@@ -16,6 +16,8 @@ type Transport struct {
 
 	shutdownCh chan int
 
+	ackHandlers map[int]ackHandler
+
 	logger *log.Logger
 }
 
@@ -76,22 +78,38 @@ func (tr *Transport) PacketCh() chan (*packet) {
 	return tr.packetCh
 }
 
-func (tr *Transport) sendMessage(msgType messageType, addr net.Addr) {
-	msg, err := Encode(msgType, "")
-	if err != nil {
-		tr.logger.Fatal(err)
-		return
-	}
-
-	tr.sendData(addr.String(), msg.Bytes())
+func (tr *Transport) setAckHandler(seqNo int, ch chan *ack) {
+	tr.ackHandlers[seqNo] = ackHandler{ch}
 }
 
-func (tr *Transport) sendData(addr string, data []byte) {
-	conn, err := net.Dial("udp", addr)
+func (tr *Transport) sendPackedMessage(addr string, msgType messageType, msg interface{}) error {
+	emsg, err := Encode(msgType, msg)
 	if err != nil {
-		tr.logger.Fatal(err)
-		return
+		return err
 	}
 
-	conn.Write(data)
+	if err := tr.sendData(addr, emsg.Bytes()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (tr *Transport) sendData(addr string, data []byte) error {
+	conn, err := net.Dial("udp", addr)
+	if err != nil {
+		return err
+	}
+
+	size, err := conn.Write(data)
+	if err != nil {
+		return err
+	}
+
+	if len(data) != size {
+		tr.logger.Printf("failed writing data %d/%d", size, len(data))
+		// return error object
+	}
+
+	return nil
 }

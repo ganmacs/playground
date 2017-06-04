@@ -20,8 +20,12 @@ func (p *packet) messageType() (messageType, error) {
 	return messageType(p.buf[0]), nil
 }
 
+func (p *packet) body() []byte {
+	return p.buf[1:]
+}
+
 func (p *packet) Read() []byte {
-	return nil
+	return p.buf[1:]
 }
 
 func (p *packet) Write(data []byte) {

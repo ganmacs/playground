@@ -4,16 +4,20 @@ import (
 	"log"
 	"os"
 	"sync"
+	"sync/atomic"
+	"time"
 )
 
 type Rumor struct {
 	Name string
 
 	// node name => node
-	nodeLock *sync.RWMutex
-	nodeMap  map[string]*node
-	nodes    []*node
-	nodeNum  int
+	nodeLock   *sync.RWMutex
+	nodeMap    map[string]*node
+	nodes      []*node
+	nodeNum    int
+	probeIndex int
+	seqNumber  int32 // this number is used for ping
 
 	transport  *Transport
 	shutdownCh chan (int)
@@ -71,7 +75,7 @@ func newRumor(config *Config) (*Rumor, error) {
 
 func (ru *Rumor) Start() {
 	go ru.listenPacket()
-	go ru.startGossip()
+	startTick(ru.config.ProbeInterval, ru.probe)
 }
 
 func (ru *Rumor) Join(ip string) (int, error) {
@@ -106,10 +110,88 @@ func (ru *Rumor) handlePacket(packet *packet) {
 
 func (ru *Rumor) handlePing(packet *packet) {
 	ru.logger.Println("Handling Ping messsage...")
-	ru.transport.sendMessage(ackMsg, packet.from)
+	var p ping
+
+	if err := Decode(packet.body(), &p); err != nil {
+		ru.logger.Println(err)
+		return
+	} else {
+		ru.logger.Printf("ping form %s\n", p.name)
+	}
+
+	ack := ack{id: p.id, name: ru.config.Name}
+
+	ru.logger.Printf("Sendign ack to %s", p.name)
+	if err := ru.transport.sendPackedMessage(packet.from.String(), ackMsg, &ack); err != nil {
+		ru.logger.Println(err)
+	}
 }
 
-func (ru *Rumor) startGossip() {
+func (ru *Rumor) selectNextNode() *node {
+	tryCount := 0
+
+START:
+	if tryCount > len(ru.nodes) {
+		return nil
+	}
+	tryCount++
+
+	if ru.probeIndex > len(ru.nodes) {
+		ru.probeIndex = 0
+	}
+	node := ru.nodes[ru.probeIndex]
+
+	if node.name == ru.config.Name {
+		goto START
+	}
+
+	ru.probeIndex++
+
+	return node
+}
+
+func (ru *Rumor) probe() {
+	ru.logger.Println("probing...")
+	node := ru.selectNextNode()
+
+	if node == nil {
+		ru.logger.Println("There is no node to send ping")
+		return
+	}
+
+	msg := ping{id: int(ru.nextSeq()), name: node.name}
+	ackCh := make(chan *ack)
+	ru.transport.setAckHandler(msg.id, ackCh)
+
+	if err := ru.transport.sendPackedMessage(node.Address(), pingMsg, &msg); err != nil {
+		ru.logger.Printf("can't send message: %s", err)
+	}
+
+	select {
+	case ack := <-ackCh:
+		ru.logger.Printf("Recieved ack: %v", ack)
+	case <-time.After(ru.config.ProbeTimeout):
+		ru.logger.Println("node is dead?")
+	}
+}
+
+func (ru *Rumor) nextSeq() int32 {
+	return atomic.AddInt32(&ru.seqNumber, 1)
+}
+
+func (ru *Rumor) selectNodes(k int, fn func(string, *node) bool) (nodes []*node) {
+	v := 0
+	for name, node := range ru.nodeMap {
+		if fn(name, node) {
+			v += 1
+			nodes = append(nodes, node)
+		}
+
+		if v >= k {
+			return
+		}
+	}
+	return
 }
 
 func (ru *Rumor) becomeAlive() error {
@@ -132,6 +214,7 @@ func (ru *Rumor) setAliveState(a *alive) error {
 			addr:      a.addr,
 			port:      a.port,
 			stateType: deadState,
+			name:      a.nodeName,
 		}
 	}
 
@@ -141,4 +224,14 @@ func (ru *Rumor) setAliveState(a *alive) error {
 	nd.AliveState()
 
 	return nil
+}
+
+func startTick(t time.Duration, fn func()) {
+	c := time.Tick(t * time.Second)
+	go func() {
+		for {
+			<-c // block until next tick time
+			go fn()
+		}
+	}()
 }
