@@ -1,6 +1,8 @@
 package rumor
 
 import (
+	"net"
+	"strconv"
 	"time"
 )
 
@@ -13,7 +15,7 @@ type node struct {
 }
 
 func (node *node) Address() string {
-	return node.addr
+	return net.JoinHostPort(node.addr, strconv.Itoa(node.port))
 }
 
 func (node *node) AliveState() {

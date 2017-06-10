@@ -1,13 +1,10 @@
 package rumor
 
 import (
-	"os"
 	"time"
 )
 
 type Config struct {
-	Name string
-
 	BindAddr string
 	BindPort int
 
@@ -23,15 +20,13 @@ type Config struct {
 }
 
 func DefaultConfig() *Config {
-	hostname, _ := os.Hostname()
 	return &Config{
-		Name:           hostname,
 		BindAddr:       "0.0.0.0",
 		BindPort:       8000,
 		GossipPeriod:   3,
 		GossipCount:    1,
 		ProbeInterval:  2,
-		ProbeTimeout:   1,
+		ProbeTimeout:   2,
 		RumorIterval:   time.Second * 2,
 		RumorNodeCount: 3,
 	}

@@ -2,15 +2,20 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/ganmacs/playground/go/rumor"
 )
 
 func main() {
+	sport := os.Getenv("PORT")
+	port, _ := strconv.Atoi(sport)
+
 	config := rumor.DefaultConfig()
 	config.BindAddr = "127.0.0.1"
-	config.BindPort = 3000
+	config.BindPort = port
 
 	rumor, err := rumor.New(config)
 	if err != nil {

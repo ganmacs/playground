@@ -29,9 +29,10 @@ type TranportConfig struct {
 
 func NewTransport(config *TranportConfig) (*Transport, error) {
 	tr := &Transport{
-		packetCh:   make(chan (*packet)),
-		shutdownCh: make(chan (int)),
-		logger:     config.logger,
+		packetCh:    make(chan (*packet)),
+		shutdownCh:  make(chan (int)),
+		ackHandlers: make(map[int]ackHandler),
+		logger:      config.logger,
 	}
 
 	addr := config.bindAddr
@@ -80,6 +81,10 @@ func (tr *Transport) PacketCh() chan (*packet) {
 
 func (tr *Transport) setAckHandler(seqNo int, ch chan *ack) {
 	tr.ackHandlers[seqNo] = ackHandler{ch}
+}
+
+func (tr *Transport) deleteAckHandler(seqNo int) {
+	delete(tr.ackHandlers, seqNo)
 }
 
 func (tr *Transport) sendPackedMessage(addr string, msgType messageType, msg interface{}) error {

@@ -2,7 +2,9 @@ package rumor
 
 import (
 	"log"
+	"net"
 	"os"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -61,7 +63,7 @@ func newRumor(config *Config) (*Rumor, error) {
 	tr.Start() // FIX
 
 	ru := &Rumor{
-		Name:       config.Name,
+		Name:       joinHostPort(config.BindAddr, config.BindPort),
 		nodeMap:    make(map[string]*node),
 		nodeLock:   new(sync.RWMutex),
 		transport:  tr,
@@ -78,7 +80,21 @@ func (ru *Rumor) Start() {
 	startTick(ru.config.ProbeInterval, ru.probe)
 }
 
-func (ru *Rumor) Join(ip string) (int, error) {
+func (ru *Rumor) Join(hostStr string) (int, error) {
+	host, sport, err := net.SplitHostPort(hostStr)
+
+	port, err := strconv.Atoi(sport)
+	if err != nil {
+		return 0, err
+	}
+
+	aliveMsg := &alive{
+		addr:     host,
+		port:     port,
+		nodeName: joinHostPort(host, port),
+	}
+
+	ru.setAliveState(aliveMsg)
 	return 0, nil
 }
 
@@ -119,7 +135,7 @@ func (ru *Rumor) handlePing(packet *packet) {
 		ru.logger.Printf("ping form %s\n", p.name)
 	}
 
-	ack := ack{id: p.id, name: ru.config.Name}
+	ack := ack{id: p.id, name: ru.Name}
 
 	ru.logger.Printf("Sendign ack to %s", p.name)
 	if err := ru.transport.sendPackedMessage(packet.from.String(), ackMsg, &ack); err != nil {
@@ -136,16 +152,15 @@ START:
 	}
 	tryCount++
 
-	if ru.probeIndex > len(ru.nodes) {
+	if ru.probeIndex >= len(ru.nodes) {
 		ru.probeIndex = 0
 	}
 	node := ru.nodes[ru.probeIndex]
+	ru.probeIndex++
 
-	if node.name == ru.config.Name {
+	if node.name == ru.Name {
 		goto START
 	}
-
-	ru.probeIndex++
 
 	return node
 }
@@ -173,6 +188,8 @@ func (ru *Rumor) probe() {
 	case <-time.After(ru.config.ProbeTimeout):
 		ru.logger.Println("node is dead?")
 	}
+
+	ru.transport.deleteAckHandler(msg.id)
 }
 
 func (ru *Rumor) nextSeq() int32 {
@@ -196,7 +213,7 @@ func (ru *Rumor) selectNodes(k int, fn func(string, *node) bool) (nodes []*node)
 
 func (ru *Rumor) becomeAlive() error {
 	aliveMsg := &alive{
-		nodeName: ru.config.Name,
+		nodeName: ru.Name,
 		port:     ru.config.BindPort,
 		addr:     ru.config.BindAddr,
 	}
@@ -207,7 +224,7 @@ func (ru *Rumor) becomeAlive() error {
 func (ru *Rumor) setAliveState(a *alive) error {
 	ru.nodeLock.Lock()
 	defer ru.nodeLock.Unlock()
-	nd, ok := ru.nodeMap[ru.Name]
+	nd, ok := ru.nodeMap[a.nodeName]
 
 	if !ok {
 		nd = &node{
@@ -216,10 +233,10 @@ func (ru *Rumor) setAliveState(a *alive) error {
 			stateType: deadState,
 			name:      a.nodeName,
 		}
+		ru.nodeMap[a.nodeName] = nd
+		ru.nodes = append(ru.nodes, nd)
+		ru.nodeNum += 1
 	}
-
-	ru.nodes = append(ru.nodes, nd)
-	ru.nodeNum += 1
 
 	nd.AliveState()
 
@@ -234,4 +251,8 @@ func startTick(t time.Duration, fn func()) {
 			go fn()
 		}
 	}()
+}
+
+func joinHostPort(host string, port int) string {
+	return net.JoinHostPort(host, strconv.Itoa(port))
 }
