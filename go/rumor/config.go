@@ -26,7 +26,7 @@ func DefaultConfig() *Config {
 		GossipPeriod:   3,
 		GossipCount:    1,
 		ProbeInterval:  2,
-		ProbeTimeout:   2,
+		ProbeTimeout:   time.Second * 2,
 		RumorIterval:   time.Second * 2,
 		RumorNodeCount: 3,
 	}

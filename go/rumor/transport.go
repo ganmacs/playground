@@ -1,6 +1,8 @@
 package rumor
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"net"
 )
@@ -16,7 +18,7 @@ type Transport struct {
 
 	shutdownCh chan int
 
-	ackHandlers map[int]ackHandler
+	ackHandlers map[int]*ackHandler
 
 	logger *log.Logger
 }
@@ -31,7 +33,7 @@ func NewTransport(config *TranportConfig) (*Transport, error) {
 	tr := &Transport{
 		packetCh:    make(chan (*packet)),
 		shutdownCh:  make(chan (int)),
-		ackHandlers: make(map[int]ackHandler),
+		ackHandlers: make(map[int]*ackHandler),
 		logger:      config.logger,
 	}
 
@@ -80,15 +82,27 @@ func (tr *Transport) PacketCh() chan (*packet) {
 }
 
 func (tr *Transport) setAckHandler(seqNo int, ch chan *ack) {
-	tr.ackHandlers[seqNo] = ackHandler{ch}
+	tr.ackHandlers[seqNo] = &ackHandler{ch}
 }
 
 func (tr *Transport) deleteAckHandler(seqNo int) {
 	delete(tr.ackHandlers, seqNo)
 }
 
+func (tr *Transport) HandleAck(ackMsg *ack) error {
+	handler, ok := tr.ackHandlers[ackMsg.Id]
+	if !ok {
+		return errors.New(fmt.Sprintf("unknow ack message id %v", ackMsg))
+	}
+	tr.deleteAckHandler(ackMsg.Id)
+
+	handler.ch <- ackMsg
+	return nil
+}
+
 func (tr *Transport) sendPackedMessage(addr string, msgType messageType, msg interface{}) error {
 	emsg, err := Encode(msgType, msg)
+
 	if err != nil {
 		return err
 	}
@@ -112,9 +126,11 @@ func (tr *Transport) sendData(addr string, data []byte) error {
 	}
 
 	if len(data) != size {
-		tr.logger.Printf("failed writing data %d/%d", size, len(data))
+		tr.logger.Printf("failed writing data %d/%d\n", size, len(data))
 		// return error object
 	}
+
+	tr.logger.Printf("Sucess sending data %d bytes\n", size)
 
 	return nil
 }

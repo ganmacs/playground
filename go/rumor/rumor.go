@@ -119,6 +119,8 @@ func (ru *Rumor) handlePacket(packet *packet) {
 	switch msgType {
 	case pingMsg:
 		ru.handlePing(packet)
+	case ackMsg:
+		ru.handleAck(packet)
 	default:
 		ru.logger.Printf("Unkonow message type: %d\n", msgType)
 	}
@@ -131,16 +133,32 @@ func (ru *Rumor) handlePing(packet *packet) {
 	if err := Decode(packet.body(), &p); err != nil {
 		ru.logger.Println(err)
 		return
-	} else {
-		ru.logger.Printf("ping form %s\n", p.name)
 	}
 
-	ack := ack{id: p.id, name: ru.Name}
+	ru.logger.Printf("Received:  %v\n", p)
+	ack := ack{Id: p.Id, Name: ru.Name, Addr: ru.Name}
 
-	ru.logger.Printf("Sendign ack to %s", p.name)
-	if err := ru.transport.sendPackedMessage(packet.from.String(), ackMsg, &ack); err != nil {
+	ru.logger.Printf("Sendign ack to %s", p.Name)
+	if err := ru.transport.sendPackedMessage(p.Addr, ackMsg, &ack); err != nil {
 		ru.logger.Println(err)
 	}
+}
+
+func (ru *Rumor) handleAck(packet *packet) {
+	ru.logger.Println("Handling Ack messsage...")
+	packet.body()
+
+	var a ack
+	if err := Decode(packet.body(), &a); err != nil {
+		ru.logger.Println(err)
+		return
+	}
+
+	if err := ru.transport.HandleAck(&a); err != nil {
+		ru.logger.Println(err)
+		return
+	}
+
 }
 
 func (ru *Rumor) selectNextNode() *node {
@@ -174,9 +192,10 @@ func (ru *Rumor) probe() {
 		return
 	}
 
-	msg := ping{id: int(ru.nextSeq()), name: node.name}
+	addr := joinHostPort(ru.config.BindAddr, ru.config.BindPort)
+	msg := ping{Id: int(ru.nextSeq()), Name: ru.Name, Addr: addr}
 	ackCh := make(chan *ack)
-	ru.transport.setAckHandler(msg.id, ackCh)
+	ru.transport.setAckHandler(msg.Id, ackCh)
 
 	if err := ru.transport.sendPackedMessage(node.Address(), pingMsg, &msg); err != nil {
 		ru.logger.Printf("can't send message: %s", err)
@@ -184,12 +203,10 @@ func (ru *Rumor) probe() {
 
 	select {
 	case ack := <-ackCh:
-		ru.logger.Printf("Recieved ack: %v", ack)
+		ru.logger.Printf("ok, Recieved ack : %v", ack)
 	case <-time.After(ru.config.ProbeTimeout):
 		ru.logger.Println("node is dead?")
 	}
-
-	ru.transport.deleteAckHandler(msg.id)
 }
 
 func (ru *Rumor) nextSeq() int32 {

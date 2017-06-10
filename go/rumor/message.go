@@ -16,13 +16,15 @@ const (
 )
 
 type ping struct {
-	name string
-	id   int
+	Name string
+	Id   int
+	Addr string
 }
 
 type ack struct {
-	name string
-	id   int
+	Name string
+	Id   int
+	Addr string
 }
 
 type alive struct {
