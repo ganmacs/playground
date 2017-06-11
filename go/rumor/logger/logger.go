@@ -6,10 +6,10 @@ import (
 	"log"
 )
 
-type logLevel int
+type LogLevel int
 
 const (
-	FATAL logLevel = iota
+	FATAL LogLevel = iota
 	ERROR
 	WARN
 	INFO
@@ -26,17 +26,17 @@ const (
 
 type Logger struct {
 	backend *log.Logger
-	level   logLevel
+	level   LogLevel
 }
 
-func NewSimplelogger(device io.Writer) *Logger {
+func NewSimpleLogger(device io.Writer) *Logger {
 	return &Logger{
 		backend: log.New(device, "", log.LstdFlags),
 		level:   INFO,
 	}
 }
 
-func NewLevelLogger(device io.Writer, level logLevel) *Logger {
+func NewLevelLogger(device io.Writer, level LogLevel) *Logger {
 	return &Logger{
 		backend: log.New(device, "", log.LstdFlags),
 		level:   level,

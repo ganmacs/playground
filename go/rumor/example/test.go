@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ganmacs/playground/go/rumor"
+	"github.com/ganmacs/playground/go/rumor/logger"
 )
 
 func main() {
@@ -16,6 +17,8 @@ func main() {
 	config := rumor.DefaultConfig()
 	config.BindAddr = "127.0.0.1"
 	config.BindPort = port
+
+	config.Logger = logger.NewLevelLogger(os.Stdout, logger.DEBUG)
 
 	rumor, err := rumor.New(config)
 	if err != nil {

@@ -2,6 +2,8 @@ package rumor
 
 import (
 	"time"
+
+	"github.com/ganmacs/playground/go/rumor/logger"
 )
 
 type Config struct {
@@ -17,6 +19,8 @@ type Config struct {
 	RumorIterval   time.Duration
 	RumorNodeCount int
 	transport      *Transport
+
+	Logger *logger.Logger
 }
 
 func DefaultConfig() *Config {

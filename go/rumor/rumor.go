@@ -45,14 +45,17 @@ func New(config *Config) (*Rumor, error) {
 }
 
 func newRumor(config *Config) (*Rumor, error) {
-	levelLogger := logger.NewLevelLogger(os.Stdout, logger.INFO)
+	l := config.Logger
+	if l == nil {
+		l = logger.NewSimpleLogger(os.Stdout)
+	}
 
 	tr := config.transport
 	if tr == nil {
 		trConfig := &TranportConfig{
 			bindAddr: config.BindAddr,
 			bindPort: config.BindPort,
-			logger:   levelLogger,
+			logger:   l,
 		}
 
 		dtr, err := NewTransport(trConfig)
@@ -68,7 +71,7 @@ func newRumor(config *Config) (*Rumor, error) {
 		nodeMap:        make(map[string]*node),
 		nodeLock:       new(sync.RWMutex),
 		transport:      tr,
-		logger:         levelLogger,
+		logger:         l,
 		config:         config,
 		shutdownCh:     make(chan (int), 1),
 		piggybackQueue: new(PiggybackQueue),
