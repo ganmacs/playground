@@ -1,0 +1,10 @@
+{
+    "dependencies": {
+        "github.com/op/go-logging": {
+            "branch": "master"
+        },
+        "gopkg.in/vmihailenco/msgpack.v2": {
+            "branch": "master"
+        }
+    }
+}

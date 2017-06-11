@@ -8,6 +8,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/op/go-logging"
 )
 
 type Rumor struct {
