@@ -1,6 +1,7 @@
 package rumor
 
 import (
+	"errors"
 	"sync"
 )
 
@@ -27,12 +28,23 @@ func (r *Rumor) EnqueuePackedMessage(nodeName string, msgType messageType, msg i
 
 	bmsg := emsg.Bytes()
 	m := &PackedMessage{nodeName: nodeName, buf: bmsg, size: len(bmsg)}
-	r.piggybackQueue.Enqueue(m)
+	q, ok := r.piggybackQueMap[nodeName]
+	if !ok {
+		return errors.New("Unknow queue name")
+	}
+	q.Enqueue(m)
+
 	return nil
 }
 
-func (r *Rumor) GetPiggybackData(limit, overhead int) [][]byte {
-	return r.piggybackQueue.Get(limit, overhead)
+func (r *Rumor) GetPiggybackData(nodeName string, limit, overhead int) [][]byte {
+	q, ok := r.piggybackQueMap[nodeName]
+	if !ok {
+		var b [][]byte
+		return b
+	}
+
+	return q.Get(limit, overhead)
 }
 
 func (q *PiggybackQueue) Enqueue(pm *PackedMessage) {
