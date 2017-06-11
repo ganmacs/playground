@@ -5,6 +5,10 @@ import (
 	"encoding/binary"
 )
 
+const (
+	compoundMsgSizeOverhead = 2 // 2 bytes
+)
+
 type messageType uint8
 
 const (
@@ -12,6 +16,8 @@ const (
 	ackMsg
 
 	aliveMsg
+
+	joinMsg
 	compoundMsg
 )
 
@@ -24,6 +30,11 @@ type ping struct {
 type ack struct {
 	Name string
 	Id   int
+	Addr string
+}
+
+type join struct {
+	Name string
 	Addr string
 }
 

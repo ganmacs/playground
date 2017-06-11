@@ -11,6 +11,10 @@ const (
 	udpPacketBufSize = 2048
 )
 
+type ackHandler struct {
+	ch chan *ack
+}
+
 type Transport struct {
 	packetCh chan *packet
 
@@ -102,12 +106,21 @@ func (tr *Transport) HandleAck(ackMsg *ack) error {
 
 func (tr *Transport) sendPackedMessage(addr string, msgType messageType, msg interface{}) error {
 	emsg, err := Encode(msgType, msg)
-
 	if err != nil {
 		return err
 	}
 
-	if err := tr.sendData(addr, emsg.Bytes()); err != nil {
+	return tr.sendData(addr, emsg.Bytes())
+}
+
+func (tr *Transport) sendMessage(addr string, msg []byte) error {
+	return tr.sendData(addr, msg)
+}
+
+// for sending message without piggyback
+func (tr *Transport) sendCompoundMessage(addr string, msgs [][]byte) error {
+	buf := ComposeCompoundMessage(msgs)
+	if err := tr.sendData(addr, buf.Bytes()); err != nil {
 		return err
 	}
 
@@ -133,4 +146,22 @@ func (tr *Transport) sendData(addr string, data []byte) error {
 	tr.logger.Printf("Sucess sending data %d bytes\n", size)
 
 	return nil
+}
+
+// send packet with piggyback message
+func (ru *Rumor) sendPackedMessage(addr string, msgType messageType, msg interface{}) error {
+	emsg, err := Encode(msgType, msg)
+	if err != nil {
+		return err
+	}
+
+	bmsg := emsg.Bytes()
+
+	msgs := ru.GetPiggybackData(len(bmsg), compoundMsgSizeOverhead)
+
+	if len(msgs) == 0 {
+		return ru.transport.sendMessage(addr, bmsg)
+	}
+
+	return ru.transport.sendCompoundMessage(addr, append(msgs, bmsg))
 }

@@ -14,12 +14,13 @@ type Rumor struct {
 	Name string
 
 	// node name => node
-	nodeLock   *sync.RWMutex
-	nodeMap    map[string]*node
-	nodes      []*node
-	nodeNum    int
-	probeIndex int
-	seqNumber  int32 // this number is used for ping
+	nodeLock       *sync.RWMutex
+	nodeMap        map[string]*node
+	nodes          []*node
+	nodeNum        int
+	probeIndex     int
+	seqNumber      int32 // this number is used for ping
+	piggybackQueue *PiggybackQueue
 
 	transport  *Transport
 	shutdownCh chan (int)
@@ -63,13 +64,14 @@ func newRumor(config *Config) (*Rumor, error) {
 	tr.Start() // FIX
 
 	ru := &Rumor{
-		Name:       joinHostPort(config.BindAddr, config.BindPort),
-		nodeMap:    make(map[string]*node),
-		nodeLock:   new(sync.RWMutex),
-		transport:  tr,
-		logger:     logger,
-		config:     config,
-		shutdownCh: make(chan (int), 1),
+		Name:           joinHostPort(config.BindAddr, config.BindPort),
+		nodeMap:        make(map[string]*node),
+		nodeLock:       new(sync.RWMutex),
+		transport:      tr,
+		logger:         logger,
+		config:         config,
+		shutdownCh:     make(chan (int), 1),
+		piggybackQueue: new(PiggybackQueue),
 	}
 
 	return ru, nil
@@ -83,18 +85,28 @@ func (ru *Rumor) Start() {
 func (ru *Rumor) Join(hostStr string) (int, error) {
 	host, sport, err := net.SplitHostPort(hostStr)
 
+	// lookup host name and check connection
+
 	port, err := strconv.Atoi(sport)
 	if err != nil {
 		return 0, err
 	}
+	targetNodeName := joinHostPort(host, port)
 
 	aliveMsg := &alive{
 		addr:     host,
 		port:     port,
-		nodeName: joinHostPort(host, port),
+		nodeName: targetNodeName,
+	}
+	ru.setAliveState(aliveMsg)
+
+	if targetNodeName != ru.Name {
+		msg := join{Name: ru.Name, Addr: ru.Name}
+		if err := ru.EnqueuePackedMessage(ru.Name, joinMsg, msg); err != nil {
+			return 0, err
+		}
 	}
 
-	ru.setAliveState(aliveMsg)
 	return 0, nil
 }
 
@@ -121,9 +133,58 @@ func (ru *Rumor) handlePacket(packet *packet) {
 		ru.handlePing(packet)
 	case ackMsg:
 		ru.handleAck(packet)
+	case compoundMsg:
+		ru.handleCompound(packet)
+	case joinMsg:
+		ru.handleJoin(packet)
 	default:
 		ru.logger.Printf("Unkonow message type: %d\n", msgType)
 	}
+}
+
+func (ru *Rumor) handleCompound(pack *packet) {
+	bufs, err := decomposeCompoundMessage(pack.body())
+
+	if err != nil {
+		ru.logger.Fatal(err)
+		return
+	}
+
+	for _, buf := range bufs {
+		p := &packet{buf: buf, from: pack.from}
+		ru.handlePacket(p)
+	}
+}
+
+func (ru *Rumor) handleJoin(pack *packet) {
+	ru.logger.Println("Handling Join messsage...")
+
+	var j join
+	if err := Decode(pack.body(), &j); err != nil {
+		ru.logger.Println(err)
+		return
+	}
+
+	host, sport, err := net.SplitHostPort(j.Addr)
+	port, err := strconv.Atoi(sport)
+	if err != nil {
+		ru.logger.Fatalln(err)
+		return
+	}
+	targetNodeName := joinHostPort(host, port)
+
+	aliveMsg := &alive{
+		addr:     host,
+		port:     port,
+		nodeName: targetNodeName,
+	}
+
+	if err := ru.setAliveState(aliveMsg); err != nil {
+		ru.logger.Fatalln(err)
+		return
+	}
+
+	ru.logger.Printf("New cluster has joined: %s\n", j.Name)
 }
 
 func (ru *Rumor) handlePing(packet *packet) {
@@ -197,7 +258,7 @@ func (ru *Rumor) probe() {
 	ackCh := make(chan *ack)
 	ru.transport.setAckHandler(msg.Id, ackCh)
 
-	if err := ru.transport.sendPackedMessage(node.Address(), pingMsg, &msg); err != nil {
+	if err := ru.sendPackedMessage(node.Address(), pingMsg, &msg); err != nil {
 		ru.logger.Printf("can't send message: %s", err)
 	}
 
