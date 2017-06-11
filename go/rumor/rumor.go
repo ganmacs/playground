@@ -1,7 +1,6 @@
 package rumor
 
 import (
-	"log"
 	"net"
 	"os"
 	"strconv"
@@ -9,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/op/go-logging"
+	"github.com/ganmacs/playground/go/rumor/logger"
 )
 
 type Rumor struct {
@@ -28,7 +27,7 @@ type Rumor struct {
 	shutdownCh chan (int)
 	config     *Config // NEED?
 
-	logger *log.Logger
+	logger *logger.Logger
 }
 
 func New(config *Config) (*Rumor, error) {
@@ -37,7 +36,7 @@ func New(config *Config) (*Rumor, error) {
 		return nil, err
 	}
 
-	ru.logger.Printf("Starting rumor... %s\n", ru.Name)
+	ru.logger.Infof("Starting rumor... %s\n", ru.Name)
 
 	if err := ru.becomeAlive(); err != nil {
 		return nil, err
@@ -46,19 +45,18 @@ func New(config *Config) (*Rumor, error) {
 }
 
 func newRumor(config *Config) (*Rumor, error) {
-	logger := log.New(os.Stdout, "[Rumor] ", log.LstdFlags)
+	levelLogger := logger.NewLevelLogger(os.Stdout, logger.INFO)
 
 	tr := config.transport
 	if tr == nil {
 		trConfig := &TranportConfig{
 			bindAddr: config.BindAddr,
 			bindPort: config.BindPort,
-			logger:   logger,
+			logger:   levelLogger,
 		}
 
 		dtr, err := NewTransport(trConfig)
 		if err != nil {
-			logger.Println(err)
 			return nil, err
 		}
 		tr = dtr
@@ -70,7 +68,7 @@ func newRumor(config *Config) (*Rumor, error) {
 		nodeMap:        make(map[string]*node),
 		nodeLock:       new(sync.RWMutex),
 		transport:      tr,
-		logger:         logger,
+		logger:         levelLogger,
 		config:         config,
 		shutdownCh:     make(chan (int), 1),
 		piggybackQueue: new(PiggybackQueue),
@@ -127,7 +125,7 @@ func (ru *Rumor) listenPacket() {
 func (ru *Rumor) handlePacket(packet *packet) {
 	msgType, err := packet.messageType()
 	if err != nil {
-		ru.logger.Fatalln(err)
+		ru.logger.Error(err)
 	}
 
 	switch msgType {
@@ -140,7 +138,7 @@ func (ru *Rumor) handlePacket(packet *packet) {
 	case joinMsg:
 		ru.handleJoin(packet)
 	default:
-		ru.logger.Printf("Unkonow message type: %d\n", msgType)
+		ru.logger.Errorf("Unkonow message type: %d\n", msgType)
 	}
 }
 
@@ -159,18 +157,18 @@ func (ru *Rumor) handleCompound(pack *packet) {
 }
 
 func (ru *Rumor) handleJoin(pack *packet) {
-	ru.logger.Println("Handling Join messsage...")
+	ru.logger.Info("Handling Join messsage...")
 
 	var j join
 	if err := Decode(pack.body(), &j); err != nil {
-		ru.logger.Println(err)
+		ru.logger.Error(err)
 		return
 	}
 
 	host, sport, err := net.SplitHostPort(j.Addr)
 	port, err := strconv.Atoi(sport)
 	if err != nil {
-		ru.logger.Fatalln(err)
+		ru.logger.Error(err)
 		return
 	}
 	targetNodeName := joinHostPort(host, port)
@@ -182,43 +180,43 @@ func (ru *Rumor) handleJoin(pack *packet) {
 	}
 
 	if err := ru.setAliveState(aliveMsg); err != nil {
-		ru.logger.Fatalln(err)
+		ru.logger.Error(err)
 		return
 	}
 
-	ru.logger.Printf("New cluster has joined: %s\n", j.Name)
+	ru.logger.Infof("New member has joined: %s\n", j.Name)
 }
 
 func (ru *Rumor) handlePing(packet *packet) {
-	ru.logger.Println("Handling Ping messsage...")
+	ru.logger.Info("Handling Ping messsage...")
 	var p ping
 
 	if err := Decode(packet.body(), &p); err != nil {
-		ru.logger.Println(err)
+		ru.logger.Info(err)
 		return
 	}
 
-	ru.logger.Printf("Received:  %v\n", p)
+	ru.logger.Debugf("Received:  %v\n", p)
 	ack := ack{Id: p.Id, Name: ru.Name, Addr: ru.Name}
 
-	ru.logger.Printf("Sendign ack to %s", p.Name)
+	ru.logger.Debugf("Sendign ack to %s", p.Name)
 	if err := ru.transport.sendPackedMessage(p.Addr, ackMsg, &ack); err != nil {
-		ru.logger.Println(err)
+		ru.logger.Info(err)
 	}
 }
 
 func (ru *Rumor) handleAck(packet *packet) {
-	ru.logger.Println("Handling Ack messsage...")
+	ru.logger.Info("Handling Ack messsage...")
 	packet.body()
 
 	var a ack
 	if err := Decode(packet.body(), &a); err != nil {
-		ru.logger.Println(err)
+		ru.logger.Error(err)
 		return
 	}
 
 	if err := ru.transport.HandleAck(&a); err != nil {
-		ru.logger.Println(err)
+		ru.logger.Error(err)
 		return
 	}
 
@@ -247,11 +245,11 @@ START:
 }
 
 func (ru *Rumor) probe() {
-	ru.logger.Println("probing...")
+	ru.logger.Debug("probing...")
 	node := ru.selectNextNode()
 
 	if node == nil {
-		ru.logger.Println("There is no node to send ping")
+		ru.logger.Debug("There is no node to send ping")
 		return
 	}
 
@@ -261,14 +259,14 @@ func (ru *Rumor) probe() {
 	ru.transport.setAckHandler(msg.Id, ackCh)
 
 	if err := ru.sendPackedMessage(node.Address(), pingMsg, &msg); err != nil {
-		ru.logger.Printf("can't send message: %s", err)
+		ru.logger.Errorf("can't send message: %s", err)
 	}
 
 	select {
 	case ack := <-ackCh:
-		ru.logger.Printf("ok, Recieved ack : %v", ack)
+		ru.logger.Debugf("ok, Recieved ack : %v", ack)
 	case <-time.After(ru.config.ProbeTimeout):
-		ru.logger.Println("node is dead?")
+		ru.logger.Info("node is dead?")
 	}
 }
 

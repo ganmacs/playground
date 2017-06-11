@@ -3,8 +3,9 @@ package rumor
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net"
+
+	"github.com/ganmacs/playground/go/rumor/logger"
 )
 
 const (
@@ -24,13 +25,13 @@ type Transport struct {
 
 	ackHandlers map[int]*ackHandler
 
-	logger *log.Logger
+	logger *logger.Logger
 }
 
 type TranportConfig struct {
 	bindAddr string
 	bindPort int
-	logger   *log.Logger
+	logger   *logger.Logger
 }
 
 func NewTransport(config *TranportConfig) (*Transport, error) {
@@ -45,7 +46,7 @@ func NewTransport(config *TranportConfig) (*Transport, error) {
 	ip := net.ParseIP(addr)
 
 	if err := tr.setupUDP(ip, config.bindPort); err != nil {
-		tr.logger.Println(err)
+		tr.logger.Error(err)
 	}
 
 	return tr, nil
@@ -59,7 +60,7 @@ func (tr *Transport) setupUDP(ip net.IP, port int) error {
 	udpAddr := &net.UDPAddr{IP: ip, Port: port}
 	udpLn, err := net.ListenUDP("udp", udpAddr)
 	if err != nil {
-		tr.logger.Println(err)
+		tr.logger.Error(err)
 		return err
 	}
 
@@ -73,7 +74,7 @@ func (tr *Transport) listenUDP() {
 
 		n, addr, err := tr.udpListener.ReadFromUDP(buf)
 		if err != nil {
-			tr.logger.Printf("[ERROR] could not read %v", err)
+			tr.logger.Error("could not read %v", err)
 			continue
 		}
 
@@ -139,11 +140,11 @@ func (tr *Transport) sendData(addr string, data []byte) error {
 	}
 
 	if len(data) != size {
-		tr.logger.Printf("failed writing data %d/%d\n", size, len(data))
+		tr.logger.Errorf("failed writing data %d/%d\n", size, len(data))
 		// return error object
 	}
 
-	tr.logger.Printf("Sucess sending data %d bytes\n", size)
+	tr.logger.Debugf("Sucess sending data %d bytes\n", size)
 
 	return nil
 }

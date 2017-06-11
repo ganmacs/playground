@@ -1,5 +1,5 @@
 {
-    "memo": "0454e27b81bb7d49764f1bd107ca947ac16a6c0e8c9848f92ba96500ca1c4868",
+    "memo": "c5c4cb76fef95af9cc7d7c8bd0c4ee36779a1066fa4da4e4eb8b43f05e7ca09d",
     "projects": [
         {
             "name": "github.com/golang/protobuf",
@@ -7,14 +7,6 @@
             "revision": "5a0f697c9ed9d68fef0116532c6e05cfeae00e55",
             "packages": [
                 "proto"
-            ]
-        },
-        {
-            "name": "github.com/op/go-logging",
-            "branch": "master",
-            "revision": "970db520ece77730c7e4724c61121037378659d9",
-            "packages": [
-                "."
             ]
         },
         {
