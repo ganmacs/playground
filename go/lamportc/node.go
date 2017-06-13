@@ -4,51 +4,45 @@ import (
 	"time"
 )
 
-type LNode struct {
+type Node struct {
 	clock *lclock
 	conn  chan uint64
 }
 
-func NewNode() *LNode {
-	node := &LNode{
-		clock: newClock(),
+func NewNode(name string, interval time.Duration) *Node {
+	node := &Node{
+		clock: newClock(name),
 		conn:  make(chan uint64),
 	}
 
 	go node.startListen()
-	startTick(node.nextStep, 1*time.Second)
+	go node.startTick(interval)
 
 	return node
 }
 
-func (lc *LNode) Start(fn func(*LNode)) {
+func (lc *Node) Start(fn func(*Node)) {
 	fn(lc)
 }
 
-func (lc *LNode) CurrentStep() uint64 {
-	return lc.clock.step
-}
-
-func (lc *LNode) nextStep() {
+func (lc *Node) WriteCurrentStep(other *Node) {
+	other.conn <- lc.clock.now()
 	lc.clock.tick()
 }
 
-func (lc *LNode) setStep(v uint64) {
-	lc.clock.set(v)
-}
-
-func (lc *LNode) startListen() {
+func (lc *Node) startListen() {
 	for {
 		v := <-lc.conn
-		go lc.setStep(v)
+		go lc.clock.set(v)
 	}
 }
 
-func startTick(fn func(), t time.Duration) {
-	c := time.Tick(t)
-
+func (lc *Node) startTick(interval time.Duration) {
+	c := time.Tick(interval * time.Millisecond)
 	go func() {
-		<-c
-		go fn()
+		for {
+			<-c
+			go lc.clock.tick()
+		}
 	}()
 }

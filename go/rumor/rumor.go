@@ -182,10 +182,14 @@ func (ru *Rumor) handleJoin(pack *packet) {
 		nodeName: targetNodeName,
 	}
 
+	now := Time.Now()
+
 	if err := ru.setAliveState(aliveMsg); err != nil {
 		ru.logger.Error(err)
 		return
 	}
+
+	ru.rumorMessage()
 
 	ru.logger.Infof("New member has joined: %s\n", j.Name)
 }
