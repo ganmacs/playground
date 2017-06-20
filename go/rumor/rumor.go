@@ -15,9 +15,11 @@ type Rumor struct {
 	Name string
 
 	// node name => node
-	nodeLock       *sync.RWMutex
-	nodeMap        map[string]*node
-	nodes          []*node
+	nodeLock    *sync.RWMutex
+	Incarnation uint64
+
+	nodeMap        map[string]*Node
+	nodes          []*Node
 	nodeNum        int
 	probeIndex     int
 	seqNumber      int32 // this number is used for ping
@@ -38,9 +40,8 @@ func New(config *Config) (*Rumor, error) {
 
 	ru.logger.Infof("Starting rumor... %s\n", ru.Name)
 
-	if err := ru.becomeAlive(); err != nil {
-		return nil, err
-	}
+	ru.becomeAlive()
+
 	return ru, nil
 }
 
@@ -68,7 +69,7 @@ func newRumor(config *Config) (*Rumor, error) {
 
 	ru := &Rumor{
 		Name:           joinHostPort(config.BindAddr, config.BindPort),
-		nodeMap:        make(map[string]*node),
+		nodeMap:        make(map[string]*Node),
 		nodeLock:       new(sync.RWMutex),
 		transport:      tr,
 		logger:         l,
@@ -96,16 +97,16 @@ func (ru *Rumor) Join(hostStr string) (int, error) {
 	}
 	targetNodeName := joinHostPort(host, port)
 
-	aliveMsg := &alive{
-		addr:     host,
-		port:     port,
-		nodeName: targetNodeName,
+	msg := &alive{
+		Addr: host,
+		Port: port,
+		Name: targetNodeName,
 	}
-	ru.setAliveState(aliveMsg)
+
+	ru.AliveState(msg)
 
 	if targetNodeName != ru.Name {
-		msg := join{Name: ru.Name, Addr: ru.Name}
-		if err := ru.EnqueuePackedMessage(ru.Name, joinMsg, msg); err != nil {
+		if err := ru.EnqueuePackedMessage(ru.Name, aliveMsg, msg); err != nil {
 			return 0, err
 		}
 	}
@@ -138,8 +139,8 @@ func (ru *Rumor) handlePacket(packet *packet) {
 		ru.handleAck(packet)
 	case compoundMsg:
 		ru.handleCompound(packet)
-	case joinMsg:
-		ru.handleJoin(packet)
+	case aliveMsg:
+		ru.handleAlive(packet)
 	default:
 		ru.logger.Errorf("Unkonow message type: %d\n", msgType)
 	}
@@ -159,39 +160,25 @@ func (ru *Rumor) handleCompound(pack *packet) {
 	}
 }
 
-func (ru *Rumor) handleJoin(pack *packet) {
-	ru.logger.Info("Handling Join messsage...")
+func (ru *Rumor) handleAlive(pack *packet) {
+	ru.logger.Info("Handling Alive messsage...")
 
-	var j join
-	if err := Decode(pack.body(), &j); err != nil {
+	var a alive
+	if err := Decode(pack.body(), &a); err != nil {
 		ru.logger.Error(err)
 		return
 	}
 
-	host, sport, err := net.SplitHostPort(j.Addr)
-	port, err := strconv.Atoi(sport)
-	if err != nil {
-		ru.logger.Error(err)
-		return
-	}
-	targetNodeName := joinHostPort(host, port)
+	// host, sport, err := net.SplitHostPort(a.Name)
+	// port, err := strconv.Atoi(sport)
+	// if err != nil {
+	// 	ru.logger.Error(err)
+	// 	return
+	// }
+	// targetNodeName := joinHostPort(host, port)
+	ru.logger.Info("--------------------------")
 
-	aliveMsg := &alive{
-		addr:     host,
-		port:     port,
-		nodeName: targetNodeName,
-	}
-
-	now := Time.Now()
-
-	if err := ru.setAliveState(aliveMsg); err != nil {
-		ru.logger.Error(err)
-		return
-	}
-
-	ru.rumorMessage()
-
-	ru.logger.Infof("New member has joined: %s\n", j.Name)
+	ru.AliveState(&a)
 }
 
 func (ru *Rumor) handlePing(packet *packet) {
@@ -229,7 +216,7 @@ func (ru *Rumor) handleAck(packet *packet) {
 
 }
 
-func (ru *Rumor) selectNextNode() *node {
+func (ru *Rumor) selectNextNode() *Node {
 	tryCount := 0
 
 START:
@@ -281,7 +268,7 @@ func (ru *Rumor) nextSeq() int32 {
 	return atomic.AddInt32(&ru.seqNumber, 1)
 }
 
-func (ru *Rumor) selectNodes(k int, fn func(string, *node) bool) (nodes []*node) {
+func (ru *Rumor) selectNodes(k int, fn func(string, *Node) bool) (nodes []*Node) {
 	v := 0
 	for name, node := range ru.nodeMap {
 		if fn(name, node) {
@@ -296,36 +283,56 @@ func (ru *Rumor) selectNodes(k int, fn func(string, *node) bool) (nodes []*node)
 	return
 }
 
-func (ru *Rumor) becomeAlive() error {
+func (ru *Rumor) becomeAlive() {
 	aliveMsg := &alive{
-		nodeName: ru.Name,
-		port:     ru.config.BindPort,
-		addr:     ru.config.BindAddr,
+		Name:        ru.Name,
+		Port:        ru.config.BindPort,
+		Addr:        ru.config.BindAddr,
+		Incarnation: ru.Tick(),
 	}
 
-	return ru.setAliveState(aliveMsg)
+	ru.AliveState(aliveMsg)
 }
 
-func (ru *Rumor) setAliveState(a *alive) error {
+func (ru *Rumor) AliveState(a *alive) {
 	ru.nodeLock.Lock()
 	defer ru.nodeLock.Unlock()
-	nd, ok := ru.nodeMap[a.nodeName]
+	nd, ok := ru.nodeMap[a.Name]
 
 	if !ok {
-		nd = &node{
-			addr:      a.addr,
-			port:      a.port,
-			stateType: deadState,
-			name:      a.nodeName,
+		nd = &Node{
+			name:        a.Name,
+			addr:        a.Addr,
+			port:        a.Port,
+			stateType:   deadState,
+			incarnation: a.Incarnation,
 		}
-		ru.nodeMap[a.nodeName] = nd
+		ru.nodeMap[a.Name] = nd
 		ru.nodes = append(ru.nodes, nd)
-		ru.nodeNum += 1
+		ru.nodeNum += 1 // does it need to update atomicaly?
 	}
 
-	nd.AliveState()
+	nd.aliveNode()
 
-	return nil
+	// throw away an old message
+	if a.Incarnation < nd.incarnation {
+		return
+	}
+
+	if nd.name == ru.Name {
+		// declear that I'm alive or something
+	} else {
+		// re-broadcast
+		if err := ru.EnqueuePackedMessage(nd.name, aliveMsg, a); err != nil {
+			ru.logger.Error(err)
+			return
+		}
+
+		nd.incarnation = a.Incarnation
+		if nd.stateType != aliveState {
+			nd.aliveNode()
+		}
+	}
 }
 
 func startTick(t time.Duration, fn func()) {

@@ -6,23 +6,25 @@ import (
 	"time"
 )
 
-type node struct {
-	name        string
-	addr        string
-	port        int
+type Node struct {
+	name string
+	addr string
+	port int
+
+	incarnation uint64
 	stateType   stateType
 	stateChange time.Time
 }
 
-func (node *node) Address() string {
-	return net.JoinHostPort(node.addr, strconv.Itoa(node.port))
+func (nd *Node) Address() string {
+	return net.JoinHostPort(nd.addr, strconv.Itoa(nd.port))
 }
 
-func (node *node) AliveState() {
-	if node.stateType == aliveState {
+func (nd *Node) aliveNode() {
+	if nd.stateType == aliveState {
 		return
 	}
 
-	node.stateType = aliveState
-	node.stateChange = time.Now()
+	nd.stateType = aliveState
+	nd.stateChange = time.Now()
 }

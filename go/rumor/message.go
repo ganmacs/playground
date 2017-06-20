@@ -17,7 +17,6 @@ const (
 
 	aliveMsg
 
-	joinMsg
 	compoundMsg
 )
 
@@ -33,15 +32,11 @@ type ack struct {
 	Addr string
 }
 
-type join struct {
-	Name string
-	Addr string
-}
-
 type alive struct {
-	nodeName string
-	addr     string
-	port     int
+	Name        string
+	Addr        string
+	Port        int
+	Incarnation uint64
 }
 
 func ComposeCompoundMessage(msgs [][]byte) *bytes.Buffer {
