@@ -15,13 +15,13 @@ type Rumor struct {
 	Name string
 
 	// node name => node
-	nodeLock        *sync.RWMutex
-	nodeMap         map[string]*node
-	piggybackQueMap map[string]*PiggybackQueue
-	nodes           []*node
-	nodeNum         int
-	probeIndex      int
-	seqNumber       int32 // this number is used for ping
+	nodeLock       *sync.RWMutex
+	nodeMap        map[string]*node
+	nodes          []*node
+	nodeNum        int
+	probeIndex     int
+	seqNumber      int32 // this number is used for ping
+	piggybackQueue *PiggybackQueue
 
 	transport  *Transport
 	shutdownCh chan (int)
@@ -67,14 +67,14 @@ func newRumor(config *Config) (*Rumor, error) {
 	tr.Start() // FIX
 
 	ru := &Rumor{
-		Name:            joinHostPort(config.BindAddr, config.BindPort),
-		nodeMap:         make(map[string]*node),
-		piggybackQueMap: make(map[string]*PiggybackQueue),
-		nodeLock:        new(sync.RWMutex),
-		transport:       tr,
-		logger:          l,
-		config:          config,
-		shutdownCh:      make(chan (int), 1),
+		Name:           joinHostPort(config.BindAddr, config.BindPort),
+		nodeMap:        make(map[string]*node),
+		nodeLock:       new(sync.RWMutex),
+		transport:      tr,
+		logger:         l,
+		config:         config,
+		shutdownCh:     make(chan (int), 1),
+		piggybackQueue: new(PiggybackQueue),
 	}
 
 	return ru, nil
@@ -105,7 +105,7 @@ func (ru *Rumor) Join(hostStr string) (int, error) {
 
 	if targetNodeName != ru.Name {
 		msg := join{Name: ru.Name, Addr: ru.Name}
-		if err := ru.EnqueuePackedMessage(targetNodeName, joinMsg, msg); err != nil {
+		if err := ru.EnqueuePackedMessage(ru.Name, joinMsg, msg); err != nil {
 			return 0, err
 		}
 	}
@@ -321,7 +321,6 @@ func (ru *Rumor) setAliveState(a *alive) error {
 		ru.nodeMap[a.nodeName] = nd
 		ru.nodes = append(ru.nodes, nd)
 		ru.nodeNum += 1
-		ru.piggybackQueMap[a.nodeName] = new(PiggybackQueue)
 	}
 
 	nd.AliveState()
