@@ -158,7 +158,7 @@ func (ru *Rumor) sendPackedMessage(addr string, msgType messageType, msg interfa
 
 	bmsg := emsg.Bytes()
 
-	msgs := ru.GetPiggybackData(len(bmsg), compoundMsgSizeOverhead)
+	msgs := ru.GetPiggybackData(udpPacketBufSize, compoundMsgSizeOverhead)
 
 	if len(msgs) == 0 {
 		return ru.transport.sendMessage(addr, bmsg)
