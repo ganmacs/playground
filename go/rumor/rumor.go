@@ -103,9 +103,15 @@ func (ru *Rumor) Join(hostStr string) (int, error) {
 		Name: targetNodeName,
 	}
 
-	ru.AliveState(msg)
+	ru.AliveState(msg) // register new node only
 
 	if targetNodeName != ru.Name {
+		msg = &alive{
+			Name:        ru.Name,
+			Port:        ru.config.BindPort,
+			Addr:        ru.config.BindAddr,
+			Incarnation: ru.Incarnation,
+		}
 		if err := ru.EnqueuePackedMessage(ru.Name, aliveMsg, msg); err != nil {
 			return 0, err
 		}
@@ -176,8 +182,6 @@ func (ru *Rumor) handleAlive(pack *packet) {
 	// 	return
 	// }
 	// targetNodeName := joinHostPort(host, port)
-	ru.logger.Info("--------------------------")
-
 	ru.AliveState(&a)
 }
 
