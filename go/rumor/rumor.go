@@ -167,8 +167,6 @@ func (ru *Rumor) handleCompound(pack *packet) {
 }
 
 func (ru *Rumor) handleAlive(pack *packet) {
-	ru.logger.Info("Handling Alive messsage...")
-
 	var a alive
 	if err := Decode(pack.body(), &a); err != nil {
 		ru.logger.Error(err)
@@ -182,11 +180,12 @@ func (ru *Rumor) handleAlive(pack *packet) {
 	// 	return
 	// }
 	// targetNodeName := joinHostPort(host, port)
+	ru.logger.Infof("Receive ALIVE messsage from %s\n", a.Name)
+
 	ru.AliveState(&a)
 }
 
 func (ru *Rumor) handlePing(packet *packet) {
-	ru.logger.Info("Handling Ping messsage...")
 	var p ping
 
 	if err := Decode(packet.body(), &p); err != nil {
@@ -194,17 +193,15 @@ func (ru *Rumor) handlePing(packet *packet) {
 		return
 	}
 
-	ru.logger.Debugf("Received:  %v\n", p)
-	ack := ack{Id: p.Id, Name: ru.Name, Addr: ru.Name}
+	ru.logger.Infof("Receive PING messsage and Return ACK message: %s\n", p.Name)
 
-	ru.logger.Debugf("Sendign ack to %s", p.Name)
+	ack := ack{Id: p.Id, Name: ru.Name, Addr: ru.Name}
 	if err := ru.transport.sendPackedMessage(p.Addr, ackMsg, &ack); err != nil {
 		ru.logger.Info(err)
 	}
 }
 
 func (ru *Rumor) handleAck(packet *packet) {
-	ru.logger.Info("Handling Ack messsage...")
 	packet.body()
 
 	var a ack
@@ -213,11 +210,11 @@ func (ru *Rumor) handleAck(packet *packet) {
 		return
 	}
 
+	ru.logger.Infof("Recieved ACK messsage from %s", a.Name)
 	if err := ru.transport.HandleAck(&a); err != nil {
 		ru.logger.Error(err)
 		return
 	}
-
 }
 
 func (ru *Rumor) selectNextNode() *Node {
@@ -243,7 +240,7 @@ START:
 }
 
 func (ru *Rumor) probe() {
-	ru.logger.Debug("probing...")
+	ru.logger.Debug("Probing...")
 	node := ru.selectNextNode()
 
 	if node == nil {
@@ -256,15 +253,16 @@ func (ru *Rumor) probe() {
 	ackCh := make(chan *ack)
 	ru.transport.setAckHandler(msg.Id, ackCh)
 
+	ru.logger.Infof("Send PING message to %s\n", node.Address())
 	if err := ru.sendPackedMessage(node.Address(), pingMsg, &msg); err != nil {
 		ru.logger.Errorf("can't send message: %s", err)
 	}
 
 	select {
 	case ack := <-ackCh:
-		ru.logger.Debugf("ok, Recieved ack : %v", ack)
+		ru.logger.Debugf("Recieved ACK in required time: %v", ack)
 	case <-time.After(ru.config.ProbeTimeout):
-		ru.logger.Info("node is dead?")
+		ru.logger.Errorf("Ack is not comming. %s is dead?\n", node.Address())
 	}
 }
 

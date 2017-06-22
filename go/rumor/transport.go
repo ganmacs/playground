@@ -144,7 +144,7 @@ func (tr *Transport) sendData(addr string, data []byte) error {
 		// return error object
 	}
 
-	tr.logger.Debugf("Sucess sending data %d bytes\n", size)
+	tr.logger.Debugf("Sending data %d bytes to %s\n", size, addr)
 
 	return nil
 }
