@@ -164,5 +164,6 @@ func (ru *Rumor) sendPackedMessage(addr string, msgType messageType, msg interfa
 		return ru.transport.sendMessage(addr, bmsg)
 	}
 
-	return ru.transport.sendCompoundMessage(addr, append(msgs, bmsg))
+	// To put PING or ACK mesage (bmsg) at the head of coumpound Message
+	return ru.transport.sendCompoundMessage(addr, append([][]byte{bmsg}, msgs...))
 }
