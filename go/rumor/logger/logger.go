@@ -93,7 +93,7 @@ func (l *Logger) Warnf(format string, v ...interface{}) {
 
 func (l *Logger) Infof(format string, v ...interface{}) {
 	if l.level >= INFO {
-		l.backend.Printf(prefixInfo+format, v)
+		l.backend.Printf(prefixInfo+format, v...)
 	}
 }
 
