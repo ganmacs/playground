@@ -180,7 +180,7 @@ func (ru *Rumor) handleAlive(pack *packet) {
 	// 	return
 	// }
 	// targetNodeName := joinHostPort(host, port)
-	ru.logger.Infof("Receive ALIVE messsage from %s\n", a.Name)
+	ru.logger.Infof("Receive ALIVE messsage about %s\n", a.Name)
 
 	ru.AliveState(&a)
 }
@@ -318,6 +318,7 @@ func (ru *Rumor) AliveState(a *alive) {
 
 	// throw away an old message
 	if a.Incarnation < nd.incarnation {
+		ru.logger.Debugf("Receive old ALIVE message about %s\n", a.Name)
 		return
 	}
 
@@ -325,6 +326,7 @@ func (ru *Rumor) AliveState(a *alive) {
 		// declear that I'm alive or something
 	} else {
 		// re-broadcast
+		ru.logger.Debugf("Enqueu message for %s\n", a.Name)
 		if err := ru.EnqueuePackedMessage(nd.name, aliveMsg, a); err != nil {
 			ru.logger.Error(err)
 			return
