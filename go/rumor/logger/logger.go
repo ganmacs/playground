@@ -31,14 +31,14 @@ type Logger struct {
 
 func NewSimpleLogger(device io.Writer) *Logger {
 	return &Logger{
-		backend: log.New(device, "", log.LstdFlags),
+		backend: log.New(device, "", log.Lmicroseconds|log.Ldate),
 		level:   INFO,
 	}
 }
 
 func NewLevelLogger(device io.Writer, level LogLevel) *Logger {
 	return &Logger{
-		backend: log.New(device, "", log.LstdFlags),
+		backend: log.New(device, "", log.Lmicroseconds|log.Ldate),
 		level:   level,
 	}
 }
