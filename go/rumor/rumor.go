@@ -197,7 +197,7 @@ func (ru *Rumor) handlePing(packet *packet) {
 	ru.logger.Infof("Receive PING messsage and Return ACK message: %s\n", p.Name)
 
 	ack := ack{Id: p.Id, Name: ru.Name, Addr: ru.Name}
-	if err := ru.transport.sendPackedMessage(p.Addr, ackMsg, &ack); err != nil {
+	if err := ru.sendPackedMessage(p.Addr, ackMsg, &ack); err != nil {
 		ru.logger.Info(err)
 	}
 }
