@@ -1,6 +1,7 @@
 package rumor
 
 import (
+	"math/rand"
 	"net"
 	"os"
 	"strconv"
@@ -310,7 +311,10 @@ func (ru *Rumor) AliveState(a *alive) {
 			incarnation: a.Incarnation,
 		}
 		ru.nodeMap[a.Name] = nd
+		offset := randInt(ru.nodeNum)
 		ru.nodes = append(ru.nodes, nd)
+		ru.nodes[offset], ru.nodes[ru.nodeNum] = ru.nodes[ru.nodeNum], ru.nodes[offset]
+
 		ru.nodeNum += 1 // does it need to update atomicaly?
 	}
 
@@ -351,4 +355,12 @@ func startTick(t time.Duration, fn func()) {
 
 func joinHostPort(host string, port int) string {
 	return net.JoinHostPort(host, strconv.Itoa(port))
+}
+
+func randInt(n int) int {
+	if n == 0 {
+		return n
+	}
+
+	return (rand.Int() % n)
 }
