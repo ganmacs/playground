@@ -304,11 +304,10 @@ func (ru *Rumor) AliveState(a *alive) {
 
 	if !ok {
 		nd = &Node{
-			name:        a.Name,
-			addr:        a.Addr,
-			port:        a.Port,
-			stateType:   deadState,
-			incarnation: a.Incarnation,
+			name:      a.Name,
+			addr:      a.Addr,
+			port:      a.Port,
+			stateType: deadState,
 		}
 		ru.nodeMap[a.Name] = nd
 		offset := randInt(ru.nodeNum)
@@ -329,6 +328,10 @@ func (ru *Rumor) AliveState(a *alive) {
 	if nd.name == ru.Name {
 		// declear that I'm alive or something
 	} else {
+		if a.Incarnation == nd.incarnation {
+			return
+		}
+
 		// re-broadcast
 		ru.logger.Debugf("Enqueu message for %s\n", a.Name)
 		if err := ru.EnqueuePackedMessage(nd.name, aliveMsg, a); err != nil {
