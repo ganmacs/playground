@@ -21,7 +21,7 @@ type Rumor struct {
 
 	nodeMap         map[string]*Node
 	nodes           []*Node
-	nodeNum         int
+	nodeNum         uint32
 	probeIndex      int
 	seqNumber       int32 // this number is used for ping
 	piggybackBuffer *PiggybackBuffer
@@ -296,6 +296,10 @@ func (ru *Rumor) becomeAlive() {
 	ru.AliveState(aliveMsg)
 }
 
+func (ru *Rumor) NumSize() int {
+	return int(atomic.LoadUint32(&ru.nodeNum))
+}
+
 func (ru *Rumor) AliveState(a *alive) {
 	ru.nodeLock.Lock()
 	defer ru.nodeLock.Unlock()
@@ -309,11 +313,13 @@ func (ru *Rumor) AliveState(a *alive) {
 			stateType: deadState,
 		}
 		ru.nodeMap[a.Name] = nd
-		offset := randInt(ru.nodeNum)
-		ru.nodes = append(ru.nodes, nd)
-		ru.nodes[offset], ru.nodes[ru.nodeNum] = ru.nodes[ru.nodeNum], ru.nodes[offset]
 
-		ru.nodeNum += 1 // does it need to update atomicaly?
+		size := ru.NumSize()
+		offset := randInt(size)
+		ru.nodes = append(ru.nodes, nd)
+		ru.nodes[offset], ru.nodes[size] = ru.nodes[size], ru.nodes[offset]
+
+		atomic.AddUint32(&ru.nodeNum, 1)
 	}
 
 	nd.aliveNode()
