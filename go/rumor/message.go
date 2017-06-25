@@ -42,7 +42,6 @@ type pingReq struct {
 type alive struct {
 	Name        string
 	Addr        string
-	Port        int
 	Incarnation uint64
 }
 

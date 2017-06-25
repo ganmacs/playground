@@ -103,8 +103,7 @@ func (ru *Rumor) Join(hostStr string) (int, error) {
 	targetNodeName := joinHostPort(host, port)
 
 	msg := &alive{
-		Addr: host,
-		Port: port,
+		Addr: targetNodeName,
 		Name: targetNodeName,
 	}
 
@@ -113,8 +112,7 @@ func (ru *Rumor) Join(hostStr string) (int, error) {
 	if targetNodeName != ru.Name {
 		msg = &alive{
 			Name:        ru.Name,
-			Port:        ru.config.BindPort,
-			Addr:        ru.config.BindAddr,
+			Addr:        ru.Name,
 			Incarnation: ru.Incarnation,
 		}
 		if err := ru.PushMessageToBuffer(ru.Name, aliveMsg, msg); err != nil {
@@ -212,22 +210,9 @@ func (ru *Rumor) handlePing(packet *packet) {
 	nd, ok := ru.nodeMap[p.Name]
 
 	if !ok {
-		host, sport, err := net.SplitHostPort(p.Name)
-		if err != nil {
-			ru.logger.Error(err)
-			return
-		}
-
-		port, err := strconv.Atoi(sport)
-		if err != nil {
-			ru.logger.Error(err)
-			return
-		}
-
 		nd = &Node{
 			name:      p.Name,
-			addr:      host,
-			port:      port,
+			addr:      p.Name,
 			stateType: deadState,
 		}
 
@@ -395,8 +380,7 @@ func (ru *Rumor) selectNodes(k int, fn func(string, *Node) bool) (nodes []*Node)
 func (ru *Rumor) becomeAlive() {
 	aliveMsg := &alive{
 		Name:        ru.Name,
-		Port:        ru.config.BindPort,
-		Addr:        ru.config.BindAddr,
+		Addr:        ru.Name,
 		Incarnation: ru.Tick(),
 	}
 
@@ -416,7 +400,6 @@ func (ru *Rumor) AliveState(a *alive) {
 		nd = &Node{
 			name:      a.Name,
 			addr:      a.Addr,
-			port:      a.Port,
 			stateType: deadState,
 		}
 		ru.nodeMap[a.Name] = nd
