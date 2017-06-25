@@ -204,6 +204,41 @@ func (ru *Rumor) handlePing(packet *packet) {
 	if err := ru.sendPackedMessage(p.Addr, ackMsg, &ack); err != nil {
 		ru.logger.Info(err)
 	}
+
+	// register unkown node
+	ru.nodeLock.Lock()
+	nd, ok := ru.nodeMap[p.Name]
+
+	if !ok {
+		host, sport, err := net.SplitHostPort(p.Name)
+		if err != nil {
+			ru.logger.Error(err)
+			return
+		}
+
+		port, err := strconv.Atoi(sport)
+		if err != nil {
+			ru.logger.Error(err)
+			return
+		}
+
+		nd = &Node{
+			name:      p.Name,
+			addr:      host,
+			port:      port,
+			stateType: deadState,
+		}
+
+		ru.nodeMap[p.Name] = nd
+
+		size := ru.NumSize()
+		offset := randInt(size)
+		ru.nodes = append(ru.nodes, nd)
+		ru.nodes[offset], ru.nodes[size] = ru.nodes[size], ru.nodes[offset]
+
+		atomic.AddUint32(&ru.nodeNum, 1)
+	}
+	ru.nodeLock.Unlock()
 }
 
 func (ru *Rumor) handleAck(packet *packet) {
