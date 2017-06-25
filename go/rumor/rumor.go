@@ -271,8 +271,6 @@ func (ru *Rumor) handlePingReq(packet *packet) {
 }
 
 func (ru *Rumor) handleAck(packet *packet) {
-	packet.body()
-
 	var a ack
 	if err := Decode(packet.body(), &a); err != nil {
 		ru.logger.Error(err)
