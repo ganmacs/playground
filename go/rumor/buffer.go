@@ -1,20 +1,42 @@
 package rumor
 
 import (
+	"math"
+	"sort"
 	"sync"
 )
 
+type PackedMessage struct {
+	nodeName      string
+	buf           []byte
+	transmitCount int
+	size          int
+}
+
+func (m *PackedMessage) Expired(limit float64) bool {
+	return float64(m.transmitCount) >= limit
+}
+
 type Messages []*PackedMessage
 
-type PackedMessage struct {
-	nodeName string
-	buf      []byte
-	size     int
+func (m Messages) Len() int {
+	return len(m)
+}
+
+func (m Messages) Less(i, j int) bool {
+	return m[i].transmitCount > m[j].transmitCount
+}
+
+func (m Messages) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
 }
 
 type PiggybackBuffer struct {
-	messages Messages
-	size     int
+	NodeSize func() int
+
+	messages    Messages
+	size        int
+	transmitLam float64
 
 	mutex sync.Mutex
 }
@@ -70,7 +92,10 @@ func (q *PiggybackBuffer) Get(limit, overhead int) [][]byte {
 		return sendBytes
 	}
 
-	for i := 0; i < len(q.messages); i++ {
+	transmitLimit := q.transmitLimit()
+
+	// messages is ordered by DESC of transimittCount
+	for i := len(q.messages) - 1; i >= 0; i-- {
 		pm := q.messages[i]
 		if limit < usedByte+pm.size+overhead {
 			continue
@@ -79,15 +104,26 @@ func (q *PiggybackBuffer) Get(limit, overhead int) [][]byte {
 		// XXX check limit message count
 		sendBytes = append(sendBytes, pm.buf)
 
-		n := len(q.messages)
-		q.messages[i], q.messages[n-1] = q.messages[n-1], nil
-		if (n - 1) != i { // not at last
-			i-- // Now, i is new value which existed at last of messages array
+		pm.transmitCount++
+		if pm.Expired(transmitLimit) {
+			n := len(q.messages)
+			q.messages[i], q.messages[n-1] = q.messages[n-1], nil
+			q.messages = q.messages[:n-1]
 		}
-		q.messages = q.messages[:n-1]
+	}
+
+	if len(sendBytes) > 0 {
+		q.Sort()
 	}
 
 	return sendBytes
+}
+
+// t * log2(N) where t is parameter and N is number of nodes
+func (q *PiggybackBuffer) transmitLimit() float64 {
+	nodeNum := q.NodeSize()
+	nodeScale := math.Log2(float64(nodeNum))
+	return q.transmitLam * nodeScale
 }
 
 func (q *PiggybackBuffer) Reset() {
@@ -102,4 +138,10 @@ func (q *PiggybackBuffer) Size() int {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 	return q.size
+}
+
+// Not thread safe
+// XXX check sync.Mutext to be reentrant or not
+func (q *PiggybackBuffer) Sort() {
+	sort.Sort(q.messages)
 }

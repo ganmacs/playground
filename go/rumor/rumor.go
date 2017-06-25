@@ -76,7 +76,11 @@ func newRumor(config *Config) (*Rumor, error) {
 		logger:          l,
 		config:          config,
 		shutdownCh:      make(chan (int), 1),
-		piggybackBuffer: new(PiggybackBuffer),
+		piggybackBuffer: &PiggybackBuffer{transmitLam: config.TransmitLammda},
+	}
+
+	ru.piggybackBuffer.NodeSize = func() int {
+		return ru.NumSize()
 	}
 
 	return ru, nil
