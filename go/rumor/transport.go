@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sync"
+	"time"
 
 	"github.com/ganmacs/playground/go/rumor/logger"
 )
@@ -13,7 +15,8 @@ const (
 )
 
 type ackHandler struct {
-	ch chan *ack
+	ch    chan *ack
+	timer *time.Timer
 }
 
 type Transport struct {
@@ -24,6 +27,7 @@ type Transport struct {
 	shutdownCh chan int
 
 	ackHandlers map[int]*ackHandler
+	mutex       sync.Mutex
 
 	logger *logger.Logger
 }
@@ -86,10 +90,22 @@ func (tr *Transport) PacketCh() chan (*packet) {
 	return tr.packetCh
 }
 
-func (tr *Transport) setAckHandler(seqNo int, ch chan *ack) {
-	tr.ackHandlers[seqNo] = &ackHandler{ch}
+func (tr *Transport) setAckHandler(seqNo int, ch chan *ack, timeout time.Duration) {
+	tr.mutex.Lock()
+	defer tr.mutex.Unlock()
+
+	handler := &ackHandler{ch: ch}
+
+	handler.timer = time.AfterFunc(timeout, func() {
+		tr.mutex.Lock()
+		tr.deleteAckHandler(seqNo)
+		close(ch)
+		tr.mutex.Unlock()
+	})
+	tr.ackHandlers[seqNo] = handler
 }
 
+// Not thread safe
 func (tr *Transport) deleteAckHandler(seqNo int) {
 	delete(tr.ackHandlers, seqNo)
 }
@@ -97,9 +113,8 @@ func (tr *Transport) deleteAckHandler(seqNo int) {
 func (tr *Transport) HandleAck(ackMsg *ack) error {
 	handler, ok := tr.ackHandlers[ackMsg.Id]
 	if !ok {
-		return errors.New(fmt.Sprintf("unknow ack message id %v", ackMsg))
+		return errors.New(fmt.Sprintf("unknown ack message id %v (or already timeout)", ackMsg))
 	}
-	tr.deleteAckHandler(ackMsg.Id)
 
 	handler.ch <- ackMsg
 	return nil

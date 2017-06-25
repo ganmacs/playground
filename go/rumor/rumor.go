@@ -152,6 +152,8 @@ func (ru *Rumor) handlePacket(packet *packet) {
 		ru.handleCompound(packet)
 	case aliveMsg:
 		ru.handleAlive(packet)
+	case pingReqMsg:
+		ru.handlePingReq(packet)
 	default:
 		ru.logger.Errorf("Unkonow message type: %d\n", msgType)
 	}
@@ -241,6 +243,33 @@ func (ru *Rumor) handlePing(packet *packet) {
 	ru.nodeLock.Unlock()
 }
 
+func (ru *Rumor) handlePingReq(packet *packet) {
+	var p pingReq
+	if err := Decode(packet.body(), &p); err != nil {
+		ru.logger.Error(err)
+		return
+	}
+
+	ru.logger.Infof("Recieved PING_REQ messsage from %s", p.FromName)
+
+	addr := joinHostPort(ru.config.BindAddr, ru.config.BindPort)
+	msg := ping{Id: int(ru.nextSeq()), Name: ru.Name, Addr: addr}
+	ackCh := make(chan *ack)
+	ru.transport.setAckHandler(msg.Id, ackCh, ru.config.ProbeTimeout)
+
+	select {
+	case <-ackCh:
+		ack := ack{Id: p.Id, Name: ru.Name, Addr: ru.Name}
+		if err := ru.sendPackedMessage(p.FromName, ackMsg, &ack); err != nil {
+			ru.logger.Error(err)
+			return
+		}
+		return
+	case <-time.After(ru.config.ProbeTimeout):
+		ru.logger.Errorf("Ack is not comming. %s is dead?\n", p.ToAddr)
+	}
+}
+
 func (ru *Rumor) handleAck(packet *packet) {
 	packet.body()
 
@@ -275,6 +304,10 @@ START:
 		goto START
 	}
 
+	if node.stateType == deadState {
+		goto START
+	}
+
 	return node
 }
 
@@ -290,7 +323,7 @@ func (ru *Rumor) probe() {
 	addr := joinHostPort(ru.config.BindAddr, ru.config.BindPort)
 	msg := ping{Id: int(ru.nextSeq()), Name: ru.Name, Addr: addr}
 	ackCh := make(chan *ack)
-	ru.transport.setAckHandler(msg.Id, ackCh)
+	ru.transport.setAckHandler(msg.Id, ackCh, ru.config.ProbeTimeout*3) // three time is temporarily
 
 	ru.logger.Infof("Send PING message to %s\n", node.Address())
 	if err := ru.sendPackedMessage(node.Address(), pingMsg, &msg); err != nil {
@@ -298,11 +331,48 @@ func (ru *Rumor) probe() {
 	}
 
 	select {
-	case ack := <-ackCh:
-		ru.logger.Debugf("Recieved ACK in required time: %v", ack)
+	case ack, ok := <-ackCh:
+		if ok {
+			ru.logger.Debugf("Recieved ACK in required time: %v", ack)
+			return
+		} else {
+			ru.logger.Error("Socket is closed")
+		}
 	case <-time.After(ru.config.ProbeTimeout):
-		ru.logger.Errorf("Ack is not comming. %s is dead?\n", node.Address())
+		ru.logger.Errorf("In probing Ack is not comming. %s is dead?\n", node.Address())
 	}
+
+	// send ping-req
+	ru.nodeLock.Lock()
+	nodes := ru.selectNodes(ru.config.RumorNodeCount, func(name string, node *Node) bool {
+		if node.name == ru.Name {
+			return false
+		}
+
+		return node.stateType == aliveState
+	})
+	ru.nodeLock.Unlock()
+
+	newMsg := &pingReq{Id: msg.Id, FromName: ru.Name, ToAddr: node.Address()}
+	for _, node := range nodes {
+		ru.logger.Debugf("Sending PING_REQ messaeg to %s", node.Address())
+		if err := ru.sendPackedMessage(node.Address(), pingReqMsg, newMsg); err != nil {
+			ru.logger.Errorf("can't send message: %s", err)
+		}
+	}
+
+	select {
+	case ack, ok := <-ackCh:
+		if ok {
+			ru.logger.Debugf("Recieved ACK by PING_REQ : %v", ack)
+			return
+		} else {
+			ru.logger.Error("Socket is closed")
+		}
+	}
+
+	ru.logger.Infof("node is dead %s", node.Address())
+	node.deadNode()
 }
 
 func (ru *Rumor) nextSeq() int32 {

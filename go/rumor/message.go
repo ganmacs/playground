@@ -14,6 +14,7 @@ type messageType uint8
 const (
 	pingMsg messageType = iota
 	ackMsg
+	pingReqMsg
 
 	aliveMsg
 
@@ -30,6 +31,12 @@ type ack struct {
 	Name string
 	Id   int
 	Addr string
+}
+
+type pingReq struct {
+	Id       int
+	FromName string
+	ToAddr   string
 }
 
 type alive struct {
