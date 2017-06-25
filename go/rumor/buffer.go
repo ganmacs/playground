@@ -12,14 +12,14 @@ type PackedMessage struct {
 	size     int
 }
 
-type PiggybackQueue struct {
+type PiggybackBuffer struct {
 	messages Messages
 	size     int
 
 	mutex sync.Mutex
 }
 
-func (r *Rumor) EnqueuePackedMessage(nodeName string, msgType messageType, msg interface{}) error {
+func (r *Rumor) PushMessageToBuffer(nodeName string, msgType messageType, msg interface{}) error {
 	emsg, err := Encode(msgType, msg)
 	if err != nil {
 		return err
@@ -27,22 +27,22 @@ func (r *Rumor) EnqueuePackedMessage(nodeName string, msgType messageType, msg i
 
 	bmsg := emsg.Bytes()
 	m := &PackedMessage{nodeName: nodeName, buf: bmsg, size: len(bmsg)}
-	r.piggybackQueue.Enqueue(m)
+	r.piggybackBuffer.Push(m)
 	return nil
 }
 
 func (r *Rumor) GetPiggybackData(limit, overhead int) [][]byte {
-	return r.piggybackQueue.Get(limit, overhead)
+	return r.piggybackBuffer.Get(limit, overhead)
 }
 
-func (q *PiggybackQueue) Enqueue(pm *PackedMessage) {
+func (q *PiggybackBuffer) Push(pm *PackedMessage) {
 	q.mutex.Lock()
 	q.messages = append(q.messages, pm)
 	q.size++
 	q.mutex.Unlock()
 }
 
-func (q *PiggybackQueue) Dequeue() *PackedMessage {
+func (q *PiggybackBuffer) Pop() *PackedMessage {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
@@ -59,7 +59,7 @@ func (q *PiggybackQueue) Dequeue() *PackedMessage {
 
 // Get message until limit size
 // XXX implment this logic with DP?
-func (q *PiggybackQueue) Get(limit, overhead int) [][]byte {
+func (q *PiggybackBuffer) Get(limit, overhead int) [][]byte {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
@@ -90,7 +90,7 @@ func (q *PiggybackQueue) Get(limit, overhead int) [][]byte {
 	return sendBytes
 }
 
-func (q *PiggybackQueue) Reset() {
+func (q *PiggybackBuffer) Reset() {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
@@ -98,7 +98,7 @@ func (q *PiggybackQueue) Reset() {
 	q.size = 0
 }
 
-func (q *PiggybackQueue) Size() int {
+func (q *PiggybackBuffer) Size() int {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 	return q.size
