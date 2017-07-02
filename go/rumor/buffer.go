@@ -10,7 +10,7 @@ type PackedMessage struct {
 	nodeName      string
 	buf           []byte
 	transmitCount int
-	size          int
+	size          int // Is it used?
 }
 
 func (m *PackedMessage) Expired(limit float64) bool {
@@ -59,9 +59,20 @@ func (r *Rumor) GetPiggybackData(limit, overhead int) [][]byte {
 
 func (q *PiggybackBuffer) Push(pm *PackedMessage) {
 	q.mutex.Lock()
+	defer q.mutex.Unlock()
+
+	n := len(q.messages)
+	for i := 0; i < n; i++ {
+		if q.messages[i].nodeName == pm.nodeName {
+			q.messages[i], q.messages[n-1] = q.messages[n-1], nil
+			q.messages = q.messages[:n-1]
+			n--
+			q.size--
+		}
+	}
+
 	q.messages = append(q.messages, pm)
 	q.size++
-	q.mutex.Unlock()
 }
 
 func (q *PiggybackBuffer) Pop() *PackedMessage {
@@ -140,7 +151,7 @@ func (q *PiggybackBuffer) Size() int {
 	return q.size
 }
 
-// Not thread safe
+// NOTICE: This method is not a thread safe
 // XXX check sync.Mutext to be reentrant or not
 func (q *PiggybackBuffer) Sort() {
 	sort.Sort(q.messages)
