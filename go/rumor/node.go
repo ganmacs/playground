@@ -26,11 +26,11 @@ func (nd *Node) aliveNode() {
 	nd.stateChange = time.Now()
 }
 
-func (nd *Node) deadNode() {
-	if nd.stateType == deadState {
+func (nd *Node) suspectedNode() {
+	if nd.stateType == suspectedState {
 		return
 	}
 
-	nd.stateType = deadState
+	nd.stateType = suspectedState
 	nd.stateChange = time.Now()
 }

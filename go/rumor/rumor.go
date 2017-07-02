@@ -26,6 +26,8 @@ type Rumor struct {
 	seqNumber       int32 // this number is used for ping
 	piggybackBuffer *PiggybackBuffer
 
+	suspectedEntries *suspectedEntries
+
 	transport  *Transport
 	shutdownCh chan (int)
 	config     *Config // NEED?
@@ -69,14 +71,15 @@ func newRumor(config *Config) (*Rumor, error) {
 	tr.Start() // FIX
 
 	ru := &Rumor{
-		Name:            joinHostPort(config.BindAddr, config.BindPort),
-		nodeMap:         make(map[string]*Node),
-		nodeLock:        new(sync.RWMutex),
-		transport:       tr,
-		logger:          l,
-		config:          config,
-		shutdownCh:      make(chan (int), 1),
-		piggybackBuffer: &PiggybackBuffer{transmitLam: config.TransmitLammda},
+		Name:             joinHostPort(config.BindAddr, config.BindPort),
+		nodeMap:          make(map[string]*Node),
+		nodeLock:         new(sync.RWMutex),
+		transport:        tr,
+		logger:           l,
+		config:           config,
+		shutdownCh:       make(chan (int), 1),
+		suspectedEntries: newSuspectedEntries(),
+		piggybackBuffer:  &PiggybackBuffer{transmitLam: config.TransmitLammda},
 	}
 
 	ru.piggybackBuffer.NodeSize = func() int {
@@ -185,6 +188,7 @@ func (ru *Rumor) handleAlive(pack *packet) {
 	// 	return
 	// }
 	// targetNodeName := joinHostPort(host, port)
+
 	ru.logger.Infof("Receive ALIVE messsage about %s\n", a.Name)
 
 	ru.AliveState(&a)
@@ -251,7 +255,7 @@ func (ru *Rumor) handlePingReq(packet *packet) {
 		}
 		return
 	case <-time.After(ru.config.ProbeTimeout):
-		ru.logger.Errorf("Ack is not comming. %s is dead?\n", p.ToAddr)
+		ru.logger.Errorf("Ack is not come from %s\n", p.ToAddr)
 	}
 }
 
@@ -295,11 +299,11 @@ START:
 }
 
 func (ru *Rumor) probe() {
-	ru.logger.Debug("Probing...")
+	ru.logger.Info("Probing...")
 	node := ru.selectNextNode()
 
 	if node == nil {
-		ru.logger.Debug("There is no node to send ping")
+		ru.logger.Info("There is no node to send ping")
 		return
 	}
 
@@ -319,10 +323,10 @@ func (ru *Rumor) probe() {
 			ru.logger.Debugf("Recieved ACK in required time: %v", ack)
 			return
 		} else {
-			ru.logger.Error("Socket is closed")
+			ru.logger.Error("Socket is closed at ACK")
 		}
 	case <-time.After(ru.config.ProbeTimeout):
-		ru.logger.Errorf("In probing Ack is not comming. %s is dead?\n", node.Address())
+		ru.logger.Errorf("In probing, Ack is not come from %s\n", node.Address())
 	}
 
 	// send ping-req
@@ -362,8 +366,8 @@ func (ru *Rumor) probe() {
 		}
 	}
 
-	ru.logger.Infof("node is dead %s", node.Address())
-	node.deadNode()
+	smsg := &suspected{Incarnation: node.incarnation, Name: node.Address(), From: ru.Name}
+	ru.SuspectState(smsg)
 }
 
 func (ru *Rumor) nextSeq() int32 {
@@ -420,6 +424,7 @@ func (ru *Rumor) AliveState(a *alive) {
 		atomic.AddUint32(&ru.nodeNum, 1)
 	}
 
+	ru.suspectedEntries.aliveState(a.Name)
 	nd.aliveNode()
 
 	// throw away an old message
@@ -445,6 +450,78 @@ func (ru *Rumor) AliveState(a *alive) {
 		nd.incarnation = a.Incarnation
 		if nd.stateType != aliveState {
 			nd.aliveNode()
+		}
+	}
+}
+
+func (ru *Rumor) SuspectState(s *suspected) {
+	ru.nodeLock.Lock()
+	defer ru.nodeLock.Unlock()
+	nd, ok := ru.nodeMap[s.Name]
+
+	// ignore it becuase of unknow node
+	if !ok {
+		return
+	}
+
+	ru.logger.Infof("%s is suspected\n", s.Name)
+
+	if nd.incarnation > s.Incarnation {
+		ru.logger.Infof("old message in suspectState\n", s.Name)
+		return
+	}
+
+	if s.Name == ru.Name {
+	} else {
+		// re-broadcast
+		ch := make(chan bool)
+		if ru.suspectedEntries.setSuspectTimer(s.Name, ru.config.suspectTimeout, ch) {
+			go func() {
+				alive := <-ch
+
+				if !alive {
+					msg := &dead{Name: s.Name, From: ru.Name, Incarnation: s.Incarnation}
+					ru.DeadState(msg)
+				}
+			}()
+
+			ru.logger.Infof("Enqueu message for %s\n", s.Name)
+			if err := ru.PushMessageToBuffer(s.Name, suspectedMsg, s); err != nil {
+				ru.logger.Error(err)
+				return
+			}
+		} else {
+			ru.logger.Infof("suspect timer already exists: %s\n", s.Name)
+			close(ch)
+		}
+	}
+
+	nd.incarnation = s.Incarnation
+}
+
+func (ru *Rumor) DeadState(d *dead) {
+	ru.nodeLock.Lock()
+	defer ru.nodeLock.Unlock()
+	_, ok := ru.nodeMap[d.Name]
+	if !ok {
+		ru.logger.Infof("%s is already dead\n", d.Name)
+		return
+	}
+
+	ru.logger.Infof("%s is dead\n", d.Name)
+
+	if err := ru.PushMessageToBuffer(d.Name, deadMsg, d); err != nil {
+		ru.logger.Error(err)
+		return
+	}
+
+	delete(ru.nodeMap, d.Name)
+	atomic.AddUint32(&ru.nodeNum, ^uint32(0)) // -1
+
+	for i, v := range ru.nodes { // ok?
+		if d.Name == v.name {
+			ru.nodes = append(ru.nodes[:i], ru.nodes[i+1:]...)
+			break
 		}
 	}
 }
