@@ -8,6 +8,7 @@ type stateType int
 
 const (
 	aliveState stateType = iota
+	suspectedState
 	deadState
 )
 

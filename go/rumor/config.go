@@ -21,6 +21,7 @@ type Config struct {
 	transport      *Transport
 
 	TransmitLammda float64
+	suspectTimeout time.Duration
 
 	Logger *logger.Logger
 }
@@ -36,5 +37,6 @@ func DefaultConfig() *Config {
 		RumorIterval:   time.Second * 2,
 		RumorNodeCount: 3,
 		TransmitLammda: 2,
+		suspectTimeout: time.Second * 2,
 	}
 }

@@ -17,6 +17,8 @@ const (
 	pingReqMsg
 
 	aliveMsg
+	suspectedMsg
+	deadMsg
 
 	compoundMsg
 )
@@ -42,6 +44,18 @@ type pingReq struct {
 type alive struct {
 	Name        string
 	Addr        string
+	Incarnation uint64
+}
+
+type suspected struct {
+	Name        string
+	From        string
+	Incarnation uint64
+}
+
+type dead struct {
+	Name        string
+	From        string
 	Incarnation uint64
 }
 
