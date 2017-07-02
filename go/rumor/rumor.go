@@ -327,12 +327,16 @@ func (ru *Rumor) probe() {
 
 	// send ping-req
 	ru.nodeLock.Lock()
-	nodes := ru.selectNodes(ru.config.RumorNodeCount, func(name string, node *Node) bool {
-		if node.name == ru.Name {
+	nodes := ru.selectNodes(ru.config.RumorNodeCount, func(name string, nd *Node) bool {
+		if nd.name == ru.Name {
 			return false
 		}
 
-		return node.stateType == aliveState
+		if nd.name == node.name {
+			return false
+		}
+
+		return nd.stateType == aliveState
 	})
 	ru.nodeLock.Unlock()
 
@@ -344,13 +348,17 @@ func (ru *Rumor) probe() {
 		}
 	}
 
-	select {
-	case ack, ok := <-ackCh:
-		if ok {
-			ru.logger.Debugf("Recieved ACK by PING_REQ : %v", ack)
-			return
-		} else {
-			ru.logger.Error("Socket is closed")
+	if len(nodes) == 0 {
+		ru.logger.Info("Target nodes of PING_REQ are not found...")
+	} else {
+		select {
+		case ack, ok := <-ackCh:
+			if ok {
+				ru.logger.Debugf("Recieved ACK by PING_REQ : %v", ack)
+				return
+			} else {
+				ru.logger.Error("Socket is closed at PING_REQ")
+			}
 		}
 	}
 
