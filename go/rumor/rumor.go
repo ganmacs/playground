@@ -153,6 +153,10 @@ func (ru *Rumor) handlePacket(packet *packet) {
 		ru.handleCompound(packet)
 	case aliveMsg:
 		ru.handleAlive(packet)
+	case suspectedMsg:
+		ru.handleSuspected(packet)
+	case deadMsg:
+		ru.handleDead(packet)
 	case pingReqMsg:
 		ru.handlePingReq(packet)
 	default:
@@ -192,6 +196,30 @@ func (ru *Rumor) handleAlive(pack *packet) {
 	ru.logger.Infof("Receive ALIVE messsage about %s\n", a.Name)
 
 	ru.AliveState(&a)
+}
+
+func (ru *Rumor) handleSuspected(pack *packet) {
+	var s suspected
+	if err := Decode(pack.body(), &s); err != nil {
+		ru.logger.Error(err)
+		return
+	}
+
+	ru.logger.Infof("Receive SUSPECTED messsage about %s\n", s.Name)
+
+	ru.SuspectState(&s)
+}
+
+func (ru *Rumor) handleDead(pack *packet) {
+	var d dead
+	if err := Decode(pack.body(), &d); err != nil {
+		ru.logger.Error(err)
+		return
+	}
+
+	ru.logger.Infof("Receive SUSPECTED messsage about %s\n", d.Name)
+
+	ru.DeadState(&d)
 }
 
 func (ru *Rumor) handlePing(packet *packet) {
@@ -255,7 +283,7 @@ func (ru *Rumor) handlePingReq(packet *packet) {
 		}
 		return
 	case <-time.After(ru.config.ProbeTimeout):
-		ru.logger.Errorf("Ack is not come from %s\n", p.ToAddr)
+		ru.logger.Errorf("In PING_REQ, Ack is not come from %s", p.ToAddr)
 	}
 }
 
