@@ -18,7 +18,7 @@ func main() {
 	config.BindAddr = "127.0.0.1"
 	config.BindPort = port
 
-	config.Logger = logger.NewLevelLogger(os.Stdout, logger.DEBUG)
+	config.Logger = logger.NewLevelLogger(os.Stdout, logger.INFO)
 
 	rumor, err := rumor.New(config)
 	if err != nil {
@@ -34,5 +34,5 @@ func main() {
 
 	rumor.Start()
 
-	time.Sleep(time.Second * 60)
+	time.Sleep(time.Second * 1000)
 }

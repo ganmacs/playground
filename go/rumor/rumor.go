@@ -452,7 +452,7 @@ func (ru *Rumor) AliveState(a *alive) {
 		atomic.AddUint32(&ru.nodeNum, 1)
 	}
 
-	ru.suspectedEntries.aliveState(a.Name)
+	ru.suspectfedEntries.aliveState(a.Name)
 	nd.aliveNode()
 
 	// throw away an old message
