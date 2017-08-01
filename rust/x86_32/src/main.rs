@@ -8,24 +8,28 @@ use std::fmt;
 enum Opcode {
     MOV(u8),
     JMP_REL8,
+    JMP_REL32,
 }
 
 const REGISTER_COUNT: usize = 8;
 const REGISTER_NAME: [&str; 8] = ["EAX", "ECX", "EDX", "EBX", "ESP", "EBP", "ESI", "EDI"];
+const INITIAL_MEMORY_I: usize = 0x7c00;
+const MEMORY_SIZE: usize = 1024 * 1024;
 
 impl Opcode {
     pub fn from_bin(op: u8) -> std::io::Result<Opcode> {
         match op {
             0xB8...0xBF => Ok(Opcode::MOV(op)),
             0xEB => Ok(Opcode::JMP_REL8),
-            _ => Err(Error::new(ErrorKind::Other, "oh no!")),
+            0xE9 => Ok(Opcode::JMP_REL32),
+            _ => Err(Error::new(ErrorKind::Other, format!("Unknow op: {:X}", op))),
         }
     }
 }
 
 struct Emulator {
     pub eip: u32,
-    memory: [u8; 512], // u8 should be type parameter, and size of array
+    memory: [u8; 512 + INITIAL_MEMORY_I], // u8 should be type parameter, and size of array
     registers: [u32; REGISTER_COUNT],
 }
 
@@ -43,11 +47,17 @@ fn jmp_rel8(e: &mut Emulator) {
     e.eip = (v as u32);
 }
 
+fn jmp_rel32(e: &mut Emulator) {
+    let n: i32 = e.get_code32(1).unwrap() as i32;
+    let v = (n as i64) + 5 + (e.eip as i64); // XXX
+    e.eip = (v as u32) // rel + op
+}
+
 impl Emulator {
-    pub fn new(memory: [u8; 512], esp: u32) -> Emulator {
+    pub fn new(memory: [u8; 512 + INITIAL_MEMORY_I], esp: u32) -> Emulator {
         let mut emu = Emulator {
             memory: memory,
-            eip: 0,
+            eip: 0x7c00,
             registers: [0; REGISTER_COUNT],
         };
 
@@ -61,6 +71,7 @@ impl Emulator {
         match op {
             Opcode::MOV(e) => mov_r32_imm32(self, e),
             Opcode::JMP_REL8 => jmp_rel8(self),
+            Opcode::JMP_REL32 => jmp_rel32(self),
             // _ => panic!("fooo"),
         }
     }
@@ -125,15 +136,15 @@ fn run(v: String) -> std::io::Result<()> {
     let f = File::open(v)?;
     let mut f = BufReader::new(f);
 
-    let mut buffer = [0; 512];
-    f.read(&mut buffer)?;
+    let mut buffer = [0; 512 + INITIAL_MEMORY_I];
+    f.read(&mut buffer[0x7c00..])?;
 
-    let emu = &mut Emulator::new(buffer, 0x7c00);
+    let emu = &mut Emulator::new(buffer, INITIAL_MEMORY_I as u32);
 
     while true {
         let code = emu.get_code()?;
 
-        println!("EIP = {:?}, Code = {:X}", emu.eip, code);
+        println!("EIP = {:X}, Code = {:X}", emu.eip, code);
         Opcode::from_bin(code).map(|v| emu.execute(v))?;
 
         if emu.eip == 0x00 {
