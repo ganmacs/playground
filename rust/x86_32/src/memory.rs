@@ -5,6 +5,9 @@ pub struct Memory<'a> {
     memory: &'a [u8],
 }
 
+pub const MEMORY_SIZE: usize = 1024 * 1024;
+pub const INITIAL_INDEX: usize = 0x7c00;
+
 impl<'a> Memory<'a> {
     pub fn new(m: &'a [u8]) -> Memory {
         Memory { memory: m }

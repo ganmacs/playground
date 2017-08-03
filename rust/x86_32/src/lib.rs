@@ -1,4 +1,4 @@
-pub mod errors;
-pub mod memory; // TODO remove pub
+mod memory;
 
+pub mod errors;
 pub mod emulator;
