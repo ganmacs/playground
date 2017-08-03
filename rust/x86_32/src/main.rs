@@ -1,14 +1,15 @@
+extern crate x86_32;
+
 use std::env;
 use std::result::Result;
 use std::fs::File;
-use std::io::{BufReader, Read, Bytes};
-use std::io::{Error, ErrorKind};
-use std::fmt;
+use std::io::{BufReader, Read};
+use x86_32::errors::Error;
 
 enum Opcode {
-    MOV(u8),
-    JMP_REL8,
-    JMP_REL32,
+    Mov(u8),
+    JmpRel8,
+    JmpRel32,
 }
 
 const REGISTER_COUNT: usize = 8;
@@ -17,25 +18,25 @@ const INITIAL_MEMORY_I: usize = 0x7c00;
 const MEMORY_SIZE: usize = 1024 * 1024;
 
 impl Opcode {
-    pub fn from_bin(op: u8) -> std::io::Result<Opcode> {
+    pub fn from_bin(op: u8) -> Result<Opcode, Error> {
         match op {
-            0xB8...0xBF => Ok(Opcode::MOV(op)),
-            0xEB => Ok(Opcode::JMP_REL8),
-            0xE9 => Ok(Opcode::JMP_REL32),
-            _ => Err(Error::new(ErrorKind::Other, format!("Unknow op: {:X}", op))),
+            0xB8...0xBF => Ok(Opcode::Mov(op)),
+            0xEB => Ok(Opcode::JmpRel8),
+            0xE9 => Ok(Opcode::JmpRel32),
+            _ => Err(Error::UnknownOpcode(op as usize)),
         }
     }
 }
 
-struct Emulator {
+struct Emulator<'a> {
     pub eip: u32,
-    memory: [u8; 512 + INITIAL_MEMORY_I], // u8 should be type parameter, and size of array
+    memory: x86_32::memory::Memory<'a>,
     registers: [u32; REGISTER_COUNT],
 }
 
-fn mov_r32_imm32(e: &mut Emulator, i: u8) {
+fn mov_r32_imm32(e: &mut Emulator) {
     let reg: u8 = e.get_code().unwrap() - 0xB8;
-    let value: u32 = e.get_code32(1).unwrap();
+    let value: u32 = e.get_code32(1 as usize).unwrap();
     e.registers[reg as usize] = value;
     e.eip += 5;
 }
@@ -44,17 +45,17 @@ fn jmp_rel8(e: &mut Emulator) {
     let rel = e.get_sign_code(1).unwrap();
     // rel can be minus value
     let v = (2 + rel) as i64 + (e.eip as i64); // XXX
-    e.eip = (v as u32);
+    e.eip = v as u32;
 }
 
 fn jmp_rel32(e: &mut Emulator) {
     let n: i32 = e.get_code32(1).unwrap() as i32;
     let v = (n as i64) + 5 + (e.eip as i64); // XXX
-    e.eip = (v as u32) // rel + op
+    e.eip = v as u32 // rel + op
 }
 
-impl Emulator {
-    pub fn new(memory: [u8; 512 + INITIAL_MEMORY_I], esp: u32) -> Emulator {
+impl<'a> Emulator<'a> {
+    pub fn new(memory: x86_32::memory::Memory<'a>, esp: u32) -> Emulator<'a> {
         let mut emu = Emulator {
             memory: memory,
             eip: 0x7c00,
@@ -69,9 +70,9 @@ impl Emulator {
     pub fn execute(&mut self, op: Opcode) {
         // duplciated
         match op {
-            Opcode::MOV(e) => mov_r32_imm32(self, e),
-            Opcode::JMP_REL8 => jmp_rel8(self),
-            Opcode::JMP_REL32 => jmp_rel32(self),
+            Opcode::Mov(_) => mov_r32_imm32(self),
+            Opcode::JmpRel8 => jmp_rel8(self),
+            Opcode::JmpRel32 => jmp_rel32(self),
             // _ => panic!("fooo"),
         }
     }
@@ -83,35 +84,20 @@ impl Emulator {
         println!("ESP {:08X}", self.eip);
     }
 
-    pub fn inc_eip(&mut self) {
-        self.eip += 1;
+    pub fn get_sign_code(&mut self, i: usize) -> Result<i8, Error> {
+        self.memory.get_i8(self.eip as usize + i)
     }
 
-    pub fn get_sign_code(&mut self, i: usize) -> std::io::Result<i8> {
-        let v = self.memory[self.eip as usize + i];
-        Ok(v as i8)
+    pub fn get_code_i(&mut self, v: usize) -> Result<u8, Error> {
+        self.memory.get_u8(self.eip as usize + v)
     }
 
-    pub fn get_code(&mut self) -> std::io::Result<u8> {
-        let v = self.memory[self.eip as usize];
-        Ok(v)
+    pub fn get_code(&mut self) -> Result<u8, Error> {
+        self.memory.get_u8(self.eip as usize)
     }
 
-    pub fn get_code32(&mut self, index: usize) -> std::io::Result<u32> {
-        let mut ret: u32 = 0;
-
-        for i in 0..4 {
-            ret |= self.get_code_i(i + index)
-                .map(|v| v as u32)
-                .map(|v| v << (i * 8))
-                .unwrap(); // XXX: unwrap
-        }
-
-        Ok(ret)
-    }
-
-    pub fn get_code_i(&mut self, v: usize) -> std::io::Result<u8> {
-        Ok(self.memory[self.eip as usize + v])
+    pub fn get_code32(&mut self, index: usize) -> Result<u32, Error> {
+        self.memory.get_u32(self.eip as usize + index)
     }
 }
 
@@ -130,7 +116,7 @@ fn main() {
     std::process::exit(status)
 }
 
-fn run(v: String) -> std::io::Result<()> {
+fn run(v: String) -> Result<(), Error> {
     println!("{:?}", v);
 
     let f = File::open(v)?;
@@ -139,7 +125,9 @@ fn run(v: String) -> std::io::Result<()> {
     let mut buffer = [0; 512 + INITIAL_MEMORY_I];
     f.read(&mut buffer[0x7c00..])?;
 
-    let emu = &mut Emulator::new(buffer, INITIAL_MEMORY_I as u32);
+    let v = x86_32::memory::Memory::new(&buffer);
+
+    let emu = &mut Emulator::new(v, INITIAL_MEMORY_I as u32);
 
     while true {
         let code = emu.get_code()?;
@@ -154,7 +142,6 @@ fn run(v: String) -> std::io::Result<()> {
     }
 
     emu.dump();
-
     Ok(())
 }
 
