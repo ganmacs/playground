@@ -1,38 +1,36 @@
 // use errors::Error;
 use memory::{Memory, INITIAL_INDEX, MEMORY_SIZE};
 use errors::Error;
+use register::*;
+use instruction;
 use std::io::{BufReader, Read};
 use std::fs::File;
 
-const REGISTER_COUNT: usize = 8;
-const REGISTER_NAME: [&str; 8] = ["EAX", "ECX", "EDX", "EBX", "ESP", "EBP", "ESI", "EDI"];
-
-pub struct Emulator<'a> {
+pub struct Emulator {
     pub eip: u32,
-    memory: Memory<'a>,
-    registers: [u32; REGISTER_COUNT],
+    memory: Memory,
+    register: Register,
 }
 
 pub fn run(file_path: String) -> Result<(), Error> {
     let file = File::open(file_path)?;
-    let mut binary = [0; MEMORY_SIZE + INITIAL_INDEX];
-    BufReader::new(file).read(&mut binary[INITIAL_INDEX..])?;
+    let buffer = &mut BufReader::new(file);
 
-    let mem = Memory::new(&binary);
+    let mem = Memory::load(buffer);
     let emu = &mut Emulator::new(mem, INITIAL_INDEX as u32);
     emu.run()
 }
 
-impl<'a> Emulator<'a> {
-    pub fn new(memory: Memory<'a>, esp: u32) -> Emulator<'a> {
+
+impl Emulator {
+    pub fn new(memory: Memory, esp: u32) -> Emulator {
         let mut emu = Emulator {
             memory: memory,
             eip: 0x7c00,
-            registers: [0; REGISTER_COUNT],
+            register: Register::new(),
         };
 
-        // esp
-        emu.registers[4] = esp;
+        emu.register.set(ESP, esp);
         emu
     }
 
@@ -54,6 +52,7 @@ impl<'a> Emulator<'a> {
 
     pub fn exec(&mut self, op: u8) -> Result<(), Error> {
         match op {
+            0x83 => instruction::opcode_83(self),
             0xB8...0xBF => self.mov_r32_imm32(),
             0xE9 => self.jmp_rel32(),
             0xEB => self.jmp_rel8(),
@@ -61,10 +60,11 @@ impl<'a> Emulator<'a> {
         }
     }
 
+
     fn mov_r32_imm32(&mut self) -> Result<(), Error> {
         let reg: u8 = self.get_code8(0)? - 0xB8;
         let value: u32 = self.get_code32(1).unwrap();
-        self.registers[reg as usize] = value;
+        self.register.set(reg as usize, value);
         self.eip += 5;
         Ok(())
     }
@@ -84,28 +84,70 @@ impl<'a> Emulator<'a> {
     }
 
     fn dump(&mut self) {
-        for i in 0..REGISTER_COUNT {
-            println!("{} {:08X}", REGISTER_NAME[i], self.registers[i]);
-        }
-
-        println!("ESP {:08X}", self.eip);
+        self.register.dump();
+        println!("EIP {:08X}", self.eip);
     }
 
     fn get_code32(&mut self, i: usize) -> Result<u32, Error> {
         self.memory.get_u32(self.eip as usize + i)
+        // eip+=4
     }
 
-    fn get_sign_code32(&mut self, i: usize) -> Result<i32, Error> {
-        self.memory
-            .get_u32(self.eip as usize + i)
-            .map(|v| v as i32)
+    pub fn get_sign_code32(&mut self, i: usize) -> Result<i32, Error> {
+        self.get_code32(i).map(|v| v as i32)
+        // eip+=4
     }
 
     fn get_code8(&mut self, i: usize) -> Result<u8, Error> {
         self.memory.get_u8(self.eip as usize + i)
+        // eip+=1
     }
 
-    fn get_sign_code8(&mut self, i: usize) -> Result<i8, Error> {
+
+    pub fn get_sign_code8(&mut self, i: usize) -> Result<i8, Error> {
         self.memory.get_i8(self.eip as usize + i)
+        // eip+=1
+    }
+
+    pub fn get_memory32(&mut self, i: usize) -> Result<u32, Error> {
+        self.memory.get_u32(i)
+    }
+
+    // --------
+
+    pub fn set_register(&mut self, i: usize, v: u32) {
+        self.register.set(i, v);
+    }
+
+    pub fn get_register(&mut self, i: usize) -> Result<u32, Error> {
+        Ok(self.register.get(i))
+    }
+
+    pub fn set_memory32(&mut self, i: usize, v: u32) {
+        self.memory.set_u32(i, v)
+    }
+
+    pub fn read_imm8(&mut self) -> Result<u8, Error> {
+        let v = self.memory.get_u8(self.eip as usize);
+        self.eip += 1;
+        v
+    }
+
+    pub fn read_imm8s(&mut self) -> Result<i8, Error> {
+        let v = self.memory.get_i8(self.eip as usize);
+        self.eip += 1;
+        v
+    }
+
+    pub fn read_imm32s(&mut self, i: usize) -> Result<i32, Error> {
+        let v = self.memory.get_i32(self.eip as usize);
+        self.eip += 4;
+        v
+    }
+
+    pub fn read_imm32(&mut self) -> Result<u32, Error> {
+        let v = self.memory.get_u32(self.eip as usize);
+        self.eip += 4;
+        v
     }
 }

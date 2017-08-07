@@ -7,6 +7,7 @@ pub enum Error {
     MemoryOutOfRange(usize),
     UnknownOpcode(usize),
     IOError(io::Error),
+    ModrmReg(u8),
 }
 
 impl fmt::Display for Error {
@@ -14,6 +15,7 @@ impl fmt::Display for Error {
         match *self {
             Error::MemoryOutOfRange(u) => format!("Memory out of range: {:X}", u).fmt(f),
             Error::UnknownOpcode(u) => format!("Unknow opcode: {:X}", u).fmt(f),
+            Error::ModrmReg(u) => format!("ModR/M is out of range: {:X}", u).fmt(f),
             Error::IOError(ref e) => e.fmt(f),
         }
     }
@@ -25,6 +27,7 @@ impl fmt::Debug for Error {
             Error::MemoryOutOfRange(u) => format!("Memory out of range: {:X}", u).fmt(f),
             Error::UnknownOpcode(u) => format!("Unknow opcode: {:X}", u).fmt(f),
             Error::IOError(ref e) => e.fmt(f),
+            Error::ModrmReg(u) => format!("ModR/M is out of range: {:X}", u).fmt(f),
         }
     }
 }
@@ -35,6 +38,7 @@ impl error::Error for Error {
             Error::MemoryOutOfRange(_) => "Memory out of range",
             Error::UnknownOpcode(_) => "Unknow opcode",
             Error::IOError(ref e) => e.description(),
+            Error::ModrmReg(_) => "ModR/M is out of range", 
         }
     }
 }

@@ -1,15 +1,22 @@
 use std::panic;
 use errors::Error;
+use std::io::{BufReader, Read};
 
-pub struct Memory<'a> {
-    memory: &'a [u8],
+pub struct Memory {
+    memory: Vec<u8>,
 }
 
 pub const MEMORY_SIZE: usize = 1024 * 1024;
 pub const INITIAL_INDEX: usize = 0x7c00;
 
-impl<'a> Memory<'a> {
-    pub fn new(m: &'a [u8]) -> Memory {
+impl Memory {
+    pub fn load<R: Read>(reader: &mut BufReader<R>) -> Memory {
+        let mut binary = [0; MEMORY_SIZE + INITIAL_INDEX];
+        reader.read(&mut binary[INITIAL_INDEX..]).unwrap();
+        Memory::new(binary.to_vec())
+    }
+
+    pub fn new(m: Vec<u8>) -> Memory {
         Memory { memory: m }
     }
 
@@ -29,5 +36,21 @@ impl<'a> Memory<'a> {
         }
 
         Ok(ret)
+    }
+
+    pub fn get_i32(&self, i: usize) -> Result<i32, Error> {
+        self.get_i32(i).map(|v| v as i32)
+    }
+
+    pub fn set_u8(&mut self, i: usize, v: u32) {
+        self.memory[i] = (v & 0xFF) as u8;
+    }
+
+    pub fn set_u32(&mut self, addr: usize, v: u32) {
+        let mut ret: u32 = 0;
+
+        for i in 0..4 {
+            self.set_u8(addr + i, v >> (8 * i));
+        }
     }
 }
