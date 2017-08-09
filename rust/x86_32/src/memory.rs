@@ -39,7 +39,7 @@ impl Memory {
     }
 
     pub fn get_i32(&self, i: usize) -> Result<i32, Error> {
-        self.get_i32(i).map(|v| v as i32)
+        self.get_u32(i).map(|v| v as i32)
     }
 
     pub fn set_u8(&mut self, i: usize, v: u32) {
@@ -47,8 +47,6 @@ impl Memory {
     }
 
     pub fn set_u32(&mut self, addr: usize, v: u32) {
-        let mut ret: u32 = 0;
-
         for i in 0..4 {
             self.set_u8(addr + i, v >> (8 * i));
         }

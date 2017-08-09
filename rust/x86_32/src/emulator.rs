@@ -37,9 +37,10 @@ impl Emulator {
     pub fn run(&mut self) -> Result<(), Error> {
         loop {
             let code = self.get_code8(0)?;
-            println!("EIP = {:X}, Code = {:X}", self.eip, code);
+            println!("EIP = {:02X}, Code = {:02X}", self.eip, code);
 
             self.exec(code)?;
+            self.dump();
 
             if self.eip == 0x00 {
                 println!("end of program");
@@ -52,10 +53,15 @@ impl Emulator {
 
     pub fn exec(&mut self, op: u8) -> Result<(), Error> {
         match op {
+            0x01 => instruction::add_rm32_r32(self),
             0x83 => instruction::opcode_83(self),
+            0x89 => instruction::mov_rm32_r32(self),
+            0x8B => instruction::mov_r32_rm32(self),
             0xB8...0xBF => self.mov_r32_imm32(),
+            0xC7 => instruction::mov_rm32_imm32(self),
             0xE9 => self.jmp_rel32(),
             0xEB => self.jmp_rel8(),
+            0xFF => instruction::code_ff(self),
             _ => Err(Error::UnknownOpcode(op as usize)),
         }
     }
@@ -83,7 +89,7 @@ impl Emulator {
         Ok(())
     }
 
-    fn dump(&mut self) {
+    pub fn dump(&mut self) {
         self.register.dump();
         println!("EIP {:08X}", self.eip);
     }
@@ -139,7 +145,7 @@ impl Emulator {
         v
     }
 
-    pub fn read_imm32s(&mut self, i: usize) -> Result<i32, Error> {
+    pub fn read_imm32s(&mut self) -> Result<i32, Error> {
         let v = self.memory.get_i32(self.eip as usize);
         self.eip += 4;
         v
