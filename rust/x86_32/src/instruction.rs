@@ -1,5 +1,6 @@
 use emulator::Emulator;
 use errors::Error;
+use register::*;
 use modrm::Modrm;
 
 pub fn add_rm32_r32(emu: &mut Emulator) -> Result<(), Error> {
@@ -101,6 +102,7 @@ pub fn pop_r32(emu: &mut Emulator) -> Result<(), Error> {
     emu.set_register(reg as usize, v);
     Ok(())
 }
+
 pub fn call_rel32(emu: &mut Emulator) -> Result<(), Error> {
     let _ = emu.read_imm8(); // opcode
 
@@ -112,7 +114,20 @@ pub fn call_rel32(emu: &mut Emulator) -> Result<(), Error> {
     Ok(())
 }
 
+pub fn leave(emu: &mut Emulator) -> Result<(), Error> {
+    let _ = emu.read_imm8(); // opcode
+
+    let esp_addr = emu.get_register(EBP)?;
+    emu.set_register(ESP, esp_addr);
+
+    let v = emu.pop32();
+    emu.set_register(EBP, v);
+
+    Ok(())
+}
+
 pub fn ret(emu: &mut Emulator) -> Result<(), Error> {
+    let _ = emu.read_imm8(); // opcode
     emu.eip = emu.pop32();
     Ok(())
 }

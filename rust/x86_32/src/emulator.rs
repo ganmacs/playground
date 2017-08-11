@@ -62,6 +62,7 @@ impl Emulator {
             0xB8...0xBF => self.mov_r32_imm32(),
             0xC3 => instruction::ret(self),
             0xC7 => instruction::mov_rm32_imm32(self),
+            0xC9 => instruction::leave(self),
             0xE8 => instruction::call_rel32(self),
             0xE9 => self.jmp_rel32(),
             0xEB => self.jmp_rel8(),
