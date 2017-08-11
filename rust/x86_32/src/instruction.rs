@@ -87,3 +87,32 @@ pub fn inc_r32(emu: &mut Emulator, modrm: Modrm) -> Result<(), Error> {
     modrm.set_rm32(emu, rm.wrapping_add(1));
     Ok(())
 }
+
+pub fn push_r32(emu: &mut Emulator) -> Result<(), Error> {
+    let reg = emu.read_imm8()? - 0x50;
+    let v = emu.get_register(reg as usize)?;
+    emu.push32(v);
+    Ok(())
+}
+
+pub fn pop_r32(emu: &mut Emulator) -> Result<(), Error> {
+    let reg = emu.read_imm8()? - 0x50;
+    let v = emu.pop32();
+    emu.set_register(reg as usize, v);
+    Ok(())
+}
+pub fn call_rel32(emu: &mut Emulator) -> Result<(), Error> {
+    let _ = emu.read_imm8(); // opcode
+
+    let addr = emu.read_imm32s()?;
+    let v = emu.eip;
+    emu.push32(v);
+
+    emu.eip = emu.eip.wrapping_add(addr as u32);
+    Ok(())
+}
+
+pub fn ret(emu: &mut Emulator) -> Result<(), Error> {
+    emu.eip = emu.pop32();
+    Ok(())
+}

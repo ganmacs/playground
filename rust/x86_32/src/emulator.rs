@@ -1,9 +1,9 @@
 // use errors::Error;
-use memory::{Memory, INITIAL_INDEX, MEMORY_SIZE};
+use memory::{Memory, INITIAL_INDEX};
 use errors::Error;
 use register::*;
 use instruction;
-use std::io::{BufReader, Read};
+use std::io::BufReader;
 use std::fs::File;
 
 pub struct Emulator {
@@ -54,11 +54,15 @@ impl Emulator {
     pub fn exec(&mut self, op: u8) -> Result<(), Error> {
         match op {
             0x01 => instruction::add_rm32_r32(self),
+            0x50...0x57 => instruction::push_r32(self),
+            0x58...0x59 => instruction::pop_r32(self),
             0x83 => instruction::opcode_83(self),
             0x89 => instruction::mov_rm32_r32(self),
             0x8B => instruction::mov_r32_rm32(self),
             0xB8...0xBF => self.mov_r32_imm32(),
+            0xC3 => instruction::ret(self),
             0xC7 => instruction::mov_rm32_imm32(self),
+            0xE8 => instruction::call_rel32(self),
             0xE9 => self.jmp_rel32(),
             0xEB => self.jmp_rel8(),
             0xFF => instruction::code_ff(self),
@@ -120,6 +124,19 @@ impl Emulator {
     }
 
     // --------
+
+    pub fn push32(&mut self, v: u32) {
+        let addr = self.get_register(ESP).unwrap() - 4; //  (ESP - 4) is a next pointer of stack.
+        self.set_register(ESP, addr);
+        self.set_memory32(addr as usize, v);
+    }
+
+    pub fn pop32(&mut self) -> u32 {
+        let addr = self.get_register(ESP).unwrap();
+        let v = self.get_memory32(addr as usize);
+        self.set_register(ESP, addr + 4);
+        v.unwrap()
+    }
 
     pub fn set_register(&mut self, i: usize, v: u32) {
         self.register.set(i, v);
