@@ -23,9 +23,17 @@ pub fn opcode_83(emu: &mut Emulator) -> Result<(), Error> {
     let m = Modrm::new(v, emu);
 
     match m.reg {
+        0 => add_rm32_imm8(emu, m),
         5 => sub_rm32_imm8(emu, m),
         _ => unimplemented!(),
     }
+}
+
+pub fn add_rm32_imm8(emu: &mut Emulator, modrm: Modrm) -> Result<(), Error> {
+    let rm = modrm.get_rm32(emu);
+    let imm = emu.read_imm8s()? as u32;
+    modrm.set_rm32(emu, rm.wrapping_add(imm as u32));
+    Ok(())
 }
 
 pub fn sub_rm32_imm8(emu: &mut Emulator, modrm: Modrm) -> Result<(), Error> {
@@ -97,9 +105,18 @@ pub fn push_r32(emu: &mut Emulator) -> Result<(), Error> {
 }
 
 pub fn pop_r32(emu: &mut Emulator) -> Result<(), Error> {
-    let reg = emu.read_imm8()? - 0x50;
+    let reg = emu.read_imm8()? - 0x58;
     let v = emu.pop32();
     emu.set_register(reg as usize, v);
+    Ok(())
+}
+
+pub fn push_i8(emu: &mut Emulator) -> Result<(), Error> {
+    let _ = emu.read_imm8()?;
+    let v = emu.read_imm8()?;
+
+    emu.push32(v as u32);
+
     Ok(())
 }
 

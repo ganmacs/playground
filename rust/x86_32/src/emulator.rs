@@ -55,7 +55,9 @@ impl Emulator {
         match op {
             0x01 => instruction::add_rm32_r32(self),
             0x50...0x57 => instruction::push_r32(self),
-            0x58...0x59 => instruction::pop_r32(self),
+            0x58...0x5E => instruction::pop_r32(self),
+            0x6A => instruction::push_i8(self),
+
             0x83 => instruction::opcode_83(self),
             0x89 => instruction::mov_rm32_r32(self),
             0x8B => instruction::mov_r32_rm32(self),
