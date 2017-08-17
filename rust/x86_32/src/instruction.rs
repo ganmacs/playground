@@ -3,6 +3,24 @@ use errors::Error;
 use register::*;
 use modrm::Modrm;
 
+pub fn jmp_rel32(emu: &mut Emulator) -> Result<(), Error> {
+    let _ = emu.read_imm8(); // op
+    let n = emu.read_imm32s()?;
+
+    emu.eip = emu.eip.wrapping_add(n as u32);
+    Ok(())
+}
+
+pub fn js(emu: &mut Emulator) -> Result<(), Error> {
+    let _ = emu.read_imm8(); // opcode
+
+    let v = emu.read_imm8s()?;
+    if emu.is_set_sf() {
+        emu.eip = emu.eip.wrapping_add(v as u32);
+    }
+    Ok(())
+}
+
 pub fn add_rm32_r32(emu: &mut Emulator) -> Result<(), Error> {
     let _ = emu.read_imm8(); // opcode
 
@@ -25,8 +43,17 @@ pub fn opcode_83(emu: &mut Emulator) -> Result<(), Error> {
     match m.reg {
         0 => add_rm32_imm8(emu, m),
         5 => sub_rm32_imm8(emu, m),
+        7 => cmp_rm32_imm8(emu, m),
         _ => unimplemented!(),
     }
+}
+
+pub fn cmp_rm32_imm8(emu: &mut Emulator, modrm: Modrm) -> Result<(), Error> {
+    let rm = modrm.get_rm32(emu);
+    let imm = emu.read_imm8s()?;
+    let v: i64 = ((rm as i32) + (imm as i32)) as i64;
+    emu.update_eflag_sub(rm, imm as u32, v as u64);
+    Ok(())
 }
 
 pub fn add_rm32_imm8(emu: &mut Emulator, modrm: Modrm) -> Result<(), Error> {
@@ -113,10 +140,9 @@ pub fn pop_r32(emu: &mut Emulator) -> Result<(), Error> {
 
 pub fn push_i8(emu: &mut Emulator) -> Result<(), Error> {
     let _ = emu.read_imm8()?;
-    let v = emu.read_imm8()?;
+    let v = emu.read_imm8s()?;
 
     emu.push32(v as u32);
-
     Ok(())
 }
 
@@ -146,5 +172,23 @@ pub fn leave(emu: &mut Emulator) -> Result<(), Error> {
 pub fn ret(emu: &mut Emulator) -> Result<(), Error> {
     let _ = emu.read_imm8(); // opcode
     emu.eip = emu.pop32();
+    Ok(())
+}
+
+pub fn opcode_f7(emu: &mut Emulator) -> Result<(), Error> {
+    let _ = emu.read_imm8(); // opcode
+
+    let v = emu.read_imm8()?;
+    let m = Modrm::new(v, emu);
+
+    match m.reg {
+        3 => neg(emu, m),
+        _ => unimplemented!(),
+    }
+}
+
+fn neg(emu: &mut Emulator, modrm: Modrm) -> Result<(), Error> {
+    let v = modrm.get_rm32(emu) as i32 * -1;
+    modrm.set_rm32(emu, v as u32);
     Ok(())
 }

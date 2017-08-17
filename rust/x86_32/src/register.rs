@@ -1,12 +1,20 @@
 const REGISTERS_COUNT: usize = 8;
 
+#[allow(dead_code)]
 pub const EAX: usize = 0;
+#[allow(dead_code)]
 pub const ECX: usize = 1;
+#[allow(dead_code)]
 pub const EDX: usize = 2;
+#[allow(dead_code)]
 pub const EBX: usize = 3;
+#[allow(dead_code)]
 pub const ESP: usize = 4;
+#[allow(dead_code)]
 pub const EBP: usize = 5;
+#[allow(dead_code)]
 pub const ESI: usize = 6;
+#[allow(dead_code)]
 pub const EDI: usize = 7;
 const REGISTER_NAMES: [&str; 8] = ["EAX", "ECX", "EDX", "EBX", "ESP", "EBP", "ESI", "EDI"];
 

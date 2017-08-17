@@ -6,10 +6,16 @@ use instruction;
 use std::io::BufReader;
 use std::fs::File;
 
+const CARRY_FLAG: u32 = 1;
+const ZERO_FLAG: u32 = (1 << 6);
+const SIGN_FLAG: u32 = (1 << 7);
+const OVERFLOW_FLAG: u32 = (1 << 11);
+
 pub struct Emulator {
     pub eip: u32,
     memory: Memory,
     register: Register,
+    eflags: u32,
 }
 
 pub fn run(file_path: String) -> Result<(), Error> {
@@ -28,6 +34,7 @@ impl Emulator {
             memory: memory,
             eip: 0x7c00,
             register: Register::new(),
+            eflags: 0,
         };
 
         emu.register.set(ESP, esp);
@@ -40,7 +47,7 @@ impl Emulator {
             println!("EIP = {:02X}, Code = {:02X}", self.eip, code);
 
             self.exec(code)?;
-            self.dump();
+            // self.dump();
 
             if self.eip == 0x00 {
                 println!("end of program");
@@ -57,7 +64,7 @@ impl Emulator {
             0x50...0x57 => instruction::push_r32(self),
             0x58...0x5E => instruction::pop_r32(self),
             0x6A => instruction::push_i8(self),
-
+            0x78 => instruction::js(self),
             0x83 => instruction::opcode_83(self),
             0x89 => instruction::mov_rm32_r32(self),
             0x8B => instruction::mov_r32_rm32(self),
@@ -66,8 +73,9 @@ impl Emulator {
             0xC7 => instruction::mov_rm32_imm32(self),
             0xC9 => instruction::leave(self),
             0xE8 => instruction::call_rel32(self),
-            0xE9 => self.jmp_rel32(),
+            0xE9 => instruction::jmp_rel32(self),
             0xEB => self.jmp_rel8(),
+            0xF7 => instruction::opcode_f7(self),
             0xFF => instruction::code_ff(self),
             _ => Err(Error::UnknownOpcode(op as usize)),
         }
@@ -85,13 +93,6 @@ impl Emulator {
     fn jmp_rel8(&mut self) -> Result<(), Error> {
         let rel = self.get_sign_code8(1)?;
         let v = (2 + rel) as i64 + (self.eip as i64); // XXX
-        self.eip = v as u32;
-        Ok(())
-    }
-
-    fn jmp_rel32(&mut self) -> Result<(), Error> {
-        let n: i32 = self.get_code32(1)? as i32;
-        let v = (n as i64) + 5 + (self.eip as i64); // XXX
         self.eip = v as u32;
         Ok(())
     }
@@ -127,6 +128,64 @@ impl Emulator {
     }
 
     // --------
+
+    pub fn update_eflag_sub(&mut self, v1: u32, v2: u32, v3: u64) {
+        self.set_carry_flag((v3 >> 32) == 1);
+        self.set_zero_flag(v3 == 0);
+        let v1s = v1 >> 31;
+        let v2s = v2 >> 31;
+        let v3s = (v3 >> 31 & 1) as u32;
+        self.set_sign_flag(v3s == 1);
+        self.set_overflow_flag(v1s == v2s && v2s == v3s);
+    }
+
+    fn set_sign_flag(&mut self, is_negative: bool) {
+        if is_negative {
+            self.eflags |= SIGN_FLAG;
+        } else {
+            self.eflags &= !SIGN_FLAG;
+        }
+    }
+
+    fn set_overflow_flag(&mut self, is_overflow: bool) {
+        if is_overflow {
+            self.eflags |= OVERFLOW_FLAG;
+        } else {
+            self.eflags &= !OVERFLOW_FLAG;
+        }
+    }
+
+    fn set_carry_flag(&mut self, is_carry: bool) {
+        if is_carry {
+            self.eflags |= CARRY_FLAG;
+        } else {
+            self.eflags &= !CARRY_FLAG;
+        }
+    }
+
+    fn set_zero_flag(&mut self, is_zero: bool) {
+        if is_zero {
+            self.eflags |= ZERO_FLAG;
+        } else {
+            self.eflags &= !ZERO_FLAG;
+        }
+    }
+
+    pub fn is_set_zf(&mut self) -> bool {
+        (self.eflags & ZERO_FLAG) != 0
+    }
+
+    pub fn is_set_cf(&mut self) -> bool {
+        (self.eflags & CARRY_FLAG) != 0
+    }
+
+    pub fn is_set_sf(&mut self) -> bool {
+        (self.eflags & SIGN_FLAG) != 0
+    }
+
+    pub fn is_set_of(&mut self) -> bool {
+        (self.eflags & OVERFLOW_FLAG) != 0
+    }
 
     pub fn push32(&mut self, v: u32) {
         let addr = self.get_register(ESP).unwrap() - 4; //  (ESP - 4) is a next pointer of stack.
