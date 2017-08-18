@@ -21,6 +21,31 @@ pub fn js(emu: &mut Emulator) -> Result<(), Error> {
     Ok(())
 }
 
+pub fn jle(emu: &mut Emulator) -> Result<(), Error> {
+    let _ = emu.read_imm8(); // opcode
+
+    let v = emu.read_imm8s()?;
+
+    if emu.is_set_zf() || (emu.is_set_sf() != emu.is_set_of()) {
+        emu.eip = emu.eip.wrapping_add(v as u32);
+    }
+    Ok(())
+}
+
+pub fn cmp_r32_rm32(emu: &mut Emulator) -> Result<(), Error> {
+    let _ = emu.read_imm8(); // opcode
+
+    let v = emu.read_imm8()?;
+    let m = Modrm::new(v, emu);
+
+    let r = m.get_r32(emu);
+    let rm = m.get_rm32(emu);
+
+    let v: i64 = (r as i64) - (rm as i64);
+    emu.update_eflag_sub(r, rm, v as u64);
+    Ok(())
+}
+
 pub fn add_rm32_r32(emu: &mut Emulator) -> Result<(), Error> {
     let _ = emu.read_imm8(); // opcode
 

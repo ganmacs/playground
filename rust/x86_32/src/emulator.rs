@@ -61,10 +61,12 @@ impl Emulator {
     pub fn exec(&mut self, op: u8) -> Result<(), Error> {
         match op {
             0x01 => instruction::add_rm32_r32(self),
+            0x3B => instruction::cmp_r32_rm32(self),
             0x50...0x57 => instruction::push_r32(self),
             0x58...0x5E => instruction::pop_r32(self),
             0x6A => instruction::push_i8(self),
             0x78 => instruction::js(self),
+            0x7E => instruction::jle(self),
             0x83 => instruction::opcode_83(self),
             0x89 => instruction::mov_rm32_r32(self),
             0x8B => instruction::mov_r32_rm32(self),
@@ -136,7 +138,7 @@ impl Emulator {
         let v2s = v2 >> 31;
         let v3s = (v3 >> 31 & 1) as u32;
         self.set_sign_flag(v3s == 1);
-        self.set_overflow_flag(v1s == v2s && v2s == v3s);
+        self.set_overflow_flag(v1s != v2s && v1s != v3s);
     }
 
     fn set_sign_flag(&mut self, is_negative: bool) {
