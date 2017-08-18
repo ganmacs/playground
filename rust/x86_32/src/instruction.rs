@@ -76,7 +76,7 @@ pub fn opcode_83(emu: &mut Emulator) -> Result<(), Error> {
 pub fn cmp_rm32_imm8(emu: &mut Emulator, modrm: Modrm) -> Result<(), Error> {
     let rm = modrm.get_rm32(emu);
     let imm = emu.read_imm8s()?;
-    let v: i64 = ((rm as i32) + (imm as i32)) as i64;
+    let v: i64 = ((rm as i32) - (imm as i32)) as i64;
     emu.update_eflag_sub(rm, imm as u32, v as u64);
     Ok(())
 }
