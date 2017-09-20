@@ -3,8 +3,9 @@ extern crate sandbox;
 use sandbox::*;
 
 fn main() {
-    rpc::run()
+    own::run()
 
+    // rpc::run()
     // tr::run();
     // thr::run();
     // stri::run();
