@@ -5,6 +5,7 @@ authors = ["ganmacs <ganmacs@gmail.com>"]
 
 [dependencies]
 tokio-core = "0.1"
+futures = "0.1.14"
 tokio-io = "0.1"
 log = "0.3"
 env_logger = "0.3"
