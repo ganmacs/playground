@@ -4,3 +4,7 @@ version = "0.1.0"
 authors = ["ganmacs"]
 
 [dependencies]
+tokio-core = "0.1"
+tokio-io = "0.1"
+tokio-timer = "0.1"
+futures = "0.1.14"
