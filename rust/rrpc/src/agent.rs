@@ -57,7 +57,10 @@ fn start(config: &Config) {
                                     println!("{:?}", v);
                                     Ok(())
                                 })
-                .map_err(|e| panic!(e));
+                .map_err(|e| {
+                             println!("{:?}", e);
+                             panic!(e)
+                         });
             handle.spawn(v);
             // tx.write_all(b"sf");
 
