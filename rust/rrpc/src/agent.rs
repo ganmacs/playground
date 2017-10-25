@@ -6,6 +6,7 @@ use futures::{Future, Stream, Sink};
 use tokio_core::reactor::Core;
 use tokio_core::net::TcpListener;
 use tokio_io::AsyncRead;
+use tokio_io::io::read_to_end;
 
 pub struct Agent {
     config: Config,
@@ -50,21 +51,12 @@ fn start(config: &Config) {
 
     let listener = socket
         .incoming()
-        .for_each(move |(socket, addr)| {
-            println!("-------------------------------");
-            let (tx, rx) = socket.framed(JsonCodec).split();
-            let v = rx.for_each(|v| {
-                                    println!("{:?}", v);
-                                    Ok(())
-                                })
-                .map_err(|e| {
-                             println!("{:?}", e);
-                             panic!(e)
-                         });
-            handle.spawn(v);
-            // tx.write_all(b"sf");
+        .for_each(move |(socket, _addr)| {
+                      let (_tx, rx) = socket.framed(JsonCodec).split();
+                      let v = rx.into_future().then(|s| Ok(()));
+                      handle.spawn(v);
 
-            Ok(())
-        });
+                      Ok(())
+                  });
     let _ = core.run(listener);
 }

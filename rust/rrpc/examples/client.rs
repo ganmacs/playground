@@ -14,8 +14,7 @@ pub fn main() {
     let handle = core.handle();
     let addr = "127.0.0.1:8080".parse::<SocketAddr>().unwrap();
 
-    let ping = codec_tcp::ping(&addr, &handle);
-    core.run(ping).unwrap();
+    codec_tcp::ping(&addr, &handle, core);
 }
 
 mod codec_tcp {
@@ -27,31 +26,40 @@ mod codec_tcp {
     use tokio_core::net::TcpStream;
     use tokio_core::reactor::Handle;
     use tokio_io::AsyncRead;
+    use futures::future;
+    use rrpc::message::Message;
+    use tokio_core::reactor::Core;
 
     use heartbeater;
 
-    pub fn ping(addr: &SocketAddr, handle: &Handle) -> Box<Future<Item = (), Error = io::Error>> {
+    pub fn ping(addr: &SocketAddr, handle: &Handle, mut core: Core) {
         let handle = handle.clone();
-        let tcp = TcpStream::connect(&addr, &handle);
+        let h2 = handle.clone();
+        let beat = heartbeater::beat();
 
-        Box::new(tcp.map(move |sock| {
-            let ticker = heartbeater::foo();
+        let v = beat.for_each(move |v| {
+            let tcp = TcpStream::connect(&addr, &handle);
+            let h = handle.clone();
+            let c = tcp.map(move |sock| {
+                    let (sink, _strm) = sock.framed(JsonCodec).split();
+                    let tic = future::ok::<Message, io::Error>(v)
+                        .into_stream()
+                        .forward(sink)
+                        .then(|ret| {
+                                  if let Err(e) = ret {
+                                      panic!("failed to write to socket: {}", e)
+                                  }
+                                  Ok(())
+                              });
+                    h.spawn(tic);
+                })
+                .map_err(|_| panic!());
 
-            let (sink, strm) = sock.framed(JsonCodec).split();
+            h2.spawn(c);
+            Ok(())
+        });
 
-            let tic = ticker
-                .forward(sink)
-                .then(|ret| {
-                          if let Err(e) = ret {
-                              panic!("failed to write to socket: {}", e)
-                          }
-                          Ok(())
-                      });
-
-
-            handle.spawn(tic)
-        }))
-
+        core.run(v).unwrap();
     }
 }
 
@@ -63,12 +71,13 @@ mod heartbeater {
     use futures::Stream;
     use rrpc::message::Message;
 
-    pub fn foo() -> Box<Stream<Item = Message, Error = io::Error>> {
+    pub fn beat() -> Box<Stream<Item = Message, Error = io::Error>> {
         let timer = Timer::default();
         let ticker = timer.interval(Duration::from_millis(1000));
 
         Box::new(ticker
                      .map(|_| {
+                              println!("------------------------beat-------");
                               Message::Ping {
                                   id: 0,
                                   name: "foooo".to_owned(),
