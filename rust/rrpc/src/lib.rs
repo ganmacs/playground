@@ -1,5 +1,6 @@
 extern crate tokio_core;
 extern crate tokio_io;
+extern crate tokio_timer;
 extern crate futures;
 extern crate bytes;
 
@@ -13,3 +14,4 @@ pub mod config;
 pub mod agent;
 pub mod codec;
 pub mod message;
+pub mod heartbeat;

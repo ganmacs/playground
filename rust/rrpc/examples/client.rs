@@ -10,7 +10,7 @@ use std::net::SocketAddr;
 use tokio_core::reactor::Core;
 
 pub fn main() {
-    let mut core = Core::new().unwrap();
+    let core = Core::new().unwrap();
     let handle = core.handle();
     let addr = "127.0.0.1:8080".parse::<SocketAddr>().unwrap();
 
