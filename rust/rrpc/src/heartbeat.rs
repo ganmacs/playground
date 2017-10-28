@@ -10,13 +10,9 @@ use message::Message;
 use config::Config;
 use codec::JsonCodec;
 
-pub fn start(config: &Config) -> () {
+pub fn start(mut core: Core, handle: &Handle, config: &Config) -> () {
     let timer = Timer::default();
     let ticker = timer.interval(config.heartbeat_interval());
-
-    let mut core = Core::new().unwrap();
-    let handle = core.handle();
-
     core.run(ticker
                  .map_err(|_| panic!())
                  .for_each(|_| {
@@ -28,7 +24,7 @@ pub fn start(config: &Config) -> () {
 }
 
 // Box<futures::Stream<Item=(), Error=std::io::Error>>
-pub fn ping(handle: &Handle, config: &Config) {
+fn ping(handle: &Handle, config: &Config) {
     if let Some(addr) = config.peers().first() {
         let conn = TcpStream::connect(addr, &handle);
 
