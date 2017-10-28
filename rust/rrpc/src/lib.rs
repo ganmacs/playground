@@ -15,3 +15,4 @@ pub mod agent;
 pub mod codec;
 pub mod message;
 pub mod heartbeat;
+pub mod atomic_counter;

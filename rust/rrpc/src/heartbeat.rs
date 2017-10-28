@@ -9,36 +9,40 @@ use futures::{Stream, Future, future};
 use message::Message;
 use config::Config;
 use codec::JsonCodec;
+use atomic_counter::Counter;
 
 pub fn start(mut core: Core, handle: &Handle, config: &Config) -> () {
     let timer = Timer::default();
     let ticker = timer.interval(config.heartbeat_interval());
+    let counter = Counter::new(0);
     core.run(ticker
                  .map_err(|_| panic!())
                  .for_each(|_| {
-                               ping(&handle, &config);
+                               ping(&handle, &config, counter.clone());
                                Ok(())
                            }))
         .unwrap();
-
 }
 
-// Box<futures::Stream<Item=(), Error=std::io::Error>>
-fn ping(handle: &Handle, config: &Config) {
+fn ping(handle: &Handle, config: &Config, counter: Counter) {
+    let name: String = config.name().into();
+
     if let Some(addr) = config.peers().first() {
         let conn = TcpStream::connect(addr, &handle);
+        let target = addr.to_string();
 
-        let c = conn.and_then(move |sock| {
-                let peer = sock.framed(JsonCodec);
-                let future_message = future::ok::<Message, io::Error>(Message::Ping {
-                                                                          id: 0,
-                                                                          name: "a".to_string(),
-                                                                          from: "b".to_string(),
-                                                                      });
+        let sending_ping = move |sock: TcpStream| {
+            let peer = sock.framed(JsonCodec);
+            let future_message = future::ok::<Message, io::Error>(Message::Ping {
+                                                                      id: counter.up() as u64,
+                                                                      to: target,
+                                                                      from: name,
+                                                                  });
 
-                future_message.into_stream().forward(peer).map(|_| ())
-            })
-            .map_err(|v| panic!(v));
+            future_message.into_stream().forward(peer).map(|_| ())
+        };
+
+        let c = conn.and_then(sending_ping).map_err(|v| panic!(v));
         handle.spawn(c);
     } else {
         panic!("addr required")
