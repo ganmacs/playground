@@ -1,12 +1,11 @@
-use config::Config;
-
-use codec::JsonCodec;
-
 use futures::{Future, Stream, Sink};
 use tokio_core::reactor::Core;
 use tokio_core::net::TcpListener;
 use tokio_io::AsyncRead;
-use tokio_io::io::read_to_end;
+
+use config::Config;
+use codec::JsonCodec;
+use message::Message;
 
 pub struct Agent {
     config: Config,
@@ -31,32 +30,37 @@ impl Agent {
 fn start(config: &Config) {
     let mut core = Core::new().unwrap();
     let handle = core.handle();
+    let name = config.name().to_string();
 
     let socket = TcpListener::bind(&config.addr(), &handle).unwrap();
-    // let peers = config.peers();
-
-    // for peer_addr in peers.iter() {
-    //     let client = TcpStream::connect(&peer_addr, &handle);
-    //     let request = client.and_then(|sock| tokio_io::io::write_all(sock, b"this is a client"));
-
-    //     let a = request
-    //         .and_then(|(sock, _request)| {
-    //                       tokio_io::io::read_to_end(sock, Vec::new());
-    //                       Ok(())
-    //                   })
-    //         .map_err(|e| panic!("{:?}", e));
-    //     handle.clone().spawn(a);
-    // }
-
-
     let listener = socket
         .incoming()
         .for_each(move |(socket, _addr)| {
-                      let (_tx, rx) = socket.framed(JsonCodec).split();
-                      let v = rx.into_future().then(|s| Ok(()));
-                      handle.spawn(v);
+            let (tx, rx) = socket.framed(JsonCodec).split();
 
-                      Ok(())
-                  });
+            // XXX
+            let name = name.clone();
+
+            // TODO: 1 is ok?
+            let rev = rx.take(1).map(move |m| ping_ack(m, &name));
+            let sending = tx.send_all(rev).then(|_| Ok(()));
+            handle.spawn(sending);
+            Ok(())
+        });
+
     let _ = core.run(listener);
+}
+
+
+fn ping_ack(ping: Message, name: &str) -> Message {
+    match ping {
+        Message::Ping { id, from, .. } => {
+            Message::Ack {
+                id: id,
+                to: from,
+                from: name.into(),
+            }
+        }
+        Message::Ack { .. } => unimplemented!(),
+    }
 }
