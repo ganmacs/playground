@@ -1,11 +1,12 @@
 use std::io;
+use std::time::Duration;
 
 use tokio_core::reactor::{Core, Handle};
 use tokio_timer::Timer;
 use tokio_io::AsyncRead;
 use tokio_core::net::TcpStream;
 use futures::{Stream, Future};
-use futures::future::{FutureResult, ok as future_ok, err as future_err};
+use futures::future::{ok as future_ok, err as future_err};
 
 use message::Message;
 use config::Config;
@@ -22,26 +23,42 @@ pub fn start(mut core: Core, handle: &Handle, config: &Config) -> () {
         .unwrap();
 }
 
-fn ping(handle: &Handle, config: &Config, counter: Counter) -> FutureResult<(), io::Error> {
-    let name: String = config.name().into();
-
+fn ping(handle: &Handle, config: &Config, counter: Counter) -> Box<Future<Item = (), Error = ()>> {
     if let Some(addr) = config.peers().first() {
+        let name = config.name().into();
+        let handle = handle.clone();
         let conn = TcpStream::connect(addr, &handle);
         let target = addr.to_string();
 
         let sending_ping = move |sock: TcpStream| {
-            let peer = sock.framed(JsonCodec);
+            let (tx, rx) = sock.framed(JsonCodec).split();
             let future_message = future_ok::<Message, io::Error>(Message::Ping {
                                                                      id: counter.up() as u64,
                                                                      to: target,
                                                                      from: name,
                                                                  });
-
-            future_message.into_stream().forward(peer).map(|_| ())
+            handle.spawn(future_message
+                             .into_stream()
+                             .forward(tx)
+                             .then(|result| {
+                                       if let Err(e) = result {
+                                           panic!("failed to write to socket: {}", e)
+                                       }
+                                       Ok(())
+                                   }));
+            rx
         };
-        handle.spawn(conn.and_then(sending_ping).map_err(|v| panic!(v)));
-        future_ok(())
+
+        Box::new(conn.map(sending_ping)
+                     .flatten_stream()
+                     .into_future()
+                     .then(|v| {
+                               if let Err(e) = v {
+                                   panic!("oh")
+                               }
+                               Ok(())
+                           }))
     } else {
-        future_err(io::Error::new(io::ErrorKind::Other, "addr required"))
+        Box::new(future_err(()))
     }
 }

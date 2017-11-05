@@ -8,8 +8,8 @@ extern crate env_logger;
 
 extern crate rand;
 
-
 pub mod closure;
+pub mod closure2;
 pub mod fu;
 pub mod stri;
 pub mod thr;

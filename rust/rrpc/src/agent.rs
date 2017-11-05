@@ -1,3 +1,5 @@
+use std::{time, thread};
+
 use futures::{Future, Stream, Sink};
 use tokio_core::reactor::Core;
 use tokio_core::net::TcpListener;
@@ -38,12 +40,22 @@ fn start(config: &Config) {
         .for_each(move |(socket, _addr)| {
             let (tx, rx) = socket.framed(JsonCodec).split();
 
+            // let ten_millis = time::Duration::from_secs(5);
+            // thread::sleep(ten_millis);
+
             // XXX
             let name = name.clone();
 
             // TODO: 1 is ok?
             let rev = rx.take(1).map(move |m| ping_ack(m, &name));
-            let sending = tx.send_all(rev).then(|_| Ok(()));
+            let sending = tx.send_all(rev)
+                .then(|e| if let Ok(_) = e {
+                          println!("yoshi");
+                          Ok(())
+                      } else {
+                          println!("{:?}", "yoshijanai");
+                          Err(())
+                      });
             handle.spawn(sending);
             Ok(())
         });
