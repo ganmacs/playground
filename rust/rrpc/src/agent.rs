@@ -40,9 +40,6 @@ fn start(config: &Config) {
         .for_each(move |(socket, _addr)| {
             let (tx, rx) = socket.framed(JsonCodec).split();
 
-            // let ten_millis = time::Duration::from_secs(5);
-            // thread::sleep(ten_millis);
-
             // XXX
             let name = name.clone();
 
