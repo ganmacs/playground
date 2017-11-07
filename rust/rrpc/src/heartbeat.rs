@@ -5,8 +5,8 @@ use tokio_core::reactor::{Core, Handle};
 use tokio_timer::Timer;
 use tokio_io::AsyncRead;
 use tokio_core::net::TcpStream;
-use futures::{Stream, Future, Sink};
-use futures::future::{ok as future_ok, err as future_err};
+use futures::{Stream, Future};
+use futures::future::err as future_err;
 use futures::stream;
 
 use message::Message;

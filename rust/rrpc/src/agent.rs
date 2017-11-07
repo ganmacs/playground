@@ -1,5 +1,3 @@
-use std::{time, thread};
-
 use futures::{Future, Stream, Sink};
 use tokio_core::reactor::Core;
 use tokio_core::net::TcpListener;
