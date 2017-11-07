@@ -44,6 +44,7 @@ fn ping(handle: &Handle, config: &Config, counter: Counter) -> Box<Future<Item =
                               Err(e) => panic!("failed at sending ping {}", e),
                               Ok(_) => Ok(()),
                           });
+            info!("ping sending...");
             handle.spawn(pping);
 
             let recive_ack = rx.map(|m| Ok(recv_ack(m)) as Result<(), ()>)

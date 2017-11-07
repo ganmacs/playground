@@ -4,6 +4,8 @@ version = "0.1.0"
 authors = ["ganmacs"]
 
 [dependencies]
+log = { git = "https://github.com/rust-lang-nursery/log.git", features = ["std"] }
+env_logger = { git = "https://github.com/sebasmagri/env_logger.git" }
 tokio-core = "0.1"
 tokio-io = "0.1"
 tokio-timer = "0.1"
