@@ -42,26 +42,29 @@ fn ping(handle: &Handle, config: &Config, counter: Counter) -> Box<Future<Item =
                     .forward(tx)
                     .then(|r| match r {
                               Err(e) => panic!("failed at sending ping {}", e),
-                              Ok(_) => Ok(()),
+                              Ok(_) => {
+                        debug!("Sucess seding ping");
+                        Ok(())
+                    }
                           });
-            info!("ping sending...");
+            debug!("ping sending...");
             handle.spawn(pping);
 
-            let recive_ack = rx.map(|m| Ok(recv_ack(m)) as Result<(), ()>)
+            let recive_ack = rx.map(|m| Ok(recv_ack(m)))
                 .into_future()
                 .then(|v| {
-                          if let Err(e) = v {
-                              panic!("oh 1")
+                          if let Err((e, _)) = v {
+                              e
                           }
-                          Ok(()) as Result<(), ()>
+                          Ok(())
                       });
 
             timer
                 .timeout(recive_ack, Duration::from_secs(1))
                 .then(|v| {
                           if let Err(e) = v {
-                              println!("{:?}", e);
-                              panic!("timeout!")
+                              println!("{:?}", e.hoge());
+                              error!("Timeout reciving ack from");
                           }
                           Ok(())
                       })
@@ -82,7 +85,10 @@ fn ping(handle: &Handle, config: &Config, counter: Counter) -> Box<Future<Item =
 
 fn recv_ack(ping: Message) {
     match ping {
-        Message::Ping { .. } => panic!("whats"),
-        Message::Ack { id, .. } => println!("id {:?}", id),
+        Message::Ping { id, from, .. } => {
+            error!("[PING:{:?}] unexpected message: from {:?}", id, from);
+            panic!("whats")
+        }
+        Message::Ack { id, from, .. } => info!("[ACK:{:?}] from {:?} ", id, from),
     }
 }

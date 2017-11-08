@@ -14,7 +14,6 @@ impl Decoder for JsonCodec {
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         let decoded = serde_json::from_slice(&src)
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-        println!("{:?} in decode", decoded);
         Ok(Some(decoded))
     }
 }
