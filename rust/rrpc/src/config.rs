@@ -50,8 +50,11 @@ impl Builder {
         let name = self.name.expect("name is required");
         let addr = self.addr.expect("address is required");
         let peers = self.peers.expect("peers are required");
-        let hb = self.heartberat_interval_sec
-            .unwrap_or(time::Duration::from_secs(DEFAULT_HEARTBEAT_INTERVAL_SEC));
+        let hb = self.heartberat_interval_sec.unwrap_or(
+            time::Duration::from_secs(
+                DEFAULT_HEARTBEAT_INTERVAL_SEC,
+            ),
+        );
 
         Config {
             name: name,

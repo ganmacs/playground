@@ -33,27 +33,24 @@ fn start(config: &Config) {
     let name = config.name().to_string();
 
     let socket = TcpListener::bind(&config.addr(), &handle).unwrap();
-    let listener = socket
-        .incoming()
-        .for_each(move |(socket, _addr)| {
-            let (tx, rx) = socket.framed(JsonCodec).split();
+    let listener = socket.incoming().for_each(move |(socket, _addr)| {
+        let (tx, rx) = socket.framed(JsonCodec).split();
 
-            // XXX
-            let name = name.clone();
+        // XXX
+        let name = name.clone();
 
-            // TODO: 1 is ok?
-            let rev = rx.take(1).map(move |m| ping_ack(m, &name));
-            let sending = tx.send_all(rev)
-                .then(|e| if let Ok(_) = e {
-                          println!("yoshi");
-                          Ok(())
-                      } else {
-                          println!("{:?}", "yoshijanai");
-                          Err(())
-                      });
-            handle.spawn(sending);
+        // TODO: 1 is ok?
+        let rev = rx.take(1).map(move |m| ping_ack(m, &name));
+        let sending = tx.send_all(rev).then(|e| if let Ok(_) = e {
+            println!("yoshi");
             Ok(())
+        } else {
+            println!("{:?}", "yoshijanai");
+            Err(())
         });
+        handle.spawn(sending);
+        Ok(())
+    });
 
     let _ = core.run(listener);
 }

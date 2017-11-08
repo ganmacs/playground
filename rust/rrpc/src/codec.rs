@@ -12,8 +12,9 @@ impl Decoder for JsonCodec {
     type Error = io::Error;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        let decoded = serde_json::from_slice(&src)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        let decoded = serde_json::from_slice(&src).map_err(|e| {
+            io::Error::new(io::ErrorKind::Other, e)
+        })?;
         Ok(Some(decoded))
     }
 }
@@ -24,8 +25,7 @@ impl Encoder for JsonCodec {
 
     fn encode(&mut self, item: Self::Item, buf: &mut BytesMut) -> Result<(), Self::Error> {
         serde_json::to_writer(buf.writer(), &item).map_err(|e| {
-                                                               io::Error::new(io::ErrorKind::Other,
-                                                                              e)
-                                                           })
+            io::Error::new(io::ErrorKind::Other, e)
+        })
     }
 }
