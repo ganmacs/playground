@@ -33,6 +33,7 @@ fn ping(handle: &Handle, config: &Config, counter: Counter) -> Box<Future<Item =
 
         let ping_and_ack = move |sock: TcpStream| {
             let (tx, rx) = sock.framed(JsonCodec).split();
+
             let pping = stream::once::<Message, io::Error>(Ok(Message::Ping {
                 id: counter.up() as u64,
                 to: target,
@@ -48,17 +49,16 @@ fn ping(handle: &Handle, config: &Config, counter: Counter) -> Box<Future<Item =
             debug!("ping sending...");
             handle.spawn(pping);
 
-            let recive_ack = rx.map(|m| Ok(recv_ack(m))).into_future().then(|v| {
-                if let Err((e, _)) = v {
-                    e
-                }
-                Ok(())
+            let recive_ack = rx.into_future().then(|v| match v {
+                Err((e, _)) => Err(e),
+                Ok((Some(o), _)) => Ok(recv_ack(o)),
+                Ok((None, _)) => Err(io::Error::new(io::ErrorKind::Other, "no more message")),
             });
 
             timer.timeout(recive_ack, Duration::from_secs(1)).then(|v| {
                 if let Err(e) = v {
-                    println!("{:?}", e.hoge());
-                    error!("Timeout reciving ack from");
+                    error!("Timeout reciving ack from {:?}", e);
+                    return Err(e);
                 }
                 Ok(())
             })
@@ -66,7 +66,7 @@ fn ping(handle: &Handle, config: &Config, counter: Counter) -> Box<Future<Item =
 
         Box::new(conn.and_then(ping_and_ack).then(|v| {
             if let Err(e) = v {
-                panic!("oh 3")
+                panic!(e);
             }
             Ok(())
         }))
