@@ -5,7 +5,7 @@ use tokio_core::reactor::{Core, Handle};
 use tokio_timer::Timer;
 use tokio_io::AsyncRead;
 use tokio_core::net::TcpStream;
-use futures::{Stream, Future, Sink, IntoFuture};
+use futures::{Stream, Future, Sink};
 use futures::future::err as future_err;
 use futures::stream;
 
@@ -51,12 +51,7 @@ fn send_heartbeat(
             debug!("ping sending...");
             handle.spawn(send_message(Box::new(tx), p));
 
-            let recive_ack = rx.into_future().then(|v| match v {
-                Err((e, _)) => Err(e),
-                Ok((Some(o), _)) => Ok(recv_ack(o)),
-                Ok((None, _)) => Err(io::Error::new(io::ErrorKind::Other, "no more message")),
-            });
-
+            let recive_ack = recv_message(Box::new(rx)).map(recv_ack);
             timer.timeout(recive_ack, Duration::from_secs(1)).then(|v| {
                 if let Err(e) = v {
                     error!("Timeout reciving ack from {:?}", e);
@@ -77,6 +72,16 @@ fn send_heartbeat(
     }
 }
 
+fn recv_message(
+    rx: Box<Stream<Item = Message, Error = io::Error>>,
+) -> Box<Future<Item = Message, Error = io::Error>> {
+    Box::new(rx.into_future().then(|v| match v {
+        Err((e, _)) => Err(e),
+        Ok((Some(message), _)) => Ok(message),
+        Ok((None, _)) => Err(io::Error::new(io::ErrorKind::Other, "no more message")),
+    }))
+}
+
 fn send_message(
     tx: Box<Sink<SinkItem = Message, SinkError = io::Error>>,
     message: Message,
@@ -93,7 +98,6 @@ fn send_message(
             }),
     )
 }
-
 
 fn recv_ack(ping: Message) {
     match ping {
