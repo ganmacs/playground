@@ -5,7 +5,7 @@ use tokio_core::reactor::{Core, Handle};
 use tokio_timer::Timer;
 use tokio_io::AsyncRead;
 use tokio_core::net::TcpStream;
-use futures::{Stream, Future};
+use futures::{Stream, Future, Sink, IntoFuture};
 use futures::future::err as future_err;
 use futures::stream;
 
@@ -16,14 +16,22 @@ use atomic_counter::Counter;
 
 pub fn start(mut core: Core, handle: &Handle, config: &Config) -> () {
     let timer = Timer::default();
-    let ticker = timer.interval(config.heartbeat_interval());
+    let ticker = timer.interval(config.heartbeat_interval()).map_err(|e| {
+        error!("{:?}", e)
+    });
     let counter = Counter::new(0);
-    core.run(ticker.map_err(|_| panic!()).for_each(|_| {
-        ping(&handle, &config, counter.clone())
-    })).unwrap();
+
+    core.run(ticker.for_each(
+        |_| send_heartbeat(handle, config, counter.clone()),
+    )).unwrap();
 }
 
-fn ping(handle: &Handle, config: &Config, counter: Counter) -> Box<Future<Item = (), Error = ()>> {
+fn send_heartbeat(
+    handle: &Handle,
+    config: &Config,
+    counter: Counter,
+) -> Box<Future<Item = (), Error = ()>> {
+
     let timer = Timer::default();
     if let Some(addr) = config.peers().first() {
         let name = config.name().into();
@@ -34,20 +42,14 @@ fn ping(handle: &Handle, config: &Config, counter: Counter) -> Box<Future<Item =
         let ping_and_ack = move |sock: TcpStream| {
             let (tx, rx) = sock.framed(JsonCodec).split();
 
-            let pping = stream::once::<Message, io::Error>(Ok(Message::Ping {
+            let p = Message::Ping {
                 id: counter.up() as u64,
                 to: target,
                 from: name,
-            })).forward(tx)
-                .then(|r| match r {
-                    Err(e) => panic!("failed at sending ping {}", e),
-                    Ok(_) => {
-                        debug!("Sucess seding ping");
-                        Ok(())
-                    }
-                });
+            };
+
             debug!("ping sending...");
-            handle.spawn(pping);
+            handle.spawn(send_message(Box::new(tx), p));
 
             let recive_ack = rx.into_future().then(|v| match v {
                 Err((e, _)) => Err(e),
@@ -73,6 +75,23 @@ fn ping(handle: &Handle, config: &Config, counter: Counter) -> Box<Future<Item =
     } else {
         Box::new(future_err(()))
     }
+}
+
+fn send_message(
+    tx: Box<Sink<SinkItem = Message, SinkError = io::Error>>,
+    message: Message,
+) -> Box<Future<Item = (), Error = ()>> {
+    Box::new(
+        stream::once::<Message, io::Error>(Ok(message))
+            .forward(tx)
+            .then(|r| match r {
+                Err(e) => panic!("failed at sending ping {}", e),
+                Ok(_) => {
+                    debug!("Sucess seding ping");
+                    Ok(())
+                }
+            }),
+    )
 }
 
 
