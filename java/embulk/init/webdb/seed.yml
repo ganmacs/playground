@@ -1,5 +1,0 @@
-in:
-  type: file
-  path_prefix: "/Users/ganmacs/src/github.com/ganmacs/playground/embulk/init/webdb/csv/sample_"
-out:
-  type: stdout

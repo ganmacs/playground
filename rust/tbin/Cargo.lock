@@ -1,4 +1,4 @@
-[root]
+[[package]]
 name = "tbin"
 version = "0.1.0"
 
