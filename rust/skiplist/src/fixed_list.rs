@@ -26,10 +26,6 @@ impl FixedList {
         self.list.get(i).and_then(|v| v.get())
     }
 
-    pub fn into_iter(self) -> Vec<Option<NodeId>> {
-        self.list.iter().map(|v| v.get()).collect()
-    }
-
     pub fn height(&self) -> usize {
         self.height
     }

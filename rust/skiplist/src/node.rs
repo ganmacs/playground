@@ -20,6 +20,7 @@ impl Node {
             next,
         }
     }
+
     pub fn key(&self) -> &Key {
         &self.key
     }
@@ -30,10 +31,6 @@ impl Node {
 
     pub fn get_next(&self, i: usize) -> Option<usize> {
         self.next.get(i)
-    }
-
-    pub fn get_id(&self) -> NodeId {
-        self.id
     }
 
     pub fn height(&self) -> usize {

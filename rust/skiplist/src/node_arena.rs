@@ -1,14 +1,29 @@
 use fixed_list::FixedList;
 use node::{Node, Key, NodeId};
+use super::MAX_HEIGHT;
 
 #[derive(Debug)]
 pub struct NodeArena {
     nodes: Vec<Node>,
+    head: NodeId,
 }
 
 impl NodeArena {
     pub fn new() -> Self {
-        NodeArena { nodes: vec![] }
+        let mut arena = NodeArena {
+            nodes: vec![],
+            head: 0,
+        };
+        arena.allocate_node(vec![], vec![], MAX_HEIGHT);
+        arena
+    }
+
+    pub fn is_head(&self, node: &Node) -> bool {
+        &self.head == &node.id()
+    }
+
+    pub fn head(&self) -> &Node {
+        self.get(self.head).unwrap()
     }
 
     pub fn allocate_node(&mut self, key: Key, value: Vec<u8>, height: usize) -> NodeId {
@@ -29,8 +44,7 @@ impl NodeArena {
                     });
                     p_node.set_next(i, node.id());
                 } else {
-                    // head FIX
-                    self.nodes.get(0).map(|head| head.set_next(i, node.id()));
+                    self.head().set_next(i, node.id());
                 }
 
             }

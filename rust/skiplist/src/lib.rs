@@ -6,7 +6,7 @@ mod fixed_list;
 
 use rand::Rng;
 use std::usize;
-use node::{Node, NodeId, Key};
+use node::{Node, Key};
 use fixed_list::FixedList;
 use node_arena::NodeArena;
 
@@ -15,7 +15,6 @@ const MAX_HEIGHT: usize = 12;
 #[derive(Debug)]
 pub struct SkipList {
     arena: NodeArena,
-    head: NodeId,
 }
 
 pub fn new() -> SkipList {
@@ -24,9 +23,7 @@ pub fn new() -> SkipList {
 
 impl SkipList {
     fn new() -> Self {
-        let mut arena = NodeArena::new();
-        let head = arena.allocate_node(vec![], vec![], MAX_HEIGHT);
-        SkipList { arena, head }
+        SkipList { arena: NodeArena::new() }
     }
 
     pub fn get(&mut self, key: &Key) -> Option<&Node> {
@@ -55,7 +52,7 @@ impl SkipList {
 
     fn find_greater_than_eq_and_set_prev(&self, key: &Key, prev: &mut FixedList) -> Option<&Node> {
         let mut level = (MAX_HEIGHT as i8) - 1;
-        let mut node = self.arena.get(self.head).unwrap();
+        let mut node = self.arena.head();
 
         loop {
             let next_node_i = node.get_next(level as usize);
@@ -63,8 +60,8 @@ impl SkipList {
                 if next.key() < key {
                     node = next;
                 } else {
-                    if node.get_id() != self.head {
-                        prev.set(level as usize, node.get_id());
+                    if !self.arena.is_head(&node) {
+                        prev.set(level as usize, node.id());
                     }
 
                     level -= 1;
@@ -73,8 +70,8 @@ impl SkipList {
                     }
                 }
             } else {
-                if node.get_id() != self.head {
-                    prev.set(level as usize, node.get_id());
+                if !self.arena.is_head(&node) {
+                    prev.set(level as usize, node.id());
                 }
                 level -= 1;
                 if level < 0 {
@@ -86,7 +83,7 @@ impl SkipList {
 
     fn find_greater_than_eq(&self, key: &Key) -> Option<&Node> {
         let mut level = (MAX_HEIGHT as i8) - 1;
-        let mut node = self.arena.get(self.head).unwrap();
+        let mut node = self.arena.head();
 
         loop {
             let next_node_id = node.get_next(level as usize);
