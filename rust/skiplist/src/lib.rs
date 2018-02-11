@@ -4,10 +4,13 @@ mod node_arena;
 mod node;
 mod fixed_list;
 
+use rand::Rng;
 use std::usize;
 use node::{Node, NodeId, Key};
 use fixed_list::FixedList;
-use node_arena::{NodeArena, MAX_HEIGHT};
+use node_arena::NodeArena;
+
+const MAX_HEIGHT: usize = 12;
 
 #[derive(Debug)]
 pub struct SkipList {
@@ -22,7 +25,7 @@ pub fn new() -> SkipList {
 impl SkipList {
     fn new() -> Self {
         let mut arena = NodeArena::new();
-        let head = arena.allocate_with_size(vec![], vec![], MAX_HEIGHT);
+        let head = arena.allocate_node(vec![], vec![], MAX_HEIGHT);
         SkipList { arena, head }
     }
 
@@ -44,8 +47,8 @@ impl SkipList {
                 return false;
             }
         }
-
-        let id = self.arena.allocate_node(key, value);
+        let height = rand::thread_rng().gen_range(1, MAX_HEIGHT);
+        let id = self.arena.allocate_node(key, value, height);
         self.arena.update(id, f);
         true
     }

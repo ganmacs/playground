@@ -1,11 +1,5 @@
-use rand;
-use rand::Rng;
-
 use fixed_list::FixedList;
 use node::{Node, Key, NodeId};
-
-pub const MAX_HEIGHT: usize = 12;
-
 
 #[derive(Debug)]
 pub struct NodeArena {
@@ -17,17 +11,12 @@ impl NodeArena {
         NodeArena { nodes: vec![] }
     }
 
-    pub fn allocate_with_size(&mut self, key: Key, value: Vec<u8>, height: usize) -> NodeId {
+    pub fn allocate_node(&mut self, key: Key, value: Vec<u8>, height: usize) -> NodeId {
         let id = self.nodes.len();
         let next = FixedList::new(height);
         let n = Node::new(id, key, value, next);
         self.nodes.push(n);
         id
-    }
-
-    pub fn allocate_node(&mut self, key: Key, value: Vec<u8>) -> NodeId {
-        let height = rand::thread_rng().gen_range(1, MAX_HEIGHT);
-        self.allocate_with_size(key, value, height)
     }
 
     pub fn update(&mut self, id: NodeId, prev: FixedList) {
