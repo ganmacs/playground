@@ -1,0 +1,8 @@
+[package]
+name = "bench"
+version = "0.1.0"
+authors = ["ganmacs <ganmacs@gmail.com>"]
+
+[dependencies]
+bytes = "0.4"
+rand = "0.4"
