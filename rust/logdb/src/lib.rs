@@ -1,5 +1,4 @@
 extern crate bytes;
-extern crate byteorder;
 extern crate crc;
 
 mod log;

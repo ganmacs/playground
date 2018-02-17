@@ -5,5 +5,4 @@ authors = ["ganmacs <ganmacs@gmail.com>"]
 
 [dependencies]
 bytes = "0.4"
-byteorder = "1"
 crc = "^1.0.0"

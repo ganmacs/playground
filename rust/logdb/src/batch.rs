@@ -1,5 +1,4 @@
-use byteorder::{LittleEndian, ByteOrder};
-use bytes::{BufMut, BytesMut, Bytes};
+use bytes::{BufMut, BytesMut, Bytes, LittleEndian, ByteOrder};
 
 const COUNT_INDEX: usize = 8;
 const RECORD_INDEX: usize = 12;

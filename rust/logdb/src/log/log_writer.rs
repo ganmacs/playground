@@ -1,8 +1,7 @@
 use std::io::{BufWriter, Write};
 use std::fs::File;
-use bytes::{BufMut, BytesMut, Bytes};
+use bytes::{BufMut, BytesMut, Bytes, LittleEndian};
 use crc::{crc32, Hasher32};
-use byteorder::LittleEndian;
 use super::{RecordType, HEADER_BYTE_SIZE};
 
 pub struct LogWriter {
