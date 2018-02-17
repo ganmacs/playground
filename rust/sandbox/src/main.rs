@@ -9,5 +9,5 @@ fn main() {
     // thr::run();
     // stri::run();
     // closure::run();
-    closure2::run();
+    trait_test::run();
 }
