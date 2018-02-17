@@ -60,16 +60,15 @@ impl LogDB {
 
         let mut v = Version::new();
         let fname = FileType::Log.filename(dir, v.next_file_num());
-        let fd = fs::OpenOptions::new()
+        let fd = fs::OpenOptions::new() // add read permission?
             .write(true)
             .create(true)
             .open(fname)
             .unwrap();
-        let log = fd.try_clone().map(|fd| LogWriter::new(fd)).unwrap();
 
         LogDB {
             dir: dir.to_owned(),
-            log: log,
+            log: LogWriter::new(fd),
             version: v,
         }
     }
@@ -88,14 +87,14 @@ impl LogDB {
     }
 
     fn replay_logfile(&self, path: &std::path::PathBuf) {
-        println!("{:?}", path);
         let fd = fs::File::open(path).unwrap();
         let mut lr = LogReader::new(fd);
-        lr.read_record();
+        let record = lr.read_record().unwrap();
+        let write_batch = WriteBatch::load_data(record);
+        write_batch.insert_memory();
     }
 
     fn apply(&mut self, batch: WriteBatch) {
-        let v = self.log.add_record(batch.data());
-        println!("{:?}", v);
+        self.log.add_record(batch.data());
     }
 }

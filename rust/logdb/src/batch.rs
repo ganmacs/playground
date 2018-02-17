@@ -6,6 +6,9 @@ const RECORD_INDEX: usize = 12;
 const BLOCK_SIZE: usize = 1024 * 4; // 4K
 const SEQ_SIZE: usize = 8;
 const COUNT_SIZE: usize = 4;
+const TYPE_SIZE: usize = 1;
+const KEY_LENGTH_SIZE: usize = 4;
+const VALUE_LENGTH_SIZE: usize = 4;
 
 enum KeyKind {
     SET,
@@ -13,50 +16,80 @@ enum KeyKind {
 }
 
 // Need External Lock
+// data: | seq (8byte) | count (4byte) | record (n byte) |
+// record: | type value (1 byte) | key len (4bytes) | key | value len (4bytes) | value |
 pub struct WriteBatch {
-    // data: | seq (8byte) | count (4byte) | record (n byte) |
-    // record: | type value (1 byte) | key len (4bytes) | key | value len (4bytes) | value |
+    seq: u64,
+    count: u32,
     data: BytesMut,
 }
 
 impl WriteBatch {
     pub fn new() -> Self {
-        let mut data = BytesMut::with_capacity(BLOCK_SIZE);
-        data.put_u64::<LittleEndian>(0); // seq
-        data.put_u32::<LittleEndian>(0); // count
-        WriteBatch { data }
+        WriteBatch {
+            seq: 0,
+            count: 0,
+            data: BytesMut::with_capacity(BLOCK_SIZE),
+        }
     }
 
     pub fn load_data(mut data: Bytes) -> Self {
-        let wb = Self::new();
         let seq = {
-            let c = data.split_off(SEQ_SIZE);
+            let c = data.split_to(SEQ_SIZE);
             LittleEndian::read_u64(c.as_ref())
         };
 
-        println!("{:?}", seq);
-
         let count = {
-            let c = data.split_off(COUNT_SIZE);
+            let c = data.split_to(COUNT_SIZE);
             LittleEndian::read_u32(c.as_ref())
         };
 
-        println!("{:?}", count);
+        let data = data.try_mut().unwrap();
+        WriteBatch { seq, count, data }
+    }
 
-        for _ in 0..count {
-            let t = {
-                let c = data.split_off(1);
-                LittleEndian::read_u32(c.as_ref())
+    pub fn insert_memory(self) {
+        let mut data = self.data.freeze();
+
+        for _ in 0..self.count {
+            let typev = {
+                let d = data.split_to(TYPE_SIZE);
+                d[0]
             };
 
-            println!("{:?}", t);
-        }
+            let key = {
+                let key_len = {
+                    let d = data.split_to(KEY_LENGTH_SIZE);
+                    LittleEndian::read_u32(&d) as usize
+                };
 
-        wb
+                let d = data.split_to(key_len);
+                let vector: Vec<u8> = Vec::from(&d as &[u8]);
+                String::from_utf8(vector).unwrap()
+            };
+
+            let value = {
+                let value_len = {
+                    let d = data.split_to(VALUE_LENGTH_SIZE);
+                    LittleEndian::read_u32(&d) as usize
+                };
+
+                let d = data.split_to(value_len);
+                let vector: Vec<u8> = Vec::from(&d as &[u8]);
+                String::from_utf8(vector).unwrap()
+            };
+
+            println!("{:?}", key);
+            println!("{:?}", value);
+        }
     }
 
     pub fn data(self) -> Bytes {
-        self.data.freeze()
+        let mut v = BytesMut::with_capacity(RECORD_INDEX);
+        v.put_u64::<LittleEndian>(self.seq);
+        v.put_u32::<LittleEndian>(self.count);
+        v.extend(self.data);
+        v.freeze()
     }
 
     pub fn put(&mut self, key: &str, value: &str) {
@@ -74,9 +107,6 @@ impl WriteBatch {
     }
 
     fn inc_count(&mut self) {
-        let c = *self.data.get(COUNT_INDEX).unwrap();
-        let size = self.data.len();
-        self.data.swap(c as usize, size - 1);
-        self.data.truncate(size);
+        self.count += 1;
     }
 }
