@@ -24,7 +24,6 @@ enum RecordType {
     LAST,
 }
 
-
 fn crc32(data: &[u8]) -> u32 {
     let mut digest = crc32::Digest::new(crc32::IEEE);
     digest.write(data);

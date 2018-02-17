@@ -1,7 +1,6 @@
-use std::mem;
 use std::fs::File;
 use std::io::{BufReader, Read};
-use bytes::{BytesMut, Bytes, LittleEndian, ByteOrder};
+use bytes::{Bytes, LittleEndian, ByteOrder};
 
 use super::{HEADER_SIZE, LENGTH_SIZE, TYPE_SIZE, CHECKSUM_SIZE, crc32};
 

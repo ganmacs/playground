@@ -1,17 +1,21 @@
 extern crate bytes;
 extern crate crc;
+extern crate rand;
 
 mod log;
 mod batch;
+mod memdb;
 
 use batch::WriteBatch;
 use log::{LogReader, LogWriter};
+use memdb::MemDB;
 use std::fs;
 
 pub struct LogDB {
     log: LogWriter,
     dir: String,
     version: Version,
+    mem: MemDB,
 }
 
 struct Version {
@@ -35,7 +39,7 @@ impl Version {
 }
 
 pub fn open(dir: &str) -> LogDB {
-    let db = LogDB::open(dir);
+    let mut db = LogDB::open(dir);
     db.recover();
     db
 }
@@ -70,7 +74,13 @@ impl LogDB {
             dir: dir.to_owned(),
             log: LogWriter::new(fd),
             version: v,
+            mem: MemDB::new(),
         }
+    }
+
+    pub fn get(&self, key: &str) -> Option<String> {
+        let ret = self.mem.get(&Vec::from(key));
+        if let Some(v) = ret { Some(v) } else { None }
     }
 
     pub fn set(&mut self, key: &str, value: &str) {
@@ -79,22 +89,24 @@ impl LogDB {
         self.apply(b)
     }
 
-    pub fn recover(&self) {
+    pub fn recover(&mut self) {
         let paths = fs::read_dir(&self.dir).unwrap();
         for path in paths {
             self.replay_logfile(&path.unwrap().path());
         }
     }
 
-    fn replay_logfile(&self, path: &std::path::PathBuf) {
+    fn replay_logfile(&mut self, path: &std::path::PathBuf) {
         let fd = fs::File::open(path).unwrap();
         let mut lr = LogReader::new(fd);
         let record = lr.read_record().unwrap();
         let write_batch = WriteBatch::load_data(record);
-        write_batch.insert_memory();
+        write_batch.insert_memory(&mut self.mem);
     }
 
     fn apply(&mut self, batch: WriteBatch) {
         self.log.add_record(batch.data());
+        batch.insert_memory(&mut self.mem)
+        // self.mem.insert()
     }
 }

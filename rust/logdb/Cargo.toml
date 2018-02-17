@@ -5,4 +5,5 @@ authors = ["ganmacs <ganmacs@gmail.com>"]
 
 [dependencies]
 bytes = "0.4"
+rand = "0.4"
 crc = "^1.0.0"

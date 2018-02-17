@@ -1,4 +1,5 @@
 use bytes::{BufMut, BytesMut, Bytes, LittleEndian, ByteOrder};
+use memdb::MemDB;
 
 const COUNT_INDEX: usize = 8;
 const RECORD_INDEX: usize = 12;
@@ -48,7 +49,7 @@ impl WriteBatch {
         WriteBatch { seq, count, data }
     }
 
-    pub fn insert_memory(self) {
+    pub fn insert_memory(self, mem: &mut MemDB) {
         let mut data = self.data.freeze();
 
         for _ in 0..self.count {
@@ -64,8 +65,7 @@ impl WriteBatch {
                 };
 
                 let d = data.split_to(key_len);
-                let vector: Vec<u8> = Vec::from(&d as &[u8]);
-                String::from_utf8(vector).unwrap()
+                Vec::from(&d as &[u8])
             };
 
             let value = {
@@ -75,20 +75,18 @@ impl WriteBatch {
                 };
 
                 let d = data.split_to(value_len);
-                let vector: Vec<u8> = Vec::from(&d as &[u8]);
-                String::from_utf8(vector).unwrap()
+                Vec::from(&d as &[u8])
             };
 
-            println!("{:?}", key);
-            println!("{:?}", value);
+            mem.insert(key, value);
         }
     }
 
-    pub fn data(self) -> Bytes {
+    pub fn data(&self) -> Bytes {
         let mut v = BytesMut::with_capacity(RECORD_INDEX);
         v.put_u64::<LittleEndian>(self.seq);
         v.put_u32::<LittleEndian>(self.count);
-        v.extend(self.data);
+        v.extend(self.data.clone()); // XXX
         v.freeze()
     }
 
