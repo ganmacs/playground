@@ -95,3 +95,28 @@ impl SkipList {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::SkipList;
+
+    #[test]
+    fn test_skiplist() {
+        let mut list = SkipList::new();
+        let hash = vec![
+            ("key", "value"),
+            ("key1", "value1"),
+            ("key2", "value2"),
+            ("key3", "value3"),
+            ("key4", "value4"),
+            ("key5", "value5"),
+        ];
+
+        for v in hash {
+            list.insert(Vec::from(v.0), Vec::from(v.1));
+            assert_eq!(list.get(&Vec::from(v.0)), Some(String::from(v.1)));
+        }
+
+        assert_eq!(list.get(&Vec::from("invalid")), None);
+    }
+}

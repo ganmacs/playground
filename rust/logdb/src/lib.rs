@@ -5,6 +5,7 @@ extern crate rand;
 mod log;
 mod batch;
 mod memdb;
+mod ikey;
 
 use batch::WriteBatch;
 use log::{LogReader, LogWriter};
@@ -107,6 +108,5 @@ impl LogDB {
     fn apply(&mut self, batch: WriteBatch) {
         self.log.add_record(batch.data());
         batch.insert_memory(&mut self.mem)
-        // self.mem.insert()
     }
 }
