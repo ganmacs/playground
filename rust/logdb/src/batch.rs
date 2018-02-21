@@ -1,5 +1,6 @@
 use bytes::{BufMut, BytesMut, Bytes, LittleEndian, ByteOrder};
-use memdb::MemDB;
+// use memdb::MemDB;
+use std::iter::{Iterator, IntoIterator};
 
 const COUNT_INDEX: usize = 8;
 const RECORD_INDEX: usize = 12;
@@ -11,10 +12,14 @@ const TYPE_SIZE: usize = 1;
 const KEY_LENGTH_SIZE: usize = 4;
 const VALUE_LENGTH_SIZE: usize = 4;
 
+#[derive(Debug)]
 pub enum KeyKind {
     SET,
     DELETE,
 }
+
+type Key = Bytes;
+type Value = Bytes;
 
 // Need External Lock
 // data: | seq (8byte) | count (4byte) | record (n byte) |
@@ -49,39 +54,6 @@ impl WriteBatch {
         WriteBatch { seq, count, data }
     }
 
-    pub fn insert_memory(self, mem: &mut MemDB) {
-        let mut data = self.data.freeze();
-
-        for _ in 0..self.count {
-            let typev = {
-                let d = data.split_to(TYPE_SIZE);
-                d[0]
-            };
-
-            let key = {
-                let key_len = {
-                    let d = data.split_to(KEY_LENGTH_SIZE);
-                    LittleEndian::read_u32(&d) as usize
-                };
-
-                let d = data.split_to(key_len);
-                Vec::from(&d as &[u8])
-            };
-
-            let value = {
-                let value_len = {
-                    let d = data.split_to(VALUE_LENGTH_SIZE);
-                    LittleEndian::read_u32(&d) as usize
-                };
-
-                let d = data.split_to(value_len);
-                Vec::from(&d as &[u8])
-            };
-
-            mem.insert(key, value);
-        }
-    }
-
     pub fn data(&self) -> Bytes {
         let mut v = BytesMut::with_capacity(RECORD_INDEX);
         v.put_u64::<LittleEndian>(self.seq);
@@ -106,5 +78,79 @@ impl WriteBatch {
 
     fn inc_count(&mut self) {
         self.count += 1;
+    }
+}
+
+impl IntoIterator for WriteBatch {
+    type Item = (KeyKind, Bytes, Bytes);
+    type IntoIter = WriteBatchIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        WriteBatchIterator {
+            data: self.data.freeze(),
+            count: self.count as usize,
+            idx: 0,
+            pos: 0,
+        }
+    }
+}
+
+impl Iterator for WriteBatchIterator {
+    type Item = (KeyKind, Key, Value);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.is_eob() {
+            return None;
+        }
+
+        let typev = {
+            let d = self.data.slice(self.pos, self.pos + TYPE_SIZE);
+            self.pos += TYPE_SIZE;
+            if d[0] == 0 {
+                KeyKind::SET
+            } else {
+                KeyKind::DELETE
+            }
+        };
+
+        let key = {
+            let key_len = {
+                let d = self.data.slice(self.pos, self.pos + KEY_LENGTH_SIZE);
+                self.pos += KEY_LENGTH_SIZE;
+                LittleEndian::read_u32(&d) as usize
+            };
+
+            let key = self.data.slice(self.pos, self.pos + key_len);
+            self.pos += key_len;
+            key
+        };
+
+        let value = {
+            let value_len = {
+                let d = self.data.slice(self.pos, self.pos + VALUE_LENGTH_SIZE);
+                self.pos += KEY_LENGTH_SIZE;
+                LittleEndian::read_u32(&d) as usize
+            };
+
+            let value = self.data.slice(self.pos, self.pos + value_len);
+            self.pos += value_len;
+            value
+        };
+
+        self.idx += 1;
+        Some((typev, key, value))
+    }
+}
+
+pub struct WriteBatchIterator {
+    data: Bytes,
+    idx: usize,
+    count: usize,
+    pos: usize,
+}
+
+impl WriteBatchIterator {
+    fn is_eob(&self) -> bool {
+        self.idx >= self.count
     }
 }

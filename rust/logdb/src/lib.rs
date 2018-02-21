@@ -10,6 +10,7 @@ mod ikey;
 use batch::WriteBatch;
 use log::{LogReader, LogWriter};
 use memdb::MemDB;
+use ikey::InternalKey;
 use std::fs;
 
 pub struct LogDB {
@@ -80,7 +81,8 @@ impl LogDB {
     }
 
     pub fn get(&self, key: &str) -> Option<String> {
-        let ret = self.mem.get(&Vec::from(key));
+        let ikey = InternalKey::new(key, 0); // XXX use actual seq
+        let ret = self.mem.get(&ikey);
         if let Some(v) = ret { Some(v) } else { None }
     }
 
@@ -102,11 +104,17 @@ impl LogDB {
         let mut lr = LogReader::new(fd);
         let record = lr.read_record().unwrap();
         let write_batch = WriteBatch::load_data(record);
-        write_batch.insert_memory(&mut self.mem);
+
+        for (key_kind, ukey, value) in write_batch.into_iter() {
+            self.mem.add(key_kind, ukey, value);
+        }
     }
 
     fn apply(&mut self, batch: WriteBatch) {
         self.log.add_record(batch.data());
-        batch.insert_memory(&mut self.mem)
+
+        for (key_kind, ukey, value) in batch.into_iter() {
+            self.mem.add(key_kind, ukey, value);
+        }
     }
 }
