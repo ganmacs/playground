@@ -11,7 +11,7 @@ const TYPE_SIZE: usize = 1;
 const KEY_LENGTH_SIZE: usize = 4;
 const VALUE_LENGTH_SIZE: usize = 4;
 
-enum KeyKind {
+pub enum KeyKind {
     SET,
     DELETE,
 }

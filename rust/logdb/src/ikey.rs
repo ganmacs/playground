@@ -25,6 +25,11 @@ impl InternalKey {
         self.inner.slice(UKEY_INDEX, UKEY_INDEX + size)
     }
 
+    pub fn memtable_key(&self) -> Bytes {
+        let size = self.key_size();
+        self.inner.slice(0, UKEY_INDEX + size)
+    }
+
     pub fn seq_number(&self) -> usize {
         let seq_idx = self.key_size() + UKEY_INDEX;
         let val = self.inner.slice(seq_idx, seq_idx + SEQ_LENGTH);
@@ -45,6 +50,7 @@ mod tests {
     fn test_internal_key() {
         let ikey = InternalKey::new("hoge", 100);
         assert_eq!(ikey.user_key(), "hoge");
+        assert_eq!(ikey.memtable_key(), "\x04\0\0\0hoge");
         assert_eq!(ikey.seq_number(), 100);
     }
 }
