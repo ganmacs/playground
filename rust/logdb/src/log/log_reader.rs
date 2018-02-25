@@ -1,30 +1,51 @@
-use std::fs::File;
-use std::io::{BufReader, Read};
-use bytes::{Bytes, LittleEndian, ByteOrder};
+use std::io::Read;
+use bytes::{Bytes, LittleEndian, ByteOrder, BytesMut};
+use super::{RecordType, BLOCK_SIZE, HEADER_SIZE, LENGTH_SIZE, TYPE_SIZE, CHECKSUM_SIZE, crc32};
 
-use super::{HEADER_SIZE, LENGTH_SIZE, TYPE_SIZE, CHECKSUM_SIZE, crc32};
-
-pub struct LogReader {
-    inner: BufReader<File>,
+pub struct LogReader<T: Read> {
+    inner: T,
 }
 
-impl LogReader {
-    pub fn new(fd: File) -> Self {
-        LogReader { inner: BufReader::new(fd) }
+impl<T: Read> LogReader<T> {
+    pub fn new(reader: T) -> Self {
+        LogReader { inner: reader }
     }
 
     pub fn read_record(&mut self) -> Result<Bytes, &str> {
-        let mut slice = vec![];
-        self.inner.read_to_end(&mut slice).unwrap();
-        let mut data = Bytes::from(slice);
+        let mut slice = Bytes::with_capacity(BLOCK_SIZE);
+        let record_type = self.read_physical_record(&mut slice);
 
-        if data.len() < HEADER_SIZE {
-            // not FULL
-            // TODO
+        // TODO fragment
+        match record_type {
+            Ok(RecordType::FULL) => (),
+            Ok(RecordType::FIRST) => {
+                slice.extend(self.read_record().unwrap());
+
+            }
+            Ok(RecordType::MIDDLE) => {
+                slice.extend(self.read_record().unwrap());
+            }
+            Ok(RecordType::LAST) => (),
+            Ok(RecordType::EOF) => (),
+            Err(e) => panic!(e),
+        }
+
+        Ok(slice)
+    }
+
+    fn read_physical_record(&mut self, ret: &mut Bytes) -> Result<RecordType, &'static str> {
+        let mut v = [0; BLOCK_SIZE];
+        let s = self.inner.read(&mut v).unwrap();
+        if s == 0 {
+            return Ok(RecordType::EOF);
+        }
+        let mut slice = BytesMut::from(&v as &[u8]); // ignore size
+
+        if slice.len() < HEADER_SIZE {
             return Err("need more size");
         }
 
-        let mut header = data.split_to(HEADER_SIZE);
+        let mut header = slice.split_to(HEADER_SIZE);
 
         let expected_checksum = {
             let c = header.split_to(CHECKSUM_SIZE);
@@ -38,17 +59,41 @@ impl LogReader {
 
         let rtype = {
             let c = header.split_to(TYPE_SIZE);
-            c[0]
+            RecordType::from(c[0])
         };
 
-        // XXX must check whether record is full or not
-        let record = data.split_to(length as usize);
-
+        let record = slice.split_to(length as usize);
         if crc32(&record) != expected_checksum {
             println!("invalid");
             return Err("validation failed");
         }
-
-        Ok(record)
+        ret.extend(record);
+        Ok(rtype)
     }
 }
+
+// #[cfg(test)]
+// mod tests {
+//     use batch::WriteBatch;
+//     use std::fs;
+//     use std::io::BufReader;
+//     use super::LogReader;
+
+//     #[test]
+//     fn read_full_record() {
+//         let reader = BufReader::new(fs::File::open("test/data/full_record.log").unwrap());
+//         let mut lr = LogReader::new(reader);
+//         let s = lr.read_record().unwrap();
+//         let batch = WriteBatch::load_data(s);
+//         assert_eq!(batch.count(), 1);
+//     }
+
+//     #[test]
+//     fn read_across_record() {
+//         let reader = BufReader::new(fs::File::open("test/data/across_record.log").unwrap());
+//         let mut lr = LogReader::new(reader);
+//         let s = lr.read_record().unwrap();
+//         let batch = WriteBatch::load_data(s);
+//         assert_eq!(batch.count(), 1);
+//     }
+// }

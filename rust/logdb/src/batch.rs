@@ -79,6 +79,10 @@ impl WriteBatch {
     fn inc_count(&mut self) {
         self.count += 1;
     }
+
+    pub fn count(&self) -> usize {
+        self.count as usize
+    }
 }
 
 impl IntoIterator for WriteBatch {

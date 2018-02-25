@@ -12,9 +12,11 @@ use log::{LogReader, LogWriter};
 use memdb::MemDB;
 use ikey::InternalKey;
 use std::fs;
+use std::io::{BufWriter, BufReader};
+use std::fs::File;
 
 pub struct LogDB {
-    log: LogWriter,
+    log: LogWriter<BufWriter<File>>,
     dir: String,
     version: Version,
     mem: MemDB,
@@ -71,10 +73,10 @@ impl LogDB {
             .create(true)
             .open(fname)
             .unwrap();
-
+        let writer = BufWriter::new(fd);
         LogDB {
             dir: dir.to_owned(),
-            log: LogWriter::new(fd),
+            log: LogWriter::new(writer),
             version: v,
             mem: MemDB::new(),
         }
@@ -100,8 +102,8 @@ impl LogDB {
     }
 
     fn replay_logfile(&mut self, path: &std::path::PathBuf) {
-        let fd = fs::File::open(path).unwrap();
-        let mut lr = LogReader::new(fd);
+        let reader = BufReader::new(fs::File::open(path).unwrap());
+        let mut lr = LogReader::new(reader);
         let record = lr.read_record().unwrap();
         let write_batch = WriteBatch::load_data(record);
 
