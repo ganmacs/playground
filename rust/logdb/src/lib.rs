@@ -50,13 +50,13 @@ pub fn open(dir: &str) -> LogDB {
 }
 
 enum FileType {
-    Log,
+    LOG,
 }
 
 impl FileType {
     pub fn filename(&self, dir: &str, num: u64) -> String {
         match self {
-            Log => format!("{:}/{:07}.log", dir, num),
+            &FileType::LOG => format!("{:}/{:07}.log", dir, num),
         }
     }
 }
@@ -68,7 +68,7 @@ impl LogDB {
         };
 
         let mut v = Version::new();
-        let fname = FileType::Log.filename(dir, v.next_file_num());
+        let fname = FileType::LOG.filename(dir, v.next_file_num());
         let fd = fs::OpenOptions::new() // add read permission?
             .write(true)
             .create(true)
