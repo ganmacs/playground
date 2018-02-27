@@ -20,6 +20,7 @@ pub struct LogDB {
     dir: String,
     version: Version,
     mem: MemDB,
+    imm: Option<MemDB>,
 }
 
 struct Version {
@@ -79,13 +80,15 @@ impl LogDB {
             log: LogWriter::new(writer),
             version: v,
             mem: MemDB::new(),
+            imm: None,
         }
     }
 
     pub fn get(&self, key: &str) -> Option<String> {
         let ikey = InternalKey::new(key, 0); // XXX use actual seq
-        let ret = self.mem.get(&ikey);
-        if let Some(v) = ret { Some(v) } else { None }
+        self.mem.get(&ikey).or_else(|| {
+            self.imm.as_ref().and_then(|v| v.get(&ikey))
+        })
     }
 
     pub fn set(&mut self, key: &str, value: &str) {
