@@ -55,3 +55,28 @@ impl NodeArena {
         self.nodes.get(id)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::NodeArena;
+
+    #[test]
+    fn test_node_arena() {
+        let mut na = NodeArena::new();
+
+        assert!(na.get(1).is_none());
+        let nid = na.allocate_node(Vec::from("key"), Vec::from("value"), 10);
+        let node = na.get(nid).unwrap();
+        assert_eq!(node.key(), &Vec::from("key"));
+        assert_eq!(node.value(), String::from("value"));
+    }
+
+    #[test]
+    fn test_node_arena_nead() {
+        let na = NodeArena::new();
+
+        let head = na.head();
+        assert!(na.is_head(head));
+        assert_eq!(na.head().id(), na.get(0).unwrap().id());
+    }
+}
