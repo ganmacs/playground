@@ -9,6 +9,7 @@ mod log;
 mod batch;
 mod memdb;
 mod ikey;
+mod filename;
 
 use batch::WriteBatch;
 use log::{LogReader, LogWriter};
@@ -17,7 +18,7 @@ use ikey::InternalKey;
 use std::fs;
 use std::io::{BufWriter, BufReader};
 use std::fs::File;
-use regex::Regex;
+use filename::FileType;
 
 pub struct LogDB {
     log: LogWriter<BufWriter<File>>,
@@ -53,18 +54,6 @@ pub fn open(dir: &str) -> LogDB {
     db
 }
 
-enum FileType {
-    LOG,
-}
-
-impl FileType {
-    pub fn filename(&self, dir: &str, num: u64) -> String {
-        match self {
-            &FileType::LOG => format!("{:}/{:07}.log", dir, num),
-        }
-    }
-}
-
 impl LogDB {
     fn open(dir: &str) -> Self {
         if let Err(err) = fs::create_dir(&dir) {
@@ -72,7 +61,7 @@ impl LogDB {
         };
 
         let mut v = Version::new();
-        let fname = FileType::LOG.filename(dir, v.next_file_num());
+        let fname = FileType::LOG(dir, v.next_file_num()).filename();
         let fd = fs::OpenOptions::new() // add read permission?
             .write(true)
             .create(true)
