@@ -1,6 +1,9 @@
 extern crate bytes;
 extern crate crc;
 extern crate rand;
+extern crate regex;
+#[macro_use]
+extern crate lazy_static;
 
 mod log;
 mod batch;
@@ -14,6 +17,7 @@ use ikey::InternalKey;
 use std::fs;
 use std::io::{BufWriter, BufReader};
 use std::fs::File;
+use regex::Regex;
 
 pub struct LogDB {
     log: LogWriter<BufWriter<File>>,
