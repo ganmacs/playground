@@ -27,12 +27,12 @@ impl MemDB {
     }
 
     // Should be LookupKey
-    pub fn get(&self, key: &InternalKey) -> Option<String> {
+    pub fn get(&self, key: &InternalKey) -> Option<Bytes> {
         let v = key.memtable_key();
-        self.inner.get(&Vec::from(&v as &[u8]))
+        self.inner.get(&v)
     }
 
-    pub fn add(&mut self, key_kind: KeyKind, ukey: Bytes, value: Bytes) -> bool {
+    pub fn add(&mut self, key_kind: KeyKind, ukey: Bytes, value: Bytes) {
         let n = ukey.len();
         let mut buf = [0; 4];
         LittleEndian::write_u32(&mut buf, n as u32);
@@ -40,13 +40,8 @@ impl MemDB {
         key.extend(ukey);
 
         match key_kind {
-            KeyKind::SET => {
-                self.inner.insert(
-                    Vec::from(&key as &[u8]),
-                    Vec::from(&value as &[u8]),
-                )
-            }
-            KeyKind::DELETE => false,    // TODO
-        }
+            KeyKind::SET => self.inner.insert(&key, &value),
+            KeyKind::DELETE => (),    // TODO
+        };
     }
 }

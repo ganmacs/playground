@@ -3,8 +3,8 @@ use rand::Rng;
 use bytes::{Bytes, BytesMut, BufMut, LittleEndian, ByteOrder};
 use super::MAX_HEIGHT;
 
-type Key = &'static str;
-type Value = &'static str;
+type Key = Bytes;
+type Value = Bytes;
 type IdxFragment = [u8; 14];
 
 #[derive(Debug)]
@@ -23,7 +23,7 @@ impl SkipList {
         }
     }
 
-    pub fn get(&mut self, key: Key) -> Option<Bytes> {
+    pub fn get(&self, key: &Key) -> Option<Bytes> {
         let (n, exact) = self.find_greater_than_eq(key, &mut None);
         if exact {
             let offset = self.idx.val(n);
@@ -33,7 +33,7 @@ impl SkipList {
         }
     }
 
-    pub fn insert(&mut self, key: Key, value: Value) {
+    pub fn insert(&mut self, key: &Key, value: &Value) {
         let mut prev = [HEAD; 12];
         let (n, exact) = self.find_greater_than_eq(key, &mut Some(&mut prev));
 
@@ -65,7 +65,7 @@ impl SkipList {
 
     pub fn find_greater_than_eq(
         &self,
-        key: Key,
+        key: &Key,
         prev: &mut Option<&mut [usize; 12]>,
     ) -> (usize, bool) {
         let mut level = MAX_HEIGHT - 1;
@@ -209,28 +209,28 @@ impl SkipIndex {
 
 #[cfg(test)]
 mod tests {
-    use super::SkipList;
+    use super::{SkipList, Bytes};
 
     #[test]
     fn test_skiplist() {
         let mut list = SkipList::new();
 
         let hash = vec![
-            ("key", "value"),
-            ("key1", "value1"),
-            ("key2", "value2"),
-            ("key3", "value3"),
-            ("key4", "value4"),
-            ("key5", "value5"),
-            ("key6", "value___6"),
-            ("key77", "value   7"),
+            (Bytes::from("key"), Bytes::from("value")),
+            (Bytes::from("key1"), Bytes::from("value1")),
+            (Bytes::from("key2"), Bytes::from("value2")),
+            (Bytes::from("key3"), Bytes::from("value3")),
+            (Bytes::from("key4"), Bytes::from("value4")),
+            (Bytes::from("key5"), Bytes::from("value5")),
+            (Bytes::from("key6"), Bytes::from("value___6")),
+            (Bytes::from("key77"), Bytes::from("value   7")),
         ];
 
         for v in hash {
-            list.insert(v.0, v.1);
-            assert_eq!(list.get(v.0).unwrap(), v.1);
+            list.insert(&v.0, &v.1);
+            assert_eq!(list.get(&v.0).unwrap(), v.1);
         }
 
-        assert_eq!(list.get("notfound"), None);
+        assert_eq!(list.get(&Bytes::from("notfound")), None);
     }
 }
