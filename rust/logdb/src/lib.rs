@@ -12,6 +12,7 @@ mod ikey;
 mod filename;
 
 use batch::WriteBatch;
+use bytes::Bytes;
 use log::{LogReader, LogWriter};
 use memdb::MemDB;
 use ikey::InternalKey;
@@ -77,7 +78,7 @@ impl LogDB {
         }
     }
 
-    pub fn get(&self, key: &str) -> Option<String> {
+    pub fn get(&self, key: &str) -> Option<Bytes> {
         let ikey = InternalKey::new(key, 0); // XXX use actual seq
         self.mem.get(&ikey).or_else(|| {
             self.imm.as_ref().and_then(|v| v.get(&ikey))
@@ -104,7 +105,7 @@ impl LogDB {
         let write_batch = WriteBatch::load_data(record);
 
         for (key_kind, ukey, value) in write_batch.into_iter() {
-            self.mem.add(key_kind, ukey, value);
+            self.mem.add(key_kind, &ukey, &value);
         }
     }
 
@@ -112,7 +113,7 @@ impl LogDB {
         self.log.add_record(batch.data());
 
         for (key_kind, ukey, value) in batch.into_iter() {
-            self.mem.add(key_kind, ukey, value);
+            self.mem.add(key_kind, &ukey, &value);
         }
     }
 }
