@@ -8,6 +8,9 @@ const UKEY_LENGTH: usize = 4;
 const SEQ_LENGTH: usize = 8;
 const UKEY_INDEX: usize = 4;
 
+// TODO: name
+pub type InternalKey2 = Bytes;
+
 impl InternalKey {
     pub fn new(user_key: &str, seq: u64) -> Self {
         let size = user_key.len();

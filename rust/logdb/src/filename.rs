@@ -3,6 +3,7 @@ use regex::Regex;
 pub enum FileType<'a> {
     LOG(&'a str, u64),
     CURRENT(&'a str),
+    TABLE(&'a str, u64),
 }
 
 lazy_static!{
@@ -12,6 +13,10 @@ lazy_static!{
 
     static ref LOG_FILE_REGEX: Regex = {
         Regex::new(r"([\w]+)/([\d]{7})\.log").unwrap()
+    };
+
+    static ref TABLE_FILE_REGEX: Regex = {
+        Regex::new(r"([\w]+)/([\d]{7})\.ldb").unwrap()
     };
 }
 
@@ -24,6 +29,10 @@ impl<'a> FileType<'a> {
             let v = LOG_FILE_REGEX.captures(filename).unwrap();
             let num = v.get(1).unwrap().as_str(); // TODO
             FileType::LOG(v.get(0).unwrap().as_str(), 000)
+        } else if TABLE_FILE_REGEX.is_match(filename) {
+            let v = TABLE_FILE_REGEX.captures(filename).unwrap();
+            let num = v.get(1).unwrap().as_str(); // XXX
+            FileType::TABLE(v.get(0).unwrap().as_str(), 000)
         } else {
             unimplemented!()
         }
@@ -41,6 +50,7 @@ impl<'a> FileType<'a> {
         match self {
             &FileType::LOG(name, num) => format!("{:}/{:07}.log", name, num),
             &FileType::CURRENT(name) => format!("{:}/CURRENT", name),
+            &FileType::TABLE(name, num) => format!("{:}/{:07}.ldb", name, num),
         }
     }
 }

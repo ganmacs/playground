@@ -10,6 +10,8 @@ mod batch;
 mod memdb;
 mod ikey;
 mod filename;
+mod version;
+mod table;
 
 use batch::WriteBatch;
 use bytes::Bytes;
@@ -19,49 +21,35 @@ use ikey::InternalKey;
 use std::fs;
 use std::io::{BufWriter, BufReader};
 use std::fs::File;
+use std::path::Path;
+use std::str;
 use filename::FileType;
+use version::{VersionSet, VersionEdit};
+use table::TableBuilder;
+use memdb::MemDBIterator;
 
 pub struct LogDB {
     log: LogWriter<BufWriter<File>>,
-    dir: String,
-    version: Version,
+    dbname: String,
+    versions: VersionSet,
     mem: MemDB,
     imm: Option<MemDB>,
 }
 
-struct Version {
-    file_number: u64,
-}
-
-impl Version {
-    pub fn new() -> Self {
-        Version { file_number: 0 }
-    }
-
-    pub fn next_file_num(&mut self) -> u64 {
-        let x = self.file_number;
-        self.file_number += 1;
-        x
-    }
-
-    pub fn file_num(&self) -> u64 {
-        self.file_number
-    }
-}
-
 pub fn open(dir: &str) -> LogDB {
-    let mut db = LogDB::open(dir);
-    db.recover();
+    let mut db = LogDB::new(dir);
+    let mut edit = VersionEdit::new();
+    db.recover(&mut edit);
     db
 }
 
 impl LogDB {
-    fn open(dir: &str) -> Self {
-        if let Err(err) = fs::create_dir(&dir) {
-            println!("Skip create directory {:?}", err);
-        };
+    fn new(dir: &str) -> Self {
+        if !Path::new(&dir).exists() {
+            fs::create_dir(&dir).unwrap()
+        }
 
-        let mut v = Version::new();
+        let mut v = VersionSet::new(dir);
         let fname = FileType::LOG(dir, v.next_file_num()).filename();
         let fd = fs::OpenOptions::new() // add read permission?
             .write(true)
@@ -70,9 +58,9 @@ impl LogDB {
             .unwrap();
         let writer = BufWriter::new(fd);
         LogDB {
-            dir: dir.to_owned(),
+            dbname: dir.to_owned(),
             log: LogWriter::new(writer),
-            version: v,
+            versions: v,
             mem: MemDB::new(),
             imm: None,
         }
@@ -91,22 +79,48 @@ impl LogDB {
         self.apply(b)
     }
 
-    pub fn recover(&mut self) {
-        let paths = fs::read_dir(&self.dir).unwrap();
-        for path in paths {
-            self.replay_logfile(&path.unwrap().path());
+    fn recover(&mut self, edit: &mut VersionEdit) {
+        let current = FileType::CURRENT(&self.dbname).filename();
+        if !Path::new(&current).exists() {
+            // TODO create current file when create db
+            println!("CURRENT file does not exist");
+        }
+
+        let paths = fs::read_dir(&self.dbname).unwrap();
+        for p in paths {
+            let path = &p.unwrap().path();
+            let ft = FileType::parse_name(path.to_str().unwrap());
+            if ft.is_logfile() {
+                self.replay_logfile(path, edit);
+            }
         }
     }
 
-    fn replay_logfile(&mut self, path: &std::path::PathBuf) {
+    fn replay_logfile(&mut self, path: &std::path::PathBuf, edit: &mut VersionEdit) {
         let reader = BufReader::new(fs::File::open(path).unwrap());
         let mut lr = LogReader::new(reader);
         let record = lr.read_record().unwrap();
-        let write_batch = WriteBatch::load_data(record);
-
-        for (key_kind, ukey, value) in write_batch.into_iter() {
-            self.mem.add(key_kind, &ukey, &value);
+        if record.len() == 0 {
+            println!("skip");
+            return;
         }
+
+        let mut mem = MemDB::new();
+        let write_batch = WriteBatch::load_data(record);
+        for (key_kind, ukey, value) in write_batch.into_iter() {
+            mem.add(key_kind, &ukey, &value);
+            // TODO: memory usage is larger than buffer size
+        }
+
+        self.write_level0_table(edit, &mut mem.into_iter())
+    }
+
+    fn write_level0_table(&mut self, edit: &mut VersionEdit, mem: &mut MemDBIterator) {
+        let num = self.versions.next_file_num();
+        let meta = TableBuilder::build(&self.dbname, mem, num);
+
+        // XXX
+        edit.add_file(meta, 0);
     }
 
     fn apply(&mut self, batch: WriteBatch) {
