@@ -9,5 +9,7 @@ fn main() {
     // thr::run();
     // stri::run();
     // closure::run();
-    trait_test::run();
+    // trait_test::run();
+
+    linked_list::main();
 }

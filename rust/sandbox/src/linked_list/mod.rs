@@ -1,0 +1,13 @@
+mod old;
+mod old2;
+
+pub fn main() {
+    // let v = old::A::new();
+
+    // v.append(old::Version::new(1));
+
+    // let v = old2::A::new();
+    // v.append(old2::Version::new(1));
+
+    old2::main();
+}
