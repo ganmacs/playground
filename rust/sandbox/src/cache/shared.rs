@@ -40,5 +40,5 @@ pub fn main() {
     let c = SharedCache::new();
     let k = Bytes::from("key1");
     let v = Bytes::from("value");
-    c.insert(&k, &v);
+    // c.insert(&k, &v);
 }

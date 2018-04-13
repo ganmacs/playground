@@ -10,6 +10,9 @@ fn main() {
     // stri::run();
     // closure::run();
     // trait_test::run();
+    // linked_list::main();
+    // cache::main();
+    // ram::main();
 
-    linked_list::main();
+    bite::main();
 }
