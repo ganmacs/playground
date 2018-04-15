@@ -1,3 +1,4 @@
+extern crate byteorder;
 extern crate bytes;
 extern crate fasthash;
 extern crate futures;

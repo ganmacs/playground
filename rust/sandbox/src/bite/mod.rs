@@ -1,13 +1,40 @@
-use bytes::{BufMut, ByteOrder, Bytes, LittleEndian};
+use bytes::{BufMut, Bytes};
 use bytes::BytesMut;
 use std::{cmp, u8};
+use byteorder::{ByteOrder, LittleEndian};
 use std::io::Read;
 
 pub fn main() {
     // test1();
-    test2();
+    // test2();
     // test3();
-    test4();
+    // test4();
+    test5();
+}
+
+pub fn test5() {
+    let a = Bytes::from("abcd");
+
+    let mut b = a.clone();
+    println!("a={:?}", a);
+    println!("b={:?}", b);
+
+    short_successor(b.to_mut());
+
+    println!("a={:?}", a);
+    println!("b={:?}", b);
+}
+
+pub fn short_successor(val: &mut BytesMut) {
+    let l = val.len();
+
+    for i in 0..l {
+        let k = val[i];
+        if k != u8::MAX {
+            val[i] += 1;
+            return;
+        }
+    }
 }
 
 pub fn test1() {
@@ -58,7 +85,7 @@ pub const U8_BYTE_SIZE: usize = 1;
 // }
 
 pub fn put_u32_i(b: &mut BytesMut, n: u32) -> usize {
-    b.put_u32::<LittleEndian>(n);
+    b.put_u32_le(n);
     U32_BYTE_SIZE
 }
 
@@ -73,4 +100,3 @@ pub fn get_u32_i<T: Read>(b: &mut T, i: usize) -> u32 {
     b.read(&mut v);
     LittleEndian::read_u32(&v)
 }
-
