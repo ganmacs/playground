@@ -7,3 +7,4 @@ mod skiplist2;
 
 pub use skiplist::SkipList as SkipList3;
 pub use skiplist2::SkipList;
+pub use bytes::Bytes;
