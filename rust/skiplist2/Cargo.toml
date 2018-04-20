@@ -1,0 +1,9 @@
+[package]
+name = "skiplist2"
+version = "0.1.0"
+authors = ["ganmacs <ganmacs@gmail.com>"]
+
+[dependencies]
+bytes = { git = "https://github.com/carllerche/bytes", rev = "2c27ddaf7e860424071583bcf5913bcdf43e9637" }
+byteorder = "1.0.0"
+rand = "0.4"
