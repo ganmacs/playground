@@ -35,8 +35,8 @@ impl SkipList {
     }
 
     pub fn insert(&mut self, key: Key) {
-        let mut prev = [0; 7];
-        let sv = {
+        let mut prev = [0; MAX_HEIGHT];
+        let _ = {
             self.find_greater_than_eq(&key, &mut Some(&mut prev));
         };
 
@@ -58,7 +58,7 @@ impl SkipList {
     fn find_greater_than_eq(
         &self,
         key: &Key,
-        prev: &mut Option<&mut [usize; 7]>,
+        prev: &mut Option<&mut [usize; MAX_HEIGHT]>,
     ) -> &SkipValueIndex {
         let mut level = MAX_HEIGHT;
         let mut sv: &SkipValueIndex = self.head();
@@ -92,6 +92,13 @@ impl SkipList {
     fn store(&mut self, sr: Key) {
         self.data.extend(sr);
     }
+
+    fn iter<'a>(&'a self) -> SkipListIterator<'a> {
+        SkipListIterator {
+            pos: 0,
+            inner: &self,
+        }
+    }
 }
 
 // INDEX data format
@@ -119,5 +126,61 @@ impl SkipValueIndex {
 
     pub fn set_next(&mut self, level: usize, v: u16) {
         self.nexts[level] = v;
+    }
+}
+
+pub struct SkipListIterator<'a> {
+    inner: &'a SkipList,
+    pos: usize,
+}
+
+impl<'a> Iterator for SkipListIterator<'a> {
+    type Item = Key;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next_id = self.inner.index[self.pos].next(0); // level 0
+        self.pos = next_id;
+
+        let ref next = self.inner.index[next_id];
+        if next.id == self.inner.head().id {
+            None
+        } else {
+            Some(self.inner.load(next))
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn skiplist_set_and_get_test() {
+        let mut sl = SkipList::new();
+
+        for i in 0..100 {
+            let key = Bytes::from(format!("key{:?}", i));
+            sl.insert(key.clone());
+            assert_eq!(sl.seek(&key), Some(key))
+        }
+    }
+
+    #[test]
+    fn skiplist_iterator_value_is_ordered() {
+        let mut sl = SkipList::new();
+        let keys: Vec<Bytes> = (0..10)
+            .map(|v: usize| Bytes::from(format!("key{:?}", v)))
+            .collect();
+
+        {
+            keys.clone().reverse();
+            for k in keys.iter() {
+                sl.insert(k.clone())
+            }
+        }
+
+        for (a, b) in sl.iter().zip(keys) {
+            assert_eq!(a, b);
+        }
     }
 }
