@@ -1,23 +1,50 @@
 use rand;
 use rand::Rng;
 use bytes::Bytes;
-
-type Key = Bytes;
+use std::cmp::Ordering;
+use byteorder::{ByteOrder, LittleEndian};
 
 const DATA_SIZE: usize = 8192;
 const MAX_HEIGHT: usize = 7;
 
-#[derive(Debug)]
-pub struct SkipList {
-    data: Bytes,
-    index: Vec<SkipValueIndex>,
+pub trait Comparator {
+    fn compare(&self, a: &Bytes, b: &Bytes) -> Ordering;
 }
 
-impl SkipList {
-    pub fn new() -> Self {
+impl Comparator for InternalKeyComparator {
+    fn compare(&self, a: &Bytes, b: &Bytes) -> Ordering {
+        match extract_user_key(a).cmp(extract_user_key(b)) {
+            Ordering::Equal => {
+                let a_s = a.len();
+                let b_s = b.len();
+                LittleEndian::read_u64(&b[b_s - 8..b_s])
+                    .cmp(&LittleEndian::read_u64(&a[a_s - 8..a_s]))
+            }
+            t => t,
+        }
+    }
+}
+
+fn extract_user_key<'a>(key: &'a Bytes) -> &'a [u8] {
+    let size = key.len();
+    &key[0..size - 8]
+}
+
+pub struct InternalKeyComparator;
+
+#[derive(Debug)]
+pub struct SkipList<T> {
+    data: Bytes,
+    index: Vec<SkipValueIndex>,
+    cmp: T,
+}
+
+impl<T: Comparator> SkipList<T> {
+    pub fn new(c: T) -> Self {
         SkipList {
             data: Bytes::with_capacity(DATA_SIZE),
             index: vec![SkipValueIndex::new(0, 0, 0)],
+            cmp: c,
         }
     }
 
@@ -25,7 +52,7 @@ impl SkipList {
         self.data.len() == 0
     }
 
-    pub fn seek(&self, key: &Key) -> Option<Bytes> {
+    pub fn seek(&self, key: &Bytes) -> Option<Bytes> {
         let sv = self.find_greater_than_eq(key, &mut None);
         if sv.id == self.head().id {
             None
@@ -34,7 +61,7 @@ impl SkipList {
         }
     }
 
-    pub fn insert(&mut self, key: Key) {
+    pub fn insert(&mut self, key: Bytes) {
         let mut prev = [0; MAX_HEIGHT];
         let _ = {
             self.find_greater_than_eq(&key, &mut Some(&mut prev));
@@ -57,7 +84,7 @@ impl SkipList {
 
     fn find_greater_than_eq(
         &self,
-        key: &Key,
+        key: &Bytes,
         prev: &mut Option<&mut [usize; MAX_HEIGHT]>,
     ) -> &SkipValueIndex {
         let mut level = MAX_HEIGHT;
@@ -70,7 +97,7 @@ impl SkipList {
                 prev.as_mut().map(|p| p[level - 1] = sv.id);
                 level -= 1;
             } else {
-                if self.load(&next) < key {
+                if self.cmp.compare(key, &self.load(&next)) == Ordering::Greater {
                     sv = next;
                 } else {
                     prev.as_mut().map(|p| p[level - 1] = sv.id);
@@ -89,11 +116,11 @@ impl SkipList {
         self.data.slice(sr.idx, sr.idx + sr.size)
     }
 
-    fn store(&mut self, sr: Key) {
+    fn store(&mut self, sr: Bytes) {
         self.data.extend(sr);
     }
 
-    fn iter<'a>(&'a self) -> SkipListIterator<'a> {
+    fn iter<'a>(&'a self) -> SkipListIterator<'a, T> {
         SkipListIterator {
             pos: 0,
             inner: &self,
@@ -129,13 +156,13 @@ impl SkipValueIndex {
     }
 }
 
-pub struct SkipListIterator<'a> {
-    inner: &'a SkipList,
+pub struct SkipListIterator<'a, T: 'a> {
+    inner: &'a SkipList<T>,
     pos: usize,
 }
 
-impl<'a> Iterator for SkipListIterator<'a> {
-    type Item = Key;
+impl<'a, T: Comparator> Iterator for SkipListIterator<'a, T> {
+    type Item = Bytes;
 
     fn next(&mut self) -> Option<Self::Item> {
         let next_id = self.inner.index[self.pos].next(0); // level 0
@@ -154,9 +181,17 @@ impl<'a> Iterator for SkipListIterator<'a> {
 mod tests {
     use super::*;
 
+    struct TestKeyComparator;
+
+    impl Comparator for TestKeyComparator {
+        fn compare(&self, a: &Bytes, b: &Bytes) -> Ordering {
+            a.cmp(b)
+        }
+    }
+
     #[test]
     fn skiplist_set_and_get_test() {
-        let mut sl = SkipList::new();
+        let mut sl = SkipList::new(TestKeyComparator);
 
         for i in 0..100 {
             let key = Bytes::from(format!("key{:?}", i));
@@ -167,7 +202,8 @@ mod tests {
 
     #[test]
     fn skiplist_iterator_value_is_ordered() {
-        let mut sl = SkipList::new();
+        let mut sl = SkipList::new(TestKeyComparator);
+
         let keys: Vec<Bytes> = (0..10)
             .map(|v: usize| Bytes::from(format!("key{:?}", v)))
             .collect();
