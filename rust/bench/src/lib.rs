@@ -1,10 +1,13 @@
 #![feature(test)]
 extern crate bytes;
+extern crate memmap;
 extern crate rand;
 extern crate test;
 
 mod slice;
+mod mmmap;
 
+pub use mmmap::mmain;
 pub use bytes::{BufMut, ByteOrder, BytesMut, LittleEndian};
 pub use slice::Slice;
 

@@ -6,3 +6,4 @@ authors = ["ganmacs <ganmacs@gmail.com>"]
 [dependencies]
 bytes = "0.4"
 rand = "0.4"
+memmap = "0.6.2"
