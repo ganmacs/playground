@@ -24,3 +24,4 @@ pub mod linked_list;
 pub mod cache;
 pub mod ram;
 pub mod bite;
+pub mod life;

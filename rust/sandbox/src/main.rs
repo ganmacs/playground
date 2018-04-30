@@ -13,6 +13,7 @@ fn main() {
     // linked_list::main();
     // cache::main();
     // ram::main();
+    // bite::main();
 
-    bite::main();
+    life::main();
 }
