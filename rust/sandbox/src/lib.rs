@@ -2,6 +2,7 @@ extern crate byteorder;
 extern crate bytes;
 extern crate fasthash;
 extern crate futures;
+extern crate memmap;
 extern crate tokio_core;
 extern crate tokio_io;
 
