@@ -14,6 +14,7 @@ fn main() {
     // cache::main();
     // ram::main();
     // bite::main();
+    // life::main();
 
-    life::main();
+    buf::main();
 }

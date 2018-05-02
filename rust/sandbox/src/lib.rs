@@ -25,3 +25,4 @@ pub mod cache;
 pub mod ram;
 pub mod bite;
 pub mod life;
+pub mod buf;
