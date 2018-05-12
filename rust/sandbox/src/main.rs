@@ -15,6 +15,7 @@ fn main() {
     // ram::main();
     // bite::main();
     // life::main();
+    // buf::main();
 
-    buf::main();
+    bit::main();
 }
