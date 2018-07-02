@@ -104,9 +104,11 @@ void ThreadYield()
     Thread* cur = currentThread;
     currentThread = t;
     _ContextSwitch(cur->context, t->context);
-  } else if (t == NULL && threadList->stack_top == NULL) {
-    printf("hontoni owari.\n");
-    /*  threadList has only main thread whose status is FINISH */
+  } else if (threadList->next == NULL && threadList->status == RUNNING) {
+    printf("running thread is main only\n");
+    Thread *cur = currentThread;
+		currentThread = threadList;
+		_ContextSwitch(cur->context, threadList->context);
     return;
   }
 }
