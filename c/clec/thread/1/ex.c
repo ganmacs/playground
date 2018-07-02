@@ -26,6 +26,15 @@ void make_prim(jmp_buf *c, int i) {
   }
 }
 
+void make_prim2(jmp_buf *c, Thread* i) {
+  int _reserve[10000];
+  int result = setjmp(*c);
+  if (result != 0) {
+    printf("this is%d, %p!!\n", i->id, i);
+    longjmp(mainBuf, 1);
+  }
+}
+
 void create() {
   static int id = 1;
   Thread* t = (Thread*)malloc(sizeof(Thread));
@@ -40,12 +49,27 @@ void create() {
   threadList->next = tmp;
 }
 
+void create2() {
+  static int id = 1;
+  Thread* t = (Thread*)malloc(sizeof(Thread));
+  t->id = id++;
+  jmp_buf* buf = (jmp_buf*)malloc(sizeof(jmp_buf));
+  t->context = buf;
+  printf("%p\n", t);
+  make_prim2(buf, t);
+
+  Thread* tmp;
+  tmp = threadList;
+  threadList = t;
+  threadList->next = tmp;
+}
+
 int main() {
-  create();
+  create2();
   printf("yey 1\n");
-  create();
+  create2();
   printf("yey 2\n");
-  create();
+  create2();
   printf("yey 3\n");
 
   Thread* t = threadList;
