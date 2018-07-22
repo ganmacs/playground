@@ -8,16 +8,12 @@ extern "C" {
     void event_base_free(event_base*);
 }
 
-namespace Libevent {
-    typedef event_base EventBase;
-}
-
 static Http2Callbacks callbacks {};
 
-static void dummyHttp(int fd)  {
-    std::string header {"HTTP1.1 200 OK\nContent-Type: text/plain\n\nbody"};
-    ::write(fd, header.c_str(), header.size());
-}
+// static void dummyHttp(int fd)  {
+//     std::string header {"HTTP1.1 200 OK\nContent-Type: text/plain\n\nbody"};
+//     ::write(fd, header.c_str(), header.size());
+// }
 
 int Buffer::add(const void* data, uint64_t size) {
     return evbuffer_add(buffer_, data, size);
@@ -50,8 +46,16 @@ int Buffer::write(const int fd) {
     return -1;
 }
 
+void Buffer::commit(RawSlice* iovecs, uint64_t const size) {
+    int ret = evbuffer_commit_space(buffer_, reinterpret_cast<evbuffer_iovec*>(iovecs), size);
+    if (ret != 0) {
+        puts("evbuffer_commit_sapce failed");
+        exit(1);
+    }
+}
+
 int Buffer::read(const int fd, const uint64_t max_length) {
-    puts("-- read! --");
+    std::cout << "[read] target file descriptor " << fd <<  "\n";
     const uint64_t MaxSlices = 2;
     RawSlice slices[MaxSlices];
     const uint64_t num_slices = reserve(max_length, slices, MaxSlices);
@@ -70,6 +74,7 @@ int Buffer::read(const int fd, const uint64_t max_length) {
     const ssize_t rc = ::readv(fd, iov, static_cast<int>(i));
     if (rc < 0) {
         // TODO: if EAGAIN, then more data would read.
+        std::cout << "[read] " << strerror(errno) <<  "\n";
         return rc;
     }
 
@@ -117,92 +122,89 @@ Http2Callbacks::Http2Callbacks() {
        });
 }
 
-ServerConnection::ServerConnection(Network::Connection conn): connection_ { conn } {
+void ServerConnection::sessionRecv(Buffer& buf) {
+    std::cout << "[sessionRecv] recv data :" << buf.length() <<  " bytes\n";
+    uint64_t slice_size = buf.getAvailableSliceCount();
+    RawSlice slices[slice_size];
+    buf.getRawSlice(slices, slice_size);
+
+    for (auto s : slices) {
+        ssize_t rc = nghttp2_session_mem_recv(session_, static_cast<const uint8_t*>(s.mem_), s.len_);
+        if (rc != s.len_) {
+            throw "nghttp2_session_mem_recv failed";
+        }
+    }
+
+    buf.drain(buf.length());
+}
+
+ServerConnection::ServerConnection(Server* server, evutil_socket_t fd) {
+    std::cout << "[ServerConnection]\n";
+    // printf("%d\n", fd);
+    // bufferevent_ = bufferevent_socket_new(server->eventBase(), fd, BEV_OPT_CLOSE_ON_FREE);
+    // bufferevent_enable(bufferevent_, EV_READ | EV_WRITE);
+    // bufferevent_setcb(bufferevent_, readCallback, writeCallback, eventCallback, this);
+
     nghttp2_session_server_new(&session_, callbacks.callbacks(), base());
 }
 
+void ServerConnection::read(bufferevent* buf) {
+    Buffer buffer { bufferevent_get_input(buf) };
+    sessionRecv(buffer);
+}
+
 ssize_t ServerConnection::onSendCallback(const uint8_t* data, const size_t length) {
-    std::cout << "[onSendCallback] Send data :" << length <<  " bytes";
+    std::cout << "[onSendCallback] Send data :" << length <<  " bytes\n";
     Buffer buf { data, length };
     connection_.write(buf);
     return length;
 };
 
-class Server {
-public:
-    static void listenCallback(evconnlistener*, evutil_socket_t fd, sockaddr* remote_addr, int remote_addr_len, void* arg);
-
-    Server(int fd): base_{ event_base_new() }, s_{fd} {
-        int on = 1;
-        int rc = setsockopt(s_.fd(), SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-        if (rc) {
-            s_.close();
-            printf( "rc is -1\n");
-        }
-    }
-
-    int setup(int port) {
-        if (bind(port)< 0) {
-            printf("failed binding\n");
-            return -1;
-        }
-        evconnlistener_new(base_, listenCallback, this, 0, -1, s_.fd());
-        return 1;
-    }
-
-    void start() {
-        event_base_loop(base_, 0);
-    }
-
-    int fd() { return s_.fd(); }
-private:
-    Libevent::EventBase* base_;
-    Socket s_;
-
-    int bind(int port) {
-        sockaddr_in addr;
-        memset(&addr, 0, sizeof(addr));
-        addr.sin_family = AF_INET;
-        addr.sin_addr.s_addr = htonl(0);
-        addr.sin_port = htons(port);
-
-        return ::bind(s_.fd(), reinterpret_cast<const sockaddr*>(&addr), sizeof(addr));
-    }
-};
-
-
+// callback for evconnlistener_new
 void Server::listenCallback(evconnlistener*, evutil_socket_t fd, sockaddr* remote_addr, int remote_addr_len, void* arg) {
     Server* server = static_cast<Server*>(arg);
     printf("received %d %d\n", fd, server->fd());
-    Network::Connection conn {};
+    ServerConnection sc { server, fd };
 
-    uint64_t bytes_read = 0;
-    while(true) {
-        int rc = conn.buffer()->read(fd, 65535);
+    // uint64_t bytes_read = 0;
+    // while(true) {
+    //     int rc = conn.buffer().read(fd, 65535);
 
-        if (rc == 0) {
-            puts("finish!");
-            break;
-        } else if (rc < 0){
-            puts("failed?");
-            break;
-            // exit(1);
-        } else {
-            bytes_read += rc;
-        }
+    //     if (rc == 0) {
+    //         puts("finish!");
+    //         break;
+    //     } else if (rc < 0){
+    //         puts("failed?");
+    //         break;
+    //         // exit(1);
+    //     } else {
+    //         bytes_read += rc;
+    //     }
+    // }
+
+    // dummyHttp(fd);
+    // close(fd);
+
+    puts("finish!!!");
+    // close(fd);
+}
+
+int Server::setup(int port) {
+    if (bind(port)< 0) {
+        printf("failed binding\n");
+        return -1;
     }
+    evconnlistener_new(base_, listenCallback, this, 0, -1, s_.fd());
+    return 1;
+}
 
-    uint64_t size = conn.buffer()->getAvailableSliceCount();
-    RawSlice slices[size];
-    conn.buffer()->getRawSlice(slices, size);
-
-    for (auto s : slices) {
-        char* v = static_cast<char*>(s.mem_);
-        printf("%s\n", v);
+Server::Server(int fd) : base_{ event_base_new() }, s_{fd} {
+    int on = 1;
+    int rc = setsockopt(s_.fd(), SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+    if (rc) {
+        s_.close();
+        printf( "rc is -1\n");
     }
-
-    dummyHttp(fd);
-    close(fd);
 }
 
 int main(int argc, char *argv[])
