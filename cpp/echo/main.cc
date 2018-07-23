@@ -1,30 +1,106 @@
 #include "main.hpp"
 
-static void readCallback() {
-    std::cout << "[readCallback] \n";
+int Buffer::add(const void* data, uint64_t size) {
+    return evbuffer_add(buffer_, data, size);
 }
 
-static void writeCallback() {
-    std::cout << "[writeCallback] \n";
+int Buffer::write(const int fd) {
+    const uint64_t MaxSlices = 16; // 16?
+    RawSlice slices[MaxSlices];
+    const uint64_t num_slices = std::min(getRawSlice(slices, MaxSlices), MaxSlices);
+    iovec iov[num_slices];
+
+    uint64_t write_count = 0;
+    for (uint64_t i = 0; i < num_slices; i++) {
+        if (slices[i].mem_ == nullptr || slices[i].len_ == 0) {
+            continue;
+        }
+        iov[i].iov_base = slices[i].mem_;
+        iov[i].iov_len = slices[i].len_;
+        write_count++;
+    }
+    if (write_count == 0) {
+        return 0;
+    }
+
+    const ssize_t rc = writev(fd, iov, write_count);
+    if (rc > 0) {
+        drain(static_cast<uint64_t>(rc));
+    }
+
+    return -1;
 }
 
-static void eventCallback() {
-    std::cout << "[eventCallback] \n";
+void Buffer::commit(RawSlice* iovecs, uint64_t const size) {
+    int ret = evbuffer_commit_space(buffer_, reinterpret_cast<evbuffer_iovec*>(iovecs), size);
+    if (ret != 0) {
+        puts("evbuffer_commit_sapce failed");
+        exit(1);
+    }
 }
 
-static void cb_func(evutil_socket_t fd, short what, void *arg) {
-    std::cout << "[cb_func] \n";
+int Buffer::read(const int fd, const uint64_t max_length) {
+    std::cout << "[read] target file descriptor " << fd <<  "\n";
+    const uint64_t MaxSlices = 2;
+    RawSlice slices[MaxSlices];
+    const uint64_t num_slices = reserve(max_length, slices, MaxSlices);
+    iovec iov[num_slices];
+    uint64_t num_bytes_to_read = 0;
+
+    uint64_t i = 0;
+    // TODO
+    for (; i < num_slices; i++) {
+        iov[i].iov_base = slices[i].mem_;
+        const size_t len = std::min(slices[i].len_, static_cast<size_t>(max_length - num_bytes_to_read));
+        iov[i].iov_len = len;
+        num_bytes_to_read += max_length;
+    }
+
+    const ssize_t rc = ::readv(fd, iov, static_cast<int>(i));
+    if (rc < 0) {
+        // TODO: if EAGAIN, then more data would read.
+        std::cout << "[read] " << strerror(errno) <<  "\n";
+        return rc;
+    }
+
+    uint64_t num_to_commit = rc;
+    uint64_t j = 0;
+    while (num_to_commit > 0) {
+        slices[j].len_ = std::min(slices[j].len_, static_cast<size_t>(num_to_commit));
+        num_to_commit -= slices[j].len_;
+        j++;
+    }
+
+    commit(slices, j);
+    return rc;
 }
 
+void Buffer::drain(const uint64_t len) {
+    if (len <= 0) {
+        puts("drain must not call with negative value");
+        exit(1);
+    }
+
+    int rc = evbuffer_drain(buffer_, len);
+    if (rc != 0) {
+        puts("drain error %s");
+        exit(1);
+    }
+}
+
+uint64_t Buffer::reserve(uint64_t const length, RawSlice* iovecs, uint64_t const iovecs_num) {
+    int ret = evbuffer_reserve_space(buffer_, length, reinterpret_cast<evbuffer_iovec*>(iovecs), iovecs_num);
+    if (ret < 0) {
+        printf("%d\n", ret);
+        exit(1);
+    }
+    return ret;
+}
 
 static void accept_conn_cb(evconnlistener *listener, evutil_socket_t fd, struct sockaddr *address, int socklen, void *ctx) {
     event_base *base = evconnlistener_get_base(listener);
     std::cout << "[accept_conn_cb] \n";
-    SocketEvent *sev = new SocketEvent { base, fd, SocketEventType::Read|SocketEventType::Write };
-
-    // bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
-    // bufferevent_setcb(bev, readCallback, NULL, eventCallback, NULL);
-    // bufferevent_enable(bev, EV_READ | EV_WRITE);
+    ServerConnection *conn = new ServerConnection(base, fd);
 }
 
 static void accept_error_cb(struct evconnlistener *listener, void *ctx) {
@@ -36,7 +112,7 @@ static void accept_error_cb(struct evconnlistener *listener, void *ctx) {
     event_base_loopexit(base, NULL);
 }
 
-SocketEvent::SocketEvent(event_base* base, int fd, uint32_t events): base_{ base }, fd_{ fd } {
+SocketEvent::SocketEvent(event_base* base, int fd, SocketEventCb cb, uint32_t events): base_{base}, cb_{cb}, fd_{fd} {
     assignEvents(events);
     event_add(&raw_event_, nullptr);
 }
@@ -48,25 +124,81 @@ void SocketEvent::assignEvents(uint32_t events) {
         (events & SocketEventType::Write ? EV_WRITE : 0) |
         (events & SocketEventType::Closed ? EV_CLOSED : 0);
     raw_event_ = *event_new(base_, fd_, what,
-                 [](evutil_socket_t, short what, void* arg) -> void {
-                     uint32_t events = 0;
-                     if (what & EV_READ) {
-                         ::readCallback();
-                         events |= SocketEventType::Read;
-                     }
+                            [](evutil_socket_t fd, short what, void* arg) -> void {
+                                SocketEvent* e = static_cast<SocketEvent *>(arg);
+                                uint32_t events = 0;
+                                if (what & EV_READ) {
+                                    events |= SocketEventType::Read;
+                                }
 
-                     if (what & EV_WRITE) {
-                         events |= SocketEventType::Write;
-                         ::writeCallback();
+                                if (what & EV_WRITE) {
+                                    events |= SocketEventType::Write;
+                                }
 
-                     }
+                                if (what & EV_CLOSED) {
+                                    events |= SocketEventType::Closed;
+                                }
 
-                     if (what & EV_CLOSED) {
-                         events |= SocketEventType::Closed;
-                         ::eventCallback();
-                     }
-                 },
+                                e->cb_(events);
+                            },
                  this);
+}
+
+ServerConnection::ServerConnection(event_base* base, evutil_socket_t fd): fd_{fd} {
+    a_ = 100;
+    std::cout << "[init ServerConnection]\n";
+    auto fn = [fd, this](uint32_t events) -> void { onSocketEvent(events, fd); };
+    event_ = SocketEventPtr(new SocketEvent(base, fd, fn, SocketEventType::Read|SocketEventType::Write));
+}
+
+void ServerConnection::onSocketEvent(uint32_t events, int fd) {
+    if (fd < 0) {
+        std::cout << "invalid fd\n";
+        return;
+    }
+
+    if (events & SocketEventType::Closed) {
+        std::cout << "closed\n";
+        return;
+    }
+
+    if (events & SocketEventType::Read) {
+        onSocketRead();
+    }
+
+    if (events & SocketEventType::Write) {
+        onSocketWrite();
+    }
+}
+
+void ServerConnection::onSocketRead(){
+    std::cout << "[onSocketRead]\n";
+    uint64_t rc = readData();
+}
+
+uint64_t ServerConnection::readData(){
+    uint64_t bytes_read = 0;
+
+    while(true) {
+        int rc = buffer_.read(fd_, 65535);
+
+        if (rc == 0) {
+            puts("finish!");
+            break;
+        } else if (rc < 0){
+            puts("failed?");
+            break;
+            // exit(1);
+        } else {
+            bytes_read += rc;
+        }
+    }
+
+    return bytes_read;
+}
+
+void ServerConnection::onSocketWrite(){
+    std::cout << "[onSocketWrite]\n";
 }
 
 int main(int argc, char **argv) {
