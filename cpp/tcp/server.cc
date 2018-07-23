@@ -1,8 +1,5 @@
 #include "server.hpp"
 
-#include <sys/socket.h>
-#include <sys/types.h>
-
 struct event_base;
 extern "C" {
     void event_base_free(event_base*);
@@ -138,14 +135,36 @@ void ServerConnection::sessionRecv(Buffer& buf) {
     buf.drain(buf.length());
 }
 
-ServerConnection::ServerConnection(Server* server, evutil_socket_t fd) {
-    std::cout << "[ServerConnection]\n";
-    // printf("%d\n", fd);
-    // bufferevent_ = bufferevent_socket_new(server->eventBase(), fd, BEV_OPT_CLOSE_ON_FREE);
-    // bufferevent_enable(bufferevent_, EV_READ | EV_WRITE);
-    // bufferevent_setcb(bufferevent_, readCallback, writeCallback, eventCallback, this);
-
+ServerConnection::ServerConnection(Event::Reactor& reactor, const evutil_socket_t fd) {
+    std::cout << "[init ServerConnection]\n";
+    file_event_ = reactor.registerFileEvent(fd, [this](uint32_t events) -> void { onFileEvent(events); }, Event::FileTriggerType::Edge, Event::FileEventType::Read | Event::FileEventType::Write);
     nghttp2_session_server_new(&session_, callbacks.callbacks(), base());
+
+    // file_event_->activate(Event::FileEventType::Read|Event::FileEventType::Write);
+}
+
+void ServerConnection::onFileEvent(uint32_t events) {
+    std::cout << "[onFileEvent] socket event\n";
+
+    if (events & Event::FileEventType::Closed) {
+        return;
+    }
+
+    if (events & Event::FileEventType::Write) {
+        writeEvent();
+    }
+
+    if (events & Event::FileEventType::Read) {
+        readEvent();
+    }
+}
+
+void ServerConnection::readEvent() {
+    std::cout << "[readEvent] socket event\n";
+}
+
+void ServerConnection::writeEvent() {
+    std::cout << "[writeEvent] socket event\n";
 }
 
 void ServerConnection::read(bufferevent* buf) {
@@ -164,7 +183,7 @@ ssize_t ServerConnection::onSendCallback(const uint8_t* data, const size_t lengt
 void Server::listenCallback(evconnlistener*, evutil_socket_t fd, sockaddr* remote_addr, int remote_addr_len, void* arg) {
     Server* server = static_cast<Server*>(arg);
     printf("received %d %d\n", fd, server->fd());
-    ServerConnection sc { server, fd };
+    ServerConnection sc { server->reactor(), fd };
 
     // uint64_t bytes_read = 0;
     // while(true) {
@@ -194,12 +213,17 @@ int Server::setup(int port) {
         printf("failed binding\n");
         return -1;
     }
-    evconnlistener_new(base_, listenCallback, this, 0, -1, s_.fd());
+    evconnlistener_new(reactor_.base(), listenCallback, this, 0, -1, s_.fd());
     return 1;
 }
 
-Server::Server(int fd) : base_{ event_base_new() }, s_{fd} {
+Server::Server(int fd) : s_{fd} {
     int on = 1;
+    if (setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on))<0) {
+        s_.close();
+        printf( "rc is -1\n");
+    }
+
     int rc = setsockopt(s_.fd(), SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
     if (rc) {
         s_.close();

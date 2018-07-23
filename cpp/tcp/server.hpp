@@ -4,17 +4,15 @@
 #include <algorithm>
 #include <unistd.h>
 #include <string>
+#include <sys/socket.h>
+#include <sys/types.h>
 
-#include "event2/listener.h"
 #include "event2/bufferevent.h"
 #include "event2/buffer.h"
-#include "event2/event.h"
-
+#include "event2/listener.h"
 #include "nghttp2/nghttp2.h"
 
-namespace Libevent {
-    typedef event_base EventBase;
-}
+#include "reactor.hpp"
 
 // typedef CSmartPtr<event_base, event_base_free> BasePtr;
 struct RawSlice {
@@ -50,17 +48,18 @@ public:
 
     void start() {
         std::cout << "Server starting...\n";
-        event_base_loop(base_, 0);
+        reactor_.start();
     }
 
     int fd() { return s_.fd(); }
 
-    Libevent::EventBase* eventBase() { return base_; }
+    Event::Reactor& reactor() { return reactor_; }
 
     static void listenCallback(evconnlistener*, evutil_socket_t fd, sockaddr* remote_addr, int remote_addr_len, void* arg);
 private:
-    Libevent::EventBase* base_;
     Socket s_;
+
+    Event::Reactor reactor_ {};
 
     int bind(int port) {
         sockaddr_in addr;
@@ -130,13 +129,18 @@ public:
 class ServerConnection: public Connection {
 public:
     // ~ServerConnection() { nghttp2_session_callbacks_del(session_); }
-    ServerConnection(Server* server, evutil_socket_t fd);
+    ServerConnection(Event::Reactor& reactor, evutil_socket_t fd);
     Connection* base() { return this; }
     void sessionRecv(Buffer& buf);
     void sendPendingFrames();
     void read(bufferevent *bev);
 
+    void onFileEvent(uint32_t events);
     ssize_t onSendCallback(const uint8_t* data, const size_t length);
+
+private:
+    void writeEvent();
+    void readEvent();
 
     static void readCallback(bufferevent *bev, void *ptr) {
         std::cout << "[readCallback] invoked\n";
@@ -154,9 +158,8 @@ public:
         std::cout << "[eventCallback] invoked\n";
         ServerConnection *conn = static_cast<ServerConnection *>(ptr);
     }
-
-private:
     bufferevent* bufferevent_;
     Network::Connection connection_ {};
     nghttp2_session* session_;
+    Event::FileEventPtr file_event_;
 };

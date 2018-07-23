@@ -5,7 +5,7 @@ LIBS = -L/opt/brew/Cellar/libevent/2.1.8/lib/ -levent -L/opt/brew/Cellar/nghttp2
 INCLUDE = -I/opt/brew/include
 
 TARGET = server
-SRCS := server.cc
+SRCS := server.cc reactor.cc file_event.cc
 OBJS = $(addsuffix .o, $(basename $(SRCS)))
 DEPS := $(SRCS:%.cc=%.d)
 
@@ -13,7 +13,7 @@ $(TARGET): $(OBJS)
 		$(CXX) $(CFLAGS) $(OBJS) -o $@ $(LIBS)
 
 $(OBJS): $(SRCS)
-		$(CXX) $(CFLAGS) $(CXXFLAGS) -c $< $(INCLUDE)
+		$(CXX) $(CFLAGS) $(CXXFLAGS) -c $^ $(INCLUDE)
 
 .PHONY: clean all
 
