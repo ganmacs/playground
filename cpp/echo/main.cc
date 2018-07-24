@@ -1,9 +1,12 @@
 #include "main.hpp"
 
+static Http2Callbacks callbacks {};
+
 int Buffer::add(const void* data, uint64_t size) {
     return evbuffer_add(buffer_, data, size);
 }
 
+// buffer is not correct position
 int Buffer::write(const int fd) {
     const uint64_t MaxSlices = 16; // 16?
     RawSlice slices[MaxSlices];
@@ -29,6 +32,14 @@ int Buffer::write(const int fd) {
     }
 
     return -1;
+}
+
+
+void Buffer::takeIn(Buffer& b) {
+    int rc = evbuffer_add_buffer(buffer_, b.buffer_);
+    if (rc == 0) {
+        std::cout << "[takein]\n";
+    }
 }
 
 void Buffer::commit(RawSlice* iovecs, uint64_t const size) {
@@ -144,15 +155,21 @@ void SocketEvent::assignEvents(uint32_t events) {
                  this);
 }
 
-ServerConnection::ServerConnection(event_base* base, evutil_socket_t fd): fd_{fd} {
-    a_ = 100;
+ServerConnection::ServerConnection(event_base* ebase, evutil_socket_t fd): fd_{fd} {
     std::cout << "[init ServerConnection]\n";
-    auto fn = [fd, this](uint32_t events) -> void { onSocketEvent(events, fd); };
-    event_ = SocketEventPtr(new SocketEvent(base, fd, fn, SocketEventType::Read|SocketEventType::Write));
+    auto fn = [this](uint32_t events) -> void { onSocketEvent(events); };
+    event_ = SocketEventPtr(new SocketEvent(ebase, fd, fn, SocketEventType::Read|SocketEventType::Write));
+
+    nghttp2_session_server_new(&session_, callbacks.callbacks(), base());
+    int rc = nghttp2_submit_settings(session_, NGHTTP2_FLAG_NONE, 0, 0);
+    if (rc != 0) {
+        std::cout << "invalid fd\n";
+        exit(1);
+    }
 }
 
-void ServerConnection::onSocketEvent(uint32_t events, int fd) {
-    if (fd < 0) {
+void ServerConnection::onSocketEvent(uint32_t events) {
+    if (fd_ < 0) {
         std::cout << "invalid fd\n";
         return;
     }
@@ -174,13 +191,39 @@ void ServerConnection::onSocketEvent(uint32_t events, int fd) {
 void ServerConnection::onSocketRead(){
     std::cout << "[onSocketRead]\n";
     uint64_t rc = readData();
+    std::cout << "recv data " << read_buffer_.length() << "|" << rc << " bytes\n";
+
+    uint64_t slice_size = read_buffer_.getAvailableSliceCount();
+    RawSlice slices[slice_size];
+    read_buffer_.getRawSlice(slices, slice_size);
+
+    for (auto s : slices) {
+        // printf("%s\n", static_cast<unsigned char*>(s.mem_));
+        ssize_t rc = nghttp2_session_mem_recv(session_, static_cast<unsigned char*>(s.mem_), s.len_);
+        if (rc != s.len_) {
+            std::cout <<"failed? "<< rc << "/" << s.len_ << "\n";
+        }
+    }
+
+    read_buffer_.drain(read_buffer_.length());
+
+    sendData();
+}
+
+int ServerConnection::sendData() {
+    int rv = nghttp2_session_send(session_);
+    if (rv != 0) {
+        printf("Fatal error: %s", nghttp2_strerror(rv));
+        return -1;
+    }
+    return 0;
 }
 
 uint64_t ServerConnection::readData(){
     uint64_t bytes_read = 0;
 
     while(true) {
-        int rc = buffer_.read(fd_, 65535);
+        int rc = read_buffer_.read(fd_, 65535);
 
         if (rc == 0) {
             puts("finish!");
@@ -197,8 +240,110 @@ uint64_t ServerConnection::readData(){
     return bytes_read;
 }
 
+// XXX
+Stream::Stream(): headers_{} {}
+
+int ServerConnection::onBeginHeaderCallback(nghttp2_session *session, const nghttp2_frame *frame) {
+    std::cout << "[onBeginHeaderCall]\n";
+
+    // Skip push promise frame
+    if (frame->hd.type != NGHTTP2_HEADERS) {
+        std::cout << "[type is NGHTTP2_HEADERS]\n";
+        abort();
+    }
+
+    //  HEADERS frame is opening?
+    if (frame->headers.cat != NGHTTP2_HCAT_REQUEST) {
+        // get existing stream
+        return 0;
+    }
+
+    StreamPtr stream { new Stream() };
+
+    stream->stream_id_ = frame->hd.stream_id;
+    streams_.emplace_front(std::move(stream));
+    nghttp2_session_set_stream_user_data(session_, frame->hd.stream_id, streams_.front().get());
+    std::cout << "[user data set]\n";
+    return 0;
+}
+
 void ServerConnection::onSocketWrite(){
     std::cout << "[onSocketWrite]\n";
+    // TODO: check connection is active
+    std::cout << "write " << write_buffer_.write(fd_) << " bytes\n";
+}
+
+ssize_t ServerConnection::onSendCallback(const uint8_t* data, const size_t length) {
+    std::cout << "[onSendCallback] Send data :" << length <<  " bytes\n";
+    Buffer buf { data, length };
+    printf("%s\n", data);
+    write_buffer_.takeIn(buf);
+    return length;
+};
+
+int ServerConnection::saveHeader(const nghttp2_frame *frame, std::string&& name, std::string&& value) {
+    Stream* stream = getStream(frame->hd.stream_id);
+    if (!stream) {
+        std::cout << "[saveHeader] stream does not exist\n";
+        return 0;
+    }
+
+    stream->saveHeader(std::move(name), std::move(value));
+
+    // TODO: EHADER size is acceptable
+    return 0;
+}
+
+Stream* ServerConnection::getStream(int32_t stream_id) {
+    auto user_data = nghttp2_session_get_stream_user_data(session_, stream_id);
+    return static_cast<Stream*>(user_data);
+}
+
+int ServerConnection::onHeaderCallback(const nghttp2_frame *frame, std::string&& name, std::string&& value) {
+    if (frame->hd.type == NGHTTP2_HEADERS) {
+        if (frame->headers.cat == NGHTTP2_HCAT_RESPONSE || frame->headers.cat == NGHTTP2_HCAT_HEADERS) {
+            std::cout << "[HEADER]:  " << name << " : " <<  value << " \n";
+            return 0;
+        }
+    }
+
+    return 1;
+};
+
+int Stream::saveHeader(std::string&& name, std::string&& value) {
+
+}
+
+Http2Callbacks::Http2Callbacks() {
+    nghttp2_session_callbacks_new(&callbacks_);
+
+    // nghttp2_session_callbacks_set_on_frame_send_callback(
+    //     callbacks_, [](nghttp2_session*, const nghttp2_frame* frame, void* user_data) -> int {
+    //         return static_cast<ConnectionImpl*>(user_data)->onFrameSend(frame);
+    //     });
+
+    nghttp2_session_callbacks_set_send_callback(
+       callbacks_,
+       [](nghttp2_session*, const uint8_t* data, size_t length, int, void* user_data) -> ssize_t {
+           return static_cast<ServerConnection*>(user_data)->onSendCallback(data, length);
+       }
+    );
+
+    nghttp2_session_callbacks_set_on_begin_headers_callback(
+       callbacks_,
+       [](nghttp2_session* session, const nghttp2_frame *frame, void *user_data) -> int {
+           return static_cast<ServerConnection*>(user_data)->onBeginHeaderCallback(session, frame);
+       }
+    );
+
+      nghttp2_session_callbacks_set_on_header_callback(
+      callbacks_,
+      [](nghttp2_session*, const nghttp2_frame* frame, const uint8_t* raw_name, size_t name_length,
+         const uint8_t* raw_value, size_t value_length, uint8_t, void* user_data) -> int {
+          std::string name { raw_name, raw_name+name_length };
+          std::string value { raw_value, raw_value+value_length };
+          return static_cast<ServerConnection*>(user_data)->onHeaderCallback(frame, std::move(name), std::move(value));
+      });
 }
 
 int main(int argc, char **argv) {

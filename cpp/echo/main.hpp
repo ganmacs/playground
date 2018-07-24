@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <unistd.h>
 #include <string>
+#include <list>
+#include <unordered_map>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <fcntl.h>
@@ -15,6 +17,7 @@
 #include "event2/listener.h"
 #include "event2/event.h"
 #include "event2/event_struct.h"
+#include "nghttp2/nghttp2.h"
 
 struct RawSlice {
     void* mem_ = nullptr;
@@ -51,6 +54,7 @@ public:
     uint64_t getAvailableSliceCount() { return getRawSlice(nullptr, 0); }
     uint64_t getRawSlice(RawSlice* out, uint64_t size)  { return evbuffer_peek(buffer_, -1, nullptr, reinterpret_cast<evbuffer_iovec*>(out), size); }
     evbuffer* buffer() { return buffer_; }
+    void takeIn(Buffer& b);
 private:
     uint64_t reserve(uint64_t const length, RawSlice* iovecs, uint64_t const iovecs_num);
     evbuffer* buffer_;
@@ -78,27 +82,57 @@ private:
 
 typedef std::unique_ptr<SocketEvent> SocketEventPtr;
 
+class Stream {
+public:
+    Stream();
+    int saveHeader(std::string&& name, std::string&& value);
+    int32_t stream_id_ {-1};
+    std::unordered_map<std::string, std::string> headers_;
+};
+
+typedef std::unique_ptr<Stream> StreamPtr;
+
 class ServerConnection {
 public:
     // ~ServerConnection() { nghttp2_session_callbacks_del(session_); }
     ServerConnection(event_base* base, evutil_socket_t fd);
     ServerConnection* base() { return this; }
-    uint64_t readData();
-
     // void sessionRecv(Buffer& buf);
     // void sendPendingFrames();
 
-    // TODO: check ivar fd_??
-    void onSocketEvent(uint32_t events, int fd);
+    // for libevent2 callbacks
+    void onSocketEvent(uint32_t events);
+
+    // for nghttp2 callbacks
+    ssize_t onSendCallback(const uint8_t* data, const size_t length);
+    int onBeginHeaderCallback(nghttp2_session *session, const nghttp2_frame *frame);
+    int onHeaderCallback(const nghttp2_frame *frame, std::string&& name, std::string&& value);
 private:
+    uint64_t readData();
+    int sendData();
     void onSocketRead();
     void onSocketWrite();
+    Stream* getStream(int32_t stream_id);
 
-    int a_;
+    int saveHeader(const nghttp2_frame *frame, std::string&& name, std::string&& value);
+
     int fd_;
-    Buffer buffer_;
+    Buffer read_buffer_;
+    Buffer write_buffer_;
     // nghttp2_session* session_;
     SocketEventPtr event_;
+    nghttp2_session* session_;
+    // linked list
+    std::list<StreamPtr> streams_;
 };
 
 typedef std::unique_ptr<ServerConnection> ServerConnectionPtr;
+
+class Http2Callbacks {
+public:
+    Http2Callbacks();
+
+    const nghttp2_session_callbacks* callbacks() { return callbacks_; }
+private:
+    nghttp2_session_callbacks* callbacks_;
+};
