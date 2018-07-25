@@ -333,6 +333,7 @@ int ServerConnection::onHeaderCallback(const nghttp2_frame *frame, std::string&&
     if (frame->hd.type == NGHTTP2_HEADERS) {
         if (frame->headers.cat == NGHTTP2_HCAT_RESPONSE || frame->headers.cat == NGHTTP2_HCAT_HEADERS) {
             std::cout << "[HEADER]:  " << name << " : " <<  value << " \n";
+            // save header!
             return 0;
         }
     }
@@ -346,6 +347,14 @@ int ServerConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* 
     return 0;
 }
 
+static uint8_t STATUS[8] = ":status";
+static uint8_t STATUS_CODE[4] = "200";
+
+void alwaysSuccess(nghttp2_session *session, Stream* stream) {
+    const nghttp2_nv hdrs {STATUS, STATUS_CODE, sizeof(STATUS)-1, sizeof(STATUS_CODE)-1, 0};
+    puts("submit response");
+    nghttp2_submit_response(session, stream->stream_id_, &hdrs, 1, nullptr);
+}
 
 /*
   NGHTTP2_DATA
@@ -385,6 +394,9 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
         }
         case NGHTTP2_HCAT_REQUEST: {
             std::cout << "[Frame Recv] HEADERS NGHTTP2_HCAT_REQUEST \n";
+            puts("\n===================================== start print");
+            alwaysSuccess(session_, stream);
+            puts("===================================== finish print\n");
             break;
         }
         case NGHTTP2_HCAT_HEADERS: {
@@ -394,16 +406,13 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
         default: {
             return 1;
         };
-
-            break;
-        }
-        case NGHTTP2_RST_STREAM: {
-            std::cout << "[Frame Recv] NGHTTP2_RST_STREAM\n";
-            break;
         }
     }
+    case NGHTTP2_RST_STREAM: {
+        std::cout << "[Frame Recv] NGHTTP2_RST_STREAM\n";
+        break;
     }
-
+    }
     return 0;
 
 }
