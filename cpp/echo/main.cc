@@ -31,14 +31,14 @@ int Buffer::write(const int fd) {
         drain(static_cast<uint64_t>(rc));
     }
 
-    return -1;
+    return rc;
 }
 
 
 void Buffer::takeIn(Buffer& b) {
     int rc = evbuffer_add_buffer(buffer_, b.buffer_);
-    if (rc == 0) {
-        std::cout << "[takein]\n";
+    if (rc != 0) {
+        std::cout << "[takein] miss\n";
     }
 }
 
@@ -197,11 +197,12 @@ void ServerConnection::onSocketRead(){
     RawSlice slices[slice_size];
     read_buffer_.getRawSlice(slices, slice_size);
 
+
     for (auto s : slices) {
-        // printf("%s\n", static_cast<unsigned char*>(s.mem_));
-        ssize_t rc = nghttp2_session_mem_recv(session_, static_cast<unsigned char*>(s.mem_), s.len_);
+        // printf("%s\n", static_cast<const uint8_t*>(s.mem_));
+        ssize_t rc = nghttp2_session_mem_recv(session_, static_cast<const uint8_t*>(s.mem_), s.len_);
         if (rc != s.len_) {
-            std::cout <<"failed? "<< rc << "/" << s.len_ << "\n";
+            std::cout  << "nghttp2_session_mem_recv failed? " << nghttp2_strerror(rc) << "\n";
         }
     }
 
@@ -229,7 +230,7 @@ uint64_t ServerConnection::readData(){
             puts("finish!");
             break;
         } else if (rc < 0){
-            puts("failed?");
+            // puts("failed?");
             break;
             // exit(1);
         } else {
@@ -268,15 +269,42 @@ int ServerConnection::onBeginHeaderCallback(nghttp2_session *session, const nght
 }
 
 void ServerConnection::onSocketWrite(){
-    std::cout << "[onSocketWrite]\n";
+    if (write_buffer_.length() == 0) {
+        return;
+    }
+    std::cout << "[onSocketWrite]\n"; // XXX
+    uint64_t bytes_written = 0;
+
     // TODO: check connection is active
-    std::cout << "write " << write_buffer_.write(fd_) << " bytes\n";
+    do {
+        if (write_buffer_.length() == 0) {
+            // keep open
+            break;
+        }
+
+        int rc = write_buffer_.write(fd_);
+
+        if (rc == -1) {
+            if (errno == EAGAIN) {
+                // keep open
+            } else {
+                // close
+            }
+
+            break;
+        } else {
+            bytes_written += rc;
+        }
+    } while(true);
+
+    if (bytes_written > 0) {
+        std::cout << "write " << bytes_written << " bytes\n";
+    }
 }
 
 ssize_t ServerConnection::onSendCallback(const uint8_t* data, const size_t length) {
-    std::cout << "[onSendCallback] Send data :" << length <<  " bytes\n";
+    std::cout << "[onSendCallback] Send data: " << length <<  " bytes\n";
     Buffer buf { data, length };
-    printf("%s\n", data);
     write_buffer_.takeIn(buf);
     return length;
 };
@@ -300,6 +328,8 @@ Stream* ServerConnection::getStream(int32_t stream_id) {
 }
 
 int ServerConnection::onHeaderCallback(const nghttp2_frame *frame, std::string&& name, std::string&& value) {
+    std::cout << "[onHeaderCallback] " << name << " : " <<  value << " \n";
+
     if (frame->hd.type == NGHTTP2_HEADERS) {
         if (frame->headers.cat == NGHTTP2_HCAT_RESPONSE || frame->headers.cat == NGHTTP2_HCAT_HEADERS) {
             std::cout << "[HEADER]:  " << name << " : " <<  value << " \n";
@@ -307,11 +337,79 @@ int ServerConnection::onHeaderCallback(const nghttp2_frame *frame, std::string&&
         }
     }
 
-    return 1;
+    return 0;
 };
 
-int Stream::saveHeader(std::string&& name, std::string&& value) {
+int ServerConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len) {
+    std::cout << "[onDataChunkRecvCallback]\n";
+    // TODO
+    return 0;
+}
 
+
+/*
+  NGHTTP2_DATA
+  NGHTTP2_HEADERS
+  NGHTTP2_PRIORITY
+  NGHTTP2_RST_STREAM
+  NGHTTP2_SETTINGS
+  NGHTTP2_PUSH_PROMISE
+  NGHTTP2_PING
+  NGHTTP2_GOAWAY
+  NGHTTP2_WINDOW_UPDATE
+  NGHTTP2_CONTINUATION
+  NGHTTP2_ALTSVC
+  NGHTTP2_ORIGIN
+*/
+int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
+    std::cout << "[onFrameRecvCallback]" << frame->hd.type << "\n";
+    Stream* stream = getStream(frame->hd.stream_id);
+
+    switch(frame->hd.type) {
+    case NGHTTP2_GOAWAY: {
+        std::cout << "[Frame Recv] GOAWAY\n";
+        break;
+    }
+    case NGHTTP2_DATA: {
+        std::cout << "[Frame Recv] DATA\n";
+        stream->end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
+        break;
+    }
+    case NGHTTP2_HEADERS: {
+        stream->end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
+
+        switch (frame->headers.cat) {
+        case NGHTTP2_HCAT_RESPONSE: {
+            std::cout << "[Frame Recv] HEADERS NGHTTP2_HCAT_RESPONSE \n";
+            break;
+        }
+        case NGHTTP2_HCAT_REQUEST: {
+            std::cout << "[Frame Recv] HEADERS NGHTTP2_HCAT_REQUEST \n";
+            break;
+        }
+        case NGHTTP2_HCAT_HEADERS: {
+            std::cout << "[Frame Recv] HEADERS NGHTTP2_HCAT_HEADERS \n";
+            break;
+        }
+        default: {
+            return 1;
+        };
+
+            break;
+        }
+        case NGHTTP2_RST_STREAM: {
+            std::cout << "[Frame Recv] NGHTTP2_RST_STREAM\n";
+            break;
+        }
+    }
+    }
+
+    return 0;
+
+}
+
+int Stream::saveHeader(std::string&& name, std::string&& value) {
+    return 0;
 }
 
 Http2Callbacks::Http2Callbacks() {
@@ -336,7 +434,18 @@ Http2Callbacks::Http2Callbacks() {
        }
     );
 
-      nghttp2_session_callbacks_set_on_header_callback(
+    nghttp2_session_callbacks_set_on_data_chunk_recv_callback(
+      callbacks_,
+      [](nghttp2_session*, uint8_t, int32_t stream_id, const uint8_t* data, size_t len, void* user_data) -> int {
+        return static_cast<ServerConnection*>(user_data)->onDataChunkRecvCallback(stream_id, data, len);
+      });
+
+    nghttp2_session_callbacks_set_on_frame_recv_callback(
+      callbacks_, [](nghttp2_session*, const nghttp2_frame* frame, void* user_data) -> int {
+        return static_cast<ServerConnection*>(user_data)->onFrameRecvCallback(frame);
+      });
+
+    nghttp2_session_callbacks_set_on_header_callback(
       callbacks_,
       [](nghttp2_session*, const nghttp2_frame* frame, const uint8_t* raw_name, size_t name_length,
          const uint8_t* raw_value, size_t value_length, uint8_t, void* user_data) -> int {

@@ -86,8 +86,10 @@ class Stream {
 public:
     Stream();
     int saveHeader(std::string&& name, std::string&& value);
+
     int32_t stream_id_ {-1};
     std::unordered_map<std::string, std::string> headers_;
+    bool end_stream_;
 };
 
 typedef std::unique_ptr<Stream> StreamPtr;
@@ -107,6 +109,8 @@ public:
     ssize_t onSendCallback(const uint8_t* data, const size_t length);
     int onBeginHeaderCallback(nghttp2_session *session, const nghttp2_frame *frame);
     int onHeaderCallback(const nghttp2_frame *frame, std::string&& name, std::string&& value);
+    int onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len);
+    int onFrameRecvCallback(const nghttp2_frame* frame);
 private:
     uint64_t readData();
     int sendData();
