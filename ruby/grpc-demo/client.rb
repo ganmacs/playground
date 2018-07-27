@@ -10,5 +10,5 @@ module RubyLogger
 end
 GRPC.extend(RubyLogger)
 
-stub = Grpc::Health::V1::Health::Stub.new('127.0.0.1:8000', :this_channel_is_insecure)
+stub = Grpc::Health::V1::Health::Stub.new('127.0.0.1:3000', :this_channel_is_insecure)
 stub.check(Grpc::Health::V1::HealthCheckRequest.new(service: 'test-app'))

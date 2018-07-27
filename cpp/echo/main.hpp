@@ -19,6 +19,8 @@
 #include "event2/event_struct.h"
 #include "nghttp2/nghttp2.h"
 
+#include "hellworld.pb.h"
+
 struct RawSlice {
     void* mem_ = nullptr;
     size_t len_ = 0;
@@ -34,6 +36,36 @@ static_assert(offsetof(RawSlice, mem_) == offsetof(evbuffer_iovec, iov_base),
               "RawSlice != evbuffer_iovec");
 static_assert(offsetof(RawSlice, len_) == offsetof(evbuffer_iovec, iov_len),
               "RawSlice != evbuffer_iovec");
+
+namespace GRPC {
+    class Path {
+    public:
+        Path(std::string name);
+        const std::string& MethodName();
+        const std::string& ServiceName();
+    };
+
+    std::string method_name_;
+    std::string service_name_;
+}
+
+class HeadersState {
+public:
+    HeadersState() {}
+    void setPath(std::string name);
+
+    // return errro?
+    bool reservedHeader(std::string& name);
+    bool whiteListeHeader(std::string& name);
+    void processHeaderField(std::string&& name, std::string&& value);
+    void addMetadata(std::string&& name, std::string&& value);
+    std::unordered_map<std::string, std::string> metadata_;
+    GRPC::Path *path_;
+    std::string encoding_;
+    std::string schema_;
+};
+
+typedef std::unique_ptr<HeadersState> HeadersStatePtr;
 
 class Buffer {
 public:
@@ -82,6 +114,13 @@ private:
 
 typedef std::unique_ptr<SocketEvent> SocketEventPtr;
 
+enum class StreamStatus {
+    StreamActive,
+	StreamWriteDone,
+	StreamReadDone,
+	StreamDone,
+};
+
 class Stream {
 public:
     Stream();
@@ -90,6 +129,8 @@ public:
     int32_t stream_id_ {-1};
     std::unordered_map<std::string, std::string> headers_;
     bool end_stream_;
+    HeadersStatePtr headers_state_;
+    StreamStatus stream_status_ {StreamStatus::StreamActive};
 };
 
 typedef std::unique_ptr<Stream> StreamPtr;

@@ -260,9 +260,12 @@ int ServerConnection::onBeginHeaderCallback(nghttp2_session *session, const nght
     }
 
     StreamPtr stream { new Stream() };
+    HeadersStatePtr state { new HeadersState() };
 
     stream->stream_id_ = frame->hd.stream_id;
+    stream->headers_state_ = std::move(state);
     streams_.emplace_front(std::move(stream));
+
     nghttp2_session_set_stream_user_data(session_, frame->hd.stream_id, streams_.front().get());
     std::cout << "[user data set]\n";
     return 0;
@@ -329,17 +332,100 @@ Stream* ServerConnection::getStream(int32_t stream_id) {
 
 int ServerConnection::onHeaderCallback(const nghttp2_frame *frame, std::string&& name, std::string&& value) {
     std::cout << "[onHeaderCallback] " << name << " : " <<  value << " \n";
+    Stream* s = getStream(frame->hd.stream_id);
 
     if (frame->hd.type == NGHTTP2_HEADERS) {
-        if (frame->headers.cat == NGHTTP2_HCAT_RESPONSE || frame->headers.cat == NGHTTP2_HCAT_HEADERS) {
-            std::cout << "[HEADER]:  " << name << " : " <<  value << " \n";
-            // save header!
-            return 0;
-        }
+        // if (frame->headers.cat == NGHTTP2_HCAT_RESPONSE || frame->headers.cat == NGHTTP2_HCAT_HEADERS) {
+        // std::cout << "[HEADER]:  " << name << " : " <<  value << " \n";
+        s->headers_state_->processHeaderField(std::move(name), std::move(value));
+        return 0;
+        // }
     }
 
     return 0;
 };
+
+namespace GRPC {
+    Path::Path(std::string p) {
+        std::cout << p << "\n";
+        if (p != "" && p[0] == '/') {
+            p.erase(p.begin());
+        }
+
+        int pos = p.find("/");
+        if (pos < -1) {
+            // error
+        } else {
+            service_name_ = p.substr(0, pos-1);
+            method_name_ = p.substr(pos + 1, p.length()-1);
+
+
+
+            std::cout << service_name_ << "\n";
+            std::cout << method_name_ << "\n";
+        }
+    }
+
+    const std::string& Path::MethodName() {
+        return method_name_;
+    }
+
+    const std::string& Path::ServiceName() {
+        return service_name_;
+    }
+}
+
+void HeadersState::setPath(std::string name) {
+    auto v = GRPC::Path { name };
+    path_ = &v;
+}
+
+// Support request header only now.
+void HeadersState::processHeaderField(std::string&& name, std::string&& value) {
+    if (name == "content-type") {
+    } else if (name == ":path")  {
+        setPath(value);
+    } else if (name == "schema")  {
+        if ((value == "http") || (value == "http2")) {
+            schema_ = std::move(value);
+        } else {
+            // error
+        }
+    } else if (name == "grpc-encoding") {
+        encoding_ = std::move(value);
+    } else if (reservedHeader(name) && !whiteListeHeader(name)) {
+        return;
+
+    } else {
+        // TODO: other header sholud be filtered
+        addMetadata(std::move(name), std::move(value));
+    }
+}
+
+void HeadersState::addMetadata(std::string&& name, std::string&& value) {
+    // XXX: duplicate name exists...
+    metadata_[name] = std::move(value);
+}
+
+bool HeadersState::whiteListeHeader(std::string& name) {
+    return (name == ":authority" || name == "user-agent");
+}
+
+bool HeadersState::reservedHeader(std::string& name) {
+    if (name != "" && name[0] == ':') {
+        return true;
+    }
+
+    return (name == "content-type" ||
+            name == "user-agent"||
+            name == "grpc-message-type"||
+            name == "grpc-encoding"||
+            name == "grpc-message"||
+            name == "grpc-status"||
+            name == "grpc-timeout"||
+            name == "grpc-status-details-bin"||
+            name == "te");
+}
 
 int ServerConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len) {
     std::cout << "[onDataChunkRecvCallback]\n";
@@ -381,6 +467,10 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
     }
     case NGHTTP2_DATA: {
         std::cout << "[Frame Recv] DATA\n";
+
+        std::cout << stream->headers_state_->path_->MethodName() << "\n";
+        std::cout << stream->headers_state_->path_->ServiceName() << "\n";
+
         stream->end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
         break;
     }
