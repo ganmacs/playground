@@ -58,6 +58,17 @@ public:
         std::cout << "~A2 " << this << std::endl;
     }
 
+    A2(A2 &&a) noexcept {
+        std::cout << "Move Constructor " << this << std::endl;
+        this->ptr = a.ptr;
+        a.ptr = nullptr;
+    }
+
+    A2(A2 &a) noexcept {
+        std::cout << "Copy Constructor " << this << std::endl;
+        memcpy(a.ptr, ptr, 100000);
+    }
+
     void hello() {
         std::cout << "hello a2" << this << std::endl;
     }
@@ -68,13 +79,10 @@ using A2Ptr = std::unique_ptr<A2>;
 
 class B {
 public:
-    B() {
+    B(): a2_{ A2Ptr{ new A2() } }{
         std::cout << "B\n";
         A a {};
         a_ = &a;
-
-        A2Ptr a2 {new A2()};
-        a2_ = std::move(a2);
     };
 
     void hello() {
@@ -194,11 +202,16 @@ void test8() {
     A a = A();
 }
 
-void ref(A&  a) {
+void ref0(A a) {
+    a.n = 10;
+    puts("--- ref0 ---");
+}
+
+void ref1(A& a) {
     a.n = 10;
 }
 
-void ref2(A *a ) {
+void ref2(A *a) {
     a->n = 9;
 }
 
@@ -213,12 +226,32 @@ A ref3(A&& a) {
 
 void test9() {
     auto a = A {};
-    ref(a);
+    ref1(a);
     printf("%d\n", a.n);
     ref2(&a);
     printf("%d\n", a.n);
     auto a2 = ref3(std::move(a));
     printf("%d\n", a.n);
+
+    puts("--");
+    {
+        auto a = A {};
+        ref0(a);
+        puts("--");
+        ref0(std::move(a));
+    }
+}
+
+class C {
+public:
+    C(A a): a_{std::move(a)} {}
+    A a_;
+};
+
+void test10() {
+    // A a {};
+    // C c {std::move(a)};
+    C c { A{} };
 }
 
 int main(int argc, char *argv[]) {
@@ -232,6 +265,7 @@ int main(int argc, char *argv[]) {
     // test7();
     // test8();
     test9();
+    // test10();
 
     std::cout << "-- main finish --" << std::endl;
     return 0;
