@@ -242,7 +242,11 @@ uint64_t ServerConnection::readData(){
 }
 
 // XXX
-Stream::Stream(): headers_{} {}
+Stream::Stream(int32_t stream_id):
+    stream_id_{stream_id},
+    headers_{},
+    headers_state_{HeadersStatePtr { new HeadersState() }}
+{}
 
 int ServerConnection::onBeginHeaderCallback(nghttp2_session *session, const nghttp2_frame *frame) {
     std::cout << "[onBeginHeaderCall]\n";
@@ -259,11 +263,8 @@ int ServerConnection::onBeginHeaderCallback(nghttp2_session *session, const nght
         return 0;
     }
 
-    StreamPtr stream { new Stream() };
-    HeadersStatePtr state { new HeadersState() };
+    StreamPtr stream { new Stream(frame->hd.stream_id) };
 
-    stream->stream_id_ = frame->hd.stream_id;
-    stream->headers_state_ = std::move(state);
     streams_.emplace_front(std::move(stream));
 
     nghttp2_session_set_stream_user_data(session_, frame->hd.stream_id, streams_.front().get());
@@ -312,7 +313,7 @@ ssize_t ServerConnection::onSendCallback(const uint8_t* data, const size_t lengt
     return length;
 };
 
-int ServerConnection::saveHeader(const nghttp2_frame *frame, std::string&& name, std::string&& value) {
+int ServerConnection::saveHeader(const nghttp2_frame *frame, std::string name, std::string value) {
     Stream* stream = getStream(frame->hd.stream_id);
     if (!stream) {
         std::cout << "[saveHeader] stream does not exist\n";
@@ -330,7 +331,7 @@ Stream* ServerConnection::getStream(int32_t stream_id) {
     return static_cast<Stream*>(user_data);
 }
 
-int ServerConnection::onHeaderCallback(const nghttp2_frame *frame, std::string&& name, std::string&& value) {
+int ServerConnection::onHeaderCallback(const nghttp2_frame *frame, std::string name, std::string value) {
     std::cout << "[onHeaderCallback] " << name << " : " <<  value << " \n";
     Stream* s = getStream(frame->hd.stream_id);
 
@@ -358,11 +359,6 @@ namespace GRPC {
         } else {
             service_name_ = p.substr(0, pos-1);
             method_name_ = p.substr(pos + 1, p.length()-1);
-
-
-
-            std::cout << service_name_ << "\n";
-            std::cout << method_name_ << "\n";
         }
     }
 
@@ -375,16 +371,11 @@ namespace GRPC {
     }
 }
 
-void HeadersState::setPath(std::string name) {
-    auto v = GRPC::Path { name };
-    path_ = &v;
-}
-
 // Support request header only now.
-void HeadersState::processHeaderField(std::string&& name, std::string&& value) {
+void HeadersState::processHeaderField(std::string name, std::string value) {
     if (name == "content-type") {
     } else if (name == ":path")  {
-        setPath(value);
+        path_ = GRPC::Path { std::move(value) };
     } else if (name == "schema")  {
         if ((value == "http") || (value == "http2")) {
             schema_ = std::move(value);
@@ -402,16 +393,16 @@ void HeadersState::processHeaderField(std::string&& name, std::string&& value) {
     }
 }
 
-void HeadersState::addMetadata(std::string&& name, std::string&& value) {
+void HeadersState::addMetadata(std::string name, std::string value) {
     // XXX: duplicate name exists...
-    metadata_[name] = std::move(value);
+    metadata_[std::move(name)] = std::move(value);
 }
 
-bool HeadersState::whiteListeHeader(std::string& name) {
+bool HeadersState::whiteListeHeader(const std::string& name) {
     return (name == ":authority" || name == "user-agent");
 }
 
-bool HeadersState::reservedHeader(std::string& name) {
+bool HeadersState::reservedHeader(const std::string& name) {
     if (name != "" && name[0] == ':') {
         return true;
     }
@@ -438,7 +429,7 @@ static uint8_t STATUS_CODE[4] = "200";
 
 void alwaysSuccess(nghttp2_session *session, Stream* stream) {
     const nghttp2_nv hdrs {STATUS, STATUS_CODE, sizeof(STATUS)-1, sizeof(STATUS_CODE)-1, 0};
-    puts("submit response");
+    puts("Always success");
     nghttp2_submit_response(session, stream->stream_id_, &hdrs, 1, nullptr);
 }
 
@@ -467,10 +458,6 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
     }
     case NGHTTP2_DATA: {
         std::cout << "[Frame Recv] DATA\n";
-
-        std::cout << stream->headers_state_->path_->MethodName() << "\n";
-        std::cout << stream->headers_state_->path_->ServiceName() << "\n";
-
         stream->end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
         break;
     }
@@ -484,9 +471,7 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
         }
         case NGHTTP2_HCAT_REQUEST: {
             std::cout << "[Frame Recv] HEADERS NGHTTP2_HCAT_REQUEST \n";
-            puts("\n===================================== start print");
             alwaysSuccess(session_, stream);
-            puts("===================================== finish print\n");
             break;
         }
         case NGHTTP2_HCAT_HEADERS: {
@@ -507,7 +492,7 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
 
 }
 
-int Stream::saveHeader(std::string&& name, std::string&& value) {
+int Stream::saveHeader(std::string name, std::string value) {
     return 0;
 }
 

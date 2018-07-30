@@ -7,7 +7,6 @@
 
 #include <google/protobuf/stubs/common.h>
 #include <google/protobuf/stubs/port.h>
-#include <google/protobuf/stubs/once.h>
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/wire_format_lite_inl.h>
 #include <google/protobuf/descriptor.h>
@@ -19,6 +18,7 @@
 #include "third_party/protobuf/version.h"
 #endif
 // @@protoc_insertion_point(includes)
+
 namespace helloworld {
 class HelloRequestDefaultTypeInternal {
  public:
@@ -32,14 +32,9 @@ class HelloReplyDefaultTypeInternal {
 } _HelloReply_default_instance_;
 }  // namespace helloworld
 namespace protobuf_hellworld_2eproto {
-void InitDefaultsHelloRequestImpl() {
+static void InitDefaultsHelloRequest() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-#ifdef GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
-  ::google::protobuf::internal::InitProtobufDefaultsForceUnique();
-#else
-  ::google::protobuf::internal::InitProtobufDefaults();
-#endif  // GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
   {
     void* ptr = &::helloworld::_HelloRequest_default_instance_;
     new (ptr) ::helloworld::HelloRequest();
@@ -48,19 +43,12 @@ void InitDefaultsHelloRequestImpl() {
   ::helloworld::HelloRequest::InitAsDefaultInstance();
 }
 
-void InitDefaultsHelloRequest() {
-  static GOOGLE_PROTOBUF_DECLARE_ONCE(once);
-  ::google::protobuf::GoogleOnceInit(&once, &InitDefaultsHelloRequestImpl);
-}
+::google::protobuf::internal::SCCInfo<0> scc_info_HelloRequest =
+    {{ATOMIC_VAR_INIT(::google::protobuf::internal::SCCInfoBase::kUninitialized), 0, InitDefaultsHelloRequest}, {}};
 
-void InitDefaultsHelloReplyImpl() {
+static void InitDefaultsHelloReply() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-#ifdef GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
-  ::google::protobuf::internal::InitProtobufDefaultsForceUnique();
-#else
-  ::google::protobuf::internal::InitProtobufDefaults();
-#endif  // GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
   {
     void* ptr = &::helloworld::_HelloReply_default_instance_;
     new (ptr) ::helloworld::HelloReply();
@@ -69,9 +57,12 @@ void InitDefaultsHelloReplyImpl() {
   ::helloworld::HelloReply::InitAsDefaultInstance();
 }
 
-void InitDefaultsHelloReply() {
-  static GOOGLE_PROTOBUF_DECLARE_ONCE(once);
-  ::google::protobuf::GoogleOnceInit(&once, &InitDefaultsHelloReplyImpl);
+::google::protobuf::internal::SCCInfo<0> scc_info_HelloReply =
+    {{ATOMIC_VAR_INIT(::google::protobuf::internal::SCCInfoBase::kUninitialized), 0, InitDefaultsHelloReply}, {}};
+
+void InitDefaults() {
+  ::google::protobuf::internal::InitSCC(&scc_info_HelloRequest.base);
+  ::google::protobuf::internal::InitSCC(&scc_info_HelloReply.base);
 }
 
 ::google::protobuf::Metadata file_level_metadata[2];
@@ -102,15 +93,14 @@ static ::google::protobuf::Message const * const file_default_instances[] = {
 
 void protobuf_AssignDescriptors() {
   AddDescriptors();
-  ::google::protobuf::MessageFactory* factory = NULL;
   AssignDescriptors(
-      "hellworld.proto", schemas, file_default_instances, TableStruct::offsets, factory,
+      "hellworld.proto", schemas, file_default_instances, TableStruct::offsets,
       file_level_metadata, NULL, NULL);
 }
 
 void protobuf_AssignDescriptorsOnce() {
-  static GOOGLE_PROTOBUF_DECLARE_ONCE(once);
-  ::google::protobuf::GoogleOnceInit(&once, &protobuf_AssignDescriptors);
+  static ::google::protobuf::internal::once_flag once;
+  ::google::protobuf::internal::call_once(once, protobuf_AssignDescriptors);
 }
 
 void protobuf_RegisterTypes(const ::std::string&) GOOGLE_PROTOBUF_ATTRIBUTE_COLD;
@@ -135,8 +125,8 @@ void AddDescriptorsImpl() {
 }
 
 void AddDescriptors() {
-  static GOOGLE_PROTOBUF_DECLARE_ONCE(once);
-  ::google::protobuf::GoogleOnceInit(&once, &AddDescriptorsImpl);
+  static ::google::protobuf::internal::once_flag once;
+  ::google::protobuf::internal::call_once(once, AddDescriptorsImpl);
 }
 // Force AddDescriptors() to be called at dynamic initialization time.
 struct StaticDescriptorInitializer {
@@ -157,16 +147,14 @@ const int HelloRequest::kNameFieldNumber;
 
 HelloRequest::HelloRequest()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {
-  if (GOOGLE_PREDICT_TRUE(this != internal_default_instance())) {
-    ::protobuf_hellworld_2eproto::InitDefaultsHelloRequest();
-  }
+  ::google::protobuf::internal::InitSCC(
+      &protobuf_hellworld_2eproto::scc_info_HelloRequest.base);
   SharedCtor();
   // @@protoc_insertion_point(constructor:helloworld.HelloRequest)
 }
 HelloRequest::HelloRequest(const HelloRequest& from)
   : ::google::protobuf::Message(),
-      _internal_metadata_(NULL),
-      _cached_size_(0) {
+      _internal_metadata_(NULL) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   if (from.name().size() > 0) {
@@ -177,7 +165,6 @@ HelloRequest::HelloRequest(const HelloRequest& from)
 
 void HelloRequest::SharedCtor() {
   name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  _cached_size_ = 0;
 }
 
 HelloRequest::~HelloRequest() {
@@ -190,9 +177,7 @@ void HelloRequest::SharedDtor() {
 }
 
 void HelloRequest::SetCachedSize(int size) const {
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  _cached_size_.Set(size);
 }
 const ::google::protobuf::Descriptor* HelloRequest::descriptor() {
   ::protobuf_hellworld_2eproto::protobuf_AssignDescriptorsOnce();
@@ -200,17 +185,10 @@ const ::google::protobuf::Descriptor* HelloRequest::descriptor() {
 }
 
 const HelloRequest& HelloRequest::default_instance() {
-  ::protobuf_hellworld_2eproto::InitDefaultsHelloRequest();
+  ::google::protobuf::internal::InitSCC(&protobuf_hellworld_2eproto::scc_info_HelloRequest.base);
   return *internal_default_instance();
 }
 
-HelloRequest* HelloRequest::New(::google::protobuf::Arena* arena) const {
-  HelloRequest* n = new HelloRequest;
-  if (arena != NULL) {
-    arena->Own(n);
-  }
-  return n;
-}
 
 void HelloRequest::Clear() {
 // @@protoc_insertion_point(message_clear_start:helloworld.HelloRequest)
@@ -228,7 +206,7 @@ bool HelloRequest::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   // @@protoc_insertion_point(parse_start:helloworld.HelloRequest)
   for (;;) {
-    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
+    ::std::pair<::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
     tag = p.first;
     if (!p.second) goto handle_unusual;
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
@@ -334,9 +312,7 @@ size_t HelloRequest::ByteSizeLong() const {
   }
 
   int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = cached_size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  SetCachedSize(cached_size);
   return total_size;
 }
 
@@ -392,9 +368,9 @@ void HelloRequest::Swap(HelloRequest* other) {
 }
 void HelloRequest::InternalSwap(HelloRequest* other) {
   using std::swap;
-  name_.Swap(&other->name_);
+  name_.Swap(&other->name_, &::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+    GetArenaNoVirtual());
   _internal_metadata_.Swap(&other->_internal_metadata_);
-  swap(_cached_size_, other->_cached_size_);
 }
 
 ::google::protobuf::Metadata HelloRequest::GetMetadata() const {
@@ -413,16 +389,14 @@ const int HelloReply::kMessageFieldNumber;
 
 HelloReply::HelloReply()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {
-  if (GOOGLE_PREDICT_TRUE(this != internal_default_instance())) {
-    ::protobuf_hellworld_2eproto::InitDefaultsHelloReply();
-  }
+  ::google::protobuf::internal::InitSCC(
+      &protobuf_hellworld_2eproto::scc_info_HelloReply.base);
   SharedCtor();
   // @@protoc_insertion_point(constructor:helloworld.HelloReply)
 }
 HelloReply::HelloReply(const HelloReply& from)
   : ::google::protobuf::Message(),
-      _internal_metadata_(NULL),
-      _cached_size_(0) {
+      _internal_metadata_(NULL) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   message_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   if (from.message().size() > 0) {
@@ -433,7 +407,6 @@ HelloReply::HelloReply(const HelloReply& from)
 
 void HelloReply::SharedCtor() {
   message_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  _cached_size_ = 0;
 }
 
 HelloReply::~HelloReply() {
@@ -446,9 +419,7 @@ void HelloReply::SharedDtor() {
 }
 
 void HelloReply::SetCachedSize(int size) const {
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  _cached_size_.Set(size);
 }
 const ::google::protobuf::Descriptor* HelloReply::descriptor() {
   ::protobuf_hellworld_2eproto::protobuf_AssignDescriptorsOnce();
@@ -456,17 +427,10 @@ const ::google::protobuf::Descriptor* HelloReply::descriptor() {
 }
 
 const HelloReply& HelloReply::default_instance() {
-  ::protobuf_hellworld_2eproto::InitDefaultsHelloReply();
+  ::google::protobuf::internal::InitSCC(&protobuf_hellworld_2eproto::scc_info_HelloReply.base);
   return *internal_default_instance();
 }
 
-HelloReply* HelloReply::New(::google::protobuf::Arena* arena) const {
-  HelloReply* n = new HelloReply;
-  if (arena != NULL) {
-    arena->Own(n);
-  }
-  return n;
-}
 
 void HelloReply::Clear() {
 // @@protoc_insertion_point(message_clear_start:helloworld.HelloReply)
@@ -484,7 +448,7 @@ bool HelloReply::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   // @@protoc_insertion_point(parse_start:helloworld.HelloReply)
   for (;;) {
-    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
+    ::std::pair<::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
     tag = p.first;
     if (!p.second) goto handle_unusual;
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
@@ -590,9 +554,7 @@ size_t HelloReply::ByteSizeLong() const {
   }
 
   int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = cached_size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  SetCachedSize(cached_size);
   return total_size;
 }
 
@@ -648,9 +610,9 @@ void HelloReply::Swap(HelloReply* other) {
 }
 void HelloReply::InternalSwap(HelloReply* other) {
   using std::swap;
-  message_.Swap(&other->message_);
+  message_.Swap(&other->message_, &::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+    GetArenaNoVirtual());
   _internal_metadata_.Swap(&other->_internal_metadata_);
-  swap(_cached_size_, other->_cached_size_);
 }
 
 ::google::protobuf::Metadata HelloReply::GetMetadata() const {
@@ -661,5 +623,15 @@ void HelloReply::InternalSwap(HelloReply* other) {
 
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace helloworld
+namespace google {
+namespace protobuf {
+template<> GOOGLE_PROTOBUF_ATTRIBUTE_NOINLINE ::helloworld::HelloRequest* Arena::CreateMaybeMessage< ::helloworld::HelloRequest >(Arena* arena) {
+  return Arena::CreateInternal< ::helloworld::HelloRequest >(arena);
+}
+template<> GOOGLE_PROTOBUF_ATTRIBUTE_NOINLINE ::helloworld::HelloReply* Arena::CreateMaybeMessage< ::helloworld::HelloReply >(Arena* arena) {
+  return Arena::CreateInternal< ::helloworld::HelloReply >(arena);
+}
+}  // namespace protobuf
+}  // namespace google
 
 // @@protoc_insertion_point(global_scope)

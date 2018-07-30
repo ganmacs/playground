@@ -26,7 +26,7 @@ struct RawSlice {
     size_t len_ = 0;
 };
 
-typedef std::function<void(uint32_t events)> SocketEventCb;
+using SocketEventCb = std::function<void(uint32_t events)>;
 
 // RawSlice is the same structure as evbuffer_iovec. This was put into place to avoid leaking
 // libevent into most code since we will likely replace evbuffer with our own implementation at
@@ -40,32 +40,40 @@ static_assert(offsetof(RawSlice, len_) == offsetof(evbuffer_iovec, iov_len),
 namespace GRPC {
     class Path {
     public:
+        Path() {};
         Path(std::string name);
         const std::string& MethodName();
         const std::string& ServiceName();
+
+        Path& operator=(Path &&rhs) noexcept {
+            this->method_name_ = std::move(rhs.method_name_);
+            this->service_name_ = std::move(rhs.service_name_);
+            return *this;
+        }
+
+        std::string method_name_;
+        std::string service_name_;
     };
 
-    std::string method_name_;
-    std::string service_name_;
 }
 
 class HeadersState {
 public:
-    HeadersState() {}
-    void setPath(std::string name);
+    HeadersState() {};
 
     // return errro?
-    bool reservedHeader(std::string& name);
-    bool whiteListeHeader(std::string& name);
-    void processHeaderField(std::string&& name, std::string&& value);
-    void addMetadata(std::string&& name, std::string&& value);
+    bool reservedHeader(const std::string& name);
+    bool whiteListeHeader(const std::string& name);
+    void processHeaderField(std::string name, std::string value);
+    void addMetadata(std::string name, std::string value);
     std::unordered_map<std::string, std::string> metadata_;
-    GRPC::Path *path_;
+
+    GRPC::Path path_;
     std::string encoding_;
     std::string schema_;
 };
 
-typedef std::unique_ptr<HeadersState> HeadersStatePtr;
+using HeadersStatePtr = std::unique_ptr<HeadersState>;
 
 class Buffer {
 public:
@@ -112,7 +120,7 @@ private:
     event raw_event_;
 };
 
-typedef std::unique_ptr<SocketEvent> SocketEventPtr;
+using SocketEventPtr = std::unique_ptr<SocketEvent>;
 
 enum class StreamStatus {
     StreamActive,
@@ -123,17 +131,18 @@ enum class StreamStatus {
 
 class Stream {
 public:
-    Stream();
-    int saveHeader(std::string&& name, std::string&& value);
+    Stream(int32_t stream_id);
+    int saveHeader(std::string name, std::string value);
 
-    int32_t stream_id_ {-1};
+    int32_t stream_id_;
     std::unordered_map<std::string, std::string> headers_;
-    bool end_stream_;
     HeadersStatePtr headers_state_;
+
+    bool end_stream_{false};
     StreamStatus stream_status_ {StreamStatus::StreamActive};
 };
 
-typedef std::unique_ptr<Stream> StreamPtr;
+using StreamPtr = std::unique_ptr<Stream>;
 
 class ServerConnection {
 public:
@@ -149,7 +158,7 @@ public:
     // for nghttp2 callbacks
     ssize_t onSendCallback(const uint8_t* data, const size_t length);
     int onBeginHeaderCallback(nghttp2_session *session, const nghttp2_frame *frame);
-    int onHeaderCallback(const nghttp2_frame *frame, std::string&& name, std::string&& value);
+    int onHeaderCallback(const nghttp2_frame *frame, std::string name, std::string value);
     int onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len);
     int onFrameRecvCallback(const nghttp2_frame* frame);
 private:
@@ -159,7 +168,7 @@ private:
     void onSocketWrite();
     Stream* getStream(int32_t stream_id);
 
-    int saveHeader(const nghttp2_frame *frame, std::string&& name, std::string&& value);
+    int saveHeader(const nghttp2_frame *frame, std::string name, std::string value);
 
     int fd_;
     Buffer read_buffer_;
@@ -171,7 +180,7 @@ private:
     std::list<StreamPtr> streams_;
 };
 
-typedef std::unique_ptr<ServerConnection> ServerConnectionPtr;
+using ServerConnectionPtr = std::unique_ptr<ServerConnection>;
 
 class Http2Callbacks {
 public:

@@ -254,6 +254,53 @@ void test10() {
     C c { A{} };
 }
 
+class D {
+public:
+    D() {
+        std::cout << "Constructor " << this << std::endl;
+    }
+
+    ~D() {
+        std::cout << "Destructor " << this << std::endl;
+    }
+
+    D(D &&a) noexcept { std::cout << "Move Constructor " << this << std::endl; }
+    D& operator = (D &&a) noexcept {
+        std::cout << "Move = " << this << std::endl;
+        return *this;
+    }
+    D(D &a) noexcept { std::cout << "Copy Constructor " << this << std::endl; }
+    D& operator = (D &a) noexcept {
+        std::cout << "Copy = " << this << std::endl;
+        return *this;
+    }
+};
+
+class E {
+
+public:
+    void setD(D d) {
+        // copy
+        // auto dd = D{};
+        // d_ = dd;
+
+        d_ = std::move(d);
+    }
+
+    D d_;
+};
+
+void test11()  {
+    E e;
+
+    puts("\n===================================== start print");
+    D d;
+    e.setD(std::move(d));
+    // e.setD(d);
+    puts("===================================== finish print\n");
+}
+
+
 int main(int argc, char *argv[]) {
     std::cout << "-- main start --" << std::endl;
     // test1();
@@ -264,8 +311,9 @@ int main(int argc, char *argv[]) {
     // test6();
     // test7();
     // test8();
-    test9();
+    // test9();
     // test10();
+    test11();
 
     std::cout << "-- main finish --" << std::endl;
     return 0;
