@@ -418,8 +418,92 @@ bool HeadersState::reservedHeader(const std::string& name) {
             name == "te");
 }
 
+BufferReader::BufferReader(const char* data, const size_t len): len_{len} , data_{data} {}
+
+
+char *BufferReader::buffer() {
+    return (char *)data_ + pos_;
+}
+
+const size_t BufferReader::restLength() {
+    assert(len_ > pos_);
+    return len_ - pos_;
+}
+
+const char *BufferReader::read(size_t size) {
+    if (len_ > pos_ + size) {
+        const char *v = (data_ + pos_);
+        pos_ += size;
+        return v;
+    } else {
+        assert(len_ > pos_ + size);
+    }
+}
+
+// ?
+inline uint32_t decodeUINT32BE(char *data) {
+    return ((static_cast<uint32_t>(static_cast<unsigned char>(data[3])))
+            | (static_cast<uint32_t>(static_cast<unsigned char>(data[2])) << 8)
+            | (static_cast<uint32_t>(static_cast<unsigned char>(data[1])) << 16)
+            | (static_cast<uint32_t>(static_cast<unsigned char>(data[0])) << 24));
+}
+
+const uint32_t BufferReader::readUINT32() {
+    // read(sizeof(uint32_t));
+    auto size = sizeof(uint32_t);
+
+    if (len_ > pos_ + size) {
+        // auto v = *(uint32_t*)(data_ + pos_);
+        auto v = ::decodeUINT32BE((char *)data_ + pos_);
+        pos_ += size;
+        return v;
+    } else {
+        assert(len_ > pos_ + size);
+        return 1;               // unreachable
+    }
+}
+
+const uint8_t BufferReader::readUINT8() {
+    auto size = sizeof(uint8_t);
+
+    if (len_ > pos_ + size) {
+        const uint8_t v = static_cast<uint8_t>(data_[pos_]);
+        pos_ += size;
+        return v;
+    } else {
+        assert(len_ > pos_ + size);
+        return 1;               // unreachable
+    }
+}
+
 int ServerConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len) {
     std::cout << "[onDataChunkRecvCallback]\n";
+    Stream* stream = getStream(stream_id);
+    BufferReader buf {(const char *)data, len};
+    auto encode_flag =  buf.readUINT8();
+    auto plength =  buf.readUINT32();
+
+    puts("\n===================================== start print");
+    printf("%d\n", plength);
+    printf("%s\n", buf.buffer());
+    puts("===================================== finish print\n");
+
+    std::string s { buf.buffer(), plength };
+    helloworld::HelloRequest r {};
+
+    // puts("\n===================================== start print");
+    // printf("%ss\n", (char *)data);
+    // printf("%d\n", len);
+    // puts("===================================== finish print\n");
+    if (r.ParseFromString(s)) {
+        std::cout << "fuck"<<  std::endl;
+    //     // cerr << "Failed to parse address book." << endl;
+        return -1;
+    }
+
+    std::cout << r.name() << std::endl;
+
+    stream->buffer_.add(data, len);
     // TODO
     return 0;
 }

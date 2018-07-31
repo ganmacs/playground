@@ -100,6 +100,21 @@ private:
     evbuffer* buffer_;
 };
 
+class BufferReader {
+public:
+    BufferReader(const char *data, const size_t len);
+    const uint8_t readUINT8();
+    const uint32_t readUINT32();
+    const size_t restLength();
+    char *buffer();
+
+    const size_t len_;
+    const char *data_;
+    size_t pos_ {0};
+private:
+    const char *read(size_t size);
+};
+
 struct SocketEventType {
     static const uint32_t Read = 0x1;
     static const uint32_t Write = 0x2;
@@ -137,6 +152,7 @@ public:
     int32_t stream_id_;
     std::unordered_map<std::string, std::string> headers_;
     HeadersStatePtr headers_state_;
+    Buffer buffer_;
 
     bool end_stream_{false};
     StreamStatus stream_status_ {StreamStatus::StreamActive};
