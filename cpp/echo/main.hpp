@@ -20,6 +20,7 @@
 #include "nghttp2/nghttp2.h"
 
 #include "hellworld.pb.h"
+#include "buffer.hpp"
 
 struct RawSlice {
     void* mem_ = nullptr;
@@ -98,21 +99,6 @@ public:
 private:
     uint64_t reserve(uint64_t const length, RawSlice* iovecs, uint64_t const iovecs_num);
     evbuffer* buffer_;
-};
-
-class BufferReader {
-public:
-    BufferReader(const char *data, const size_t len);
-    const uint8_t readUINT8();
-    const uint32_t readUINT32();
-    const size_t restLength();
-    char *buffer();
-
-    const size_t len_;
-    const char *data_;
-    size_t pos_ {0};
-private:
-    const char *read(size_t size);
 };
 
 struct SocketEventType {

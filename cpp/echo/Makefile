@@ -5,7 +5,7 @@ LIBS = -L/opt/brew/Cellar/libevent/2.1.8/lib -levent -L/opt/brew/Cellar/nghttp2/
 INCLUDE = -I/opt/brew/include -I/opt/brew/Cellar/protobuf/3.6.0/include
 
 TARGET = server
-SRCS := main.cc hellworld.pb.cc
+SRCS := main.cc hellworld.pb.cc buffer.cc
 OBJS = $(addsuffix .o, $(basename $(SRCS)))
 DEPS := $(SRCS:%.cc=%.d)
 

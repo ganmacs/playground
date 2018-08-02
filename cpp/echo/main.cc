@@ -1,4 +1,5 @@
 #include "main.hpp"
+#include <err.h>
 
 static Http2Callbacks callbacks {};
 
@@ -418,92 +419,23 @@ bool HeadersState::reservedHeader(const std::string& name) {
             name == "te");
 }
 
-BufferReader::BufferReader(const char* data, const size_t len): len_{len} , data_{data} {}
-
-
-char *BufferReader::buffer() {
-    return (char *)data_ + pos_;
-}
-
-const size_t BufferReader::restLength() {
-    assert(len_ > pos_);
-    return len_ - pos_;
-}
-
-const char *BufferReader::read(size_t size) {
-    if (len_ > pos_ + size) {
-        const char *v = (data_ + pos_);
-        pos_ += size;
-        return v;
-    } else {
-        assert(len_ > pos_ + size);
-    }
-}
-
-// ?
-inline uint32_t decodeUINT32BE(char *data) {
-    return ((static_cast<uint32_t>(static_cast<unsigned char>(data[3])))
-            | (static_cast<uint32_t>(static_cast<unsigned char>(data[2])) << 8)
-            | (static_cast<uint32_t>(static_cast<unsigned char>(data[1])) << 16)
-            | (static_cast<uint32_t>(static_cast<unsigned char>(data[0])) << 24));
-}
-
-const uint32_t BufferReader::readUINT32() {
-    // read(sizeof(uint32_t));
-    auto size = sizeof(uint32_t);
-
-    if (len_ > pos_ + size) {
-        // auto v = *(uint32_t*)(data_ + pos_);
-        auto v = ::decodeUINT32BE((char *)data_ + pos_);
-        pos_ += size;
-        return v;
-    } else {
-        assert(len_ > pos_ + size);
-        return 1;               // unreachable
-    }
-}
-
-const uint8_t BufferReader::readUINT8() {
-    auto size = sizeof(uint8_t);
-
-    if (len_ > pos_ + size) {
-        const uint8_t v = static_cast<uint8_t>(data_[pos_]);
-        pos_ += size;
-        return v;
-    } else {
-        assert(len_ > pos_ + size);
-        return 1;               // unreachable
-    }
-}
-
 int ServerConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len) {
     std::cout << "[onDataChunkRecvCallback]\n";
-    Stream* stream = getStream(stream_id);
-    BufferReader buf {(const char *)data, len};
-    auto encode_flag =  buf.readUINT8();
-    auto plength =  buf.readUINT32();
+    // Stream* stream = getStream(stream_id);
+    // buffer::BufferReader buf {(const char *)data, len};
+    // auto encode_flag =  buf.readUINT8();
+    // auto plength =  buf.readUINT32();
 
-    puts("\n===================================== start print");
-    printf("%d\n", plength);
-    printf("%s\n", buf.buffer());
-    puts("===================================== finish print\n");
+    // helloworld::HelloRequest request {};
+    // std::string s { buf.buffer(), plength };
+    // if (!request.ParseFromString(s)) {
+    //     std::cout << "error when parsing request protobuf" << std::endl;
+    //     return 1;
+    // }
 
-    std::string s { buf.buffer(), plength };
-    helloworld::HelloRequest r {};
+    // TODO use response
 
-    // puts("\n===================================== start print");
-    // printf("%ss\n", (char *)data);
-    // printf("%d\n", len);
-    // puts("===================================== finish print\n");
-    if (r.ParseFromString(s)) {
-        std::cout << "fuck"<<  std::endl;
-    //     // cerr << "Failed to parse address book." << endl;
-        return -1;
-    }
-
-    std::cout << r.name() << std::endl;
-
-    stream->buffer_.add(data, len);
+    // stream->buffer_.add(data, len);
     // TODO
     return 0;
 }
@@ -512,9 +444,66 @@ static uint8_t STATUS[8] = ":status";
 static uint8_t STATUS_CODE[4] = "200";
 
 void alwaysSuccess(nghttp2_session *session, Stream* stream) {
+    // const nghttp2_nv hdrs {STATUS, STATUS_CODE, sizeof(STATUS)-1, sizeof(STATUS_CODE)-1, 0};
+    // puts("Always success");
+    // nghttp2_submit_response(session, stream->stream_id_, &hdrs, 1, nullptr);
+}
+#include <cstring>
+
+static ssize_t file_read_callback(nghttp2_session *session, int32_t stream_id,
+                                  uint8_t *buf, size_t length,
+                                  uint32_t *data_flags,
+                                  nghttp2_data_source *source,
+                                  void *user_data) {
+    buffer::BufferWriter* data = (buffer::BufferWriter*)source->ptr;
+
+    size_t a = data->write_to(buf);
+    if (a == 0) {
+        *data_flags |= NGHTTP2_DATA_FLAG_EOF;
+        return 0;
+    } else {
+        return a;
+    }
+
+    // ssize_t r;
+    // (void)session;
+    // (void)stream_id;
+    // (void)user_data;
+
+    // while ((r = read(fd, buf, length)) == -1 && errno == EINTR)
+    //   ;
+    // if (r == -1) {
+    //   return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
+    // }
+    // if (r == 0) {
+    //   *data_flags |= NGHTTP2_DATA_FLAG_EOF;
+    // }
+    // return r;
+}
+
+void sendReply(nghttp2_session *session, Stream* stream) {
+    helloworld::HelloReply reply {};
+    reply.set_message("heyheyhey!!!");
+
+    std::string tmp {};
+    reply.SerializeToString(&tmp);
+
+    auto bufw = new buffer::BufferWriter();
+    bufw->putUINT8(0);             // non encoding
+    bufw->putUINT32(tmp.length()); // pre length
+    bufw->append(std::move(tmp));
+
+    auto data_prd = (nghttp2_data_provider *)malloc(sizeof(nghttp2_data_provider));
+    data_prd->source.ptr = bufw;
+    data_prd->read_callback = file_read_callback;
+
+    int rv;
     const nghttp2_nv hdrs {STATUS, STATUS_CODE, sizeof(STATUS)-1, sizeof(STATUS_CODE)-1, 0};
-    puts("Always success");
-    nghttp2_submit_response(session, stream->stream_id_, &hdrs, 1, nullptr);
+    rv = nghttp2_submit_response(session, stream->stream_id_, &hdrs, 1, data_prd);
+    if (rv != 0) {
+        warnx("Fatal error: %s", nghttp2_strerror(rv));
+        return;
+    }
 }
 
 /*
@@ -543,6 +532,7 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
     case NGHTTP2_DATA: {
         std::cout << "[Frame Recv] DATA\n";
         stream->end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
+        sendReply(session_, stream);
         break;
     }
     case NGHTTP2_HEADERS: {
