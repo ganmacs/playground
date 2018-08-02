@@ -23,15 +23,13 @@ namespace buffer {
     public:
         BufferWriter();
         std::string& inner() { return buf_; }
-        size_t length() { return buf_.length(); }
+        size_t length() { return pos_; }
         void putUINT32(uint32_t v);
         void putUINT8(uint8_t v);
         void append(std::string v);
         size_t write_to(void *dest);
-
-
     private:
-        std::string buf_;
+        std::string buf_ {};
         size_t pos_ {0};
     };
 }

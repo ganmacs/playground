@@ -11,26 +11,28 @@ namespace buffer {
     }
 
     inline void encodeUINT32BE(char *buf, uint32_t v) {
-        buf[0] = v & 0xff;
-        buf[1] = (v >> 8) & 0xff;
-        buf[2] = (v >> 16) & 0xff;
-        buf[3] = (v >> 24) & 0xff;
+        buf[0] = (v >> 24) & 0xff;
+        buf[1] = (v >> 16) & 0xff;
+        buf[2] = (v >> 8) & 0xff;
+        buf[3] = v & 0xff;
     }
 
     BufferWriter::BufferWriter() {}
 
     void BufferWriter::putUINT32(uint32_t v) {
-        char buf[sizeof(uint32_t)];
+        auto s = sizeof(uint32_t);
+        char buf[s];
         encodeUINT32BE(buf, v);
-        pos_ += sizeof(uint32_t);
-        buf_.append(buf);
+        pos_ += s;
+        buf_.append(buf, s);
     }
 
     void BufferWriter::putUINT8(uint8_t v) {
-        char buf[sizeof(uint8_t)];
+        auto s = sizeof(uint8_t);
+        char buf[s];
         buf[0] = v;
-        pos_ += sizeof(uint8_t);
-        buf_.append(buf);
+        pos_ += s;
+        buf_.append(buf, s);
     }
 
     void BufferWriter::append(std::string v) {

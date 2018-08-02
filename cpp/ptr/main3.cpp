@@ -37,9 +37,29 @@ void test2() {
     file << s;
 }
 
+void set(std::string& s, uint8_t v) {
+    char buf[sizeof(uint8_t)];
+    buf[0] = v;
+    s.append(buf);
+}
+
+void test3() {
+    std::string str;
+    std::cout << str.size() << "\n";      //  0 が表示される
+    std::cout << str.length() << "\n";
+
+    std::string a ;
+    set(a, 10);
+
+    std::ofstream file("./person2.txt");
+    puts("\n===================================== start print");
+    file.write(a.c_str(), 1);
+}
+
 int main(int argc, char *argv[])
 {
     // test1();
-    test2();
+    // test2();
+    test3();
     return 0;
 }

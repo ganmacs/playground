@@ -421,7 +421,7 @@ bool HeadersState::reservedHeader(const std::string& name) {
 
 int ServerConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len) {
     std::cout << "[onDataChunkRecvCallback]\n";
-    // Stream* stream = getStream(stream_id);
+    // Stream* stream = getStream(streama_id);
     // buffer::BufferReader buf {(const char *)data, len};
     // auto encode_flag =  buf.readUINT8();
     // auto plength =  buf.readUINT32();
@@ -456,6 +456,7 @@ static ssize_t file_read_callback(nghttp2_session *session, int32_t stream_id,
                                   nghttp2_data_source *source,
                                   void *user_data) {
     buffer::BufferWriter* data = (buffer::BufferWriter*)source->ptr;
+    puts("\n===================================== start print");
 
     size_t a = data->write_to(buf);
     if (a == 0) {
@@ -481,6 +482,8 @@ static ssize_t file_read_callback(nghttp2_session *session, int32_t stream_id,
     // return r;
 }
 
+#include <fstream>
+
 void sendReply(nghttp2_session *session, Stream* stream) {
     helloworld::HelloReply reply {};
     reply.set_message("heyheyhey!!!");
@@ -493,13 +496,16 @@ void sendReply(nghttp2_session *session, Stream* stream) {
     bufw->putUINT32(tmp.length()); // pre length
     bufw->append(std::move(tmp));
 
-    auto data_prd = (nghttp2_data_provider *)malloc(sizeof(nghttp2_data_provider));
-    data_prd->source.ptr = bufw;
-    data_prd->read_callback = file_read_callback;
+    // std::ofstream file3("./out3.txt");
+    // file3.write(bufw->inner().c_str(), bufw->length());
+
+    nghttp2_data_provider data_prd;
+    data_prd.source.ptr = bufw;
+    data_prd.read_callback = file_read_callback;
 
     int rv;
     const nghttp2_nv hdrs {STATUS, STATUS_CODE, sizeof(STATUS)-1, sizeof(STATUS_CODE)-1, 0};
-    rv = nghttp2_submit_response(session, stream->stream_id_, &hdrs, 1, data_prd);
+    rv = nghttp2_submit_response(session, stream->stream_id_, &hdrs, 1, &data_prd);
     if (rv != 0) {
         warnx("Fatal error: %s", nghttp2_strerror(rv));
         return;
