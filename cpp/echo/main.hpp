@@ -21,6 +21,9 @@
 
 #include "hellworld.pb.h"
 #include "buffer.hpp"
+#include "http2/frame.hpp"
+#include "http2/headers.hpp"
+#include "http2/server.hpp"
 
 struct RawSlice {
     void* mem_ = nullptr;

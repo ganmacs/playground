@@ -484,7 +484,7 @@ static ssize_t file_read_callback(nghttp2_session *session, int32_t stream_id,
 
 void sendReply(nghttp2_session *session, Stream* stream) {
     helloworld::HelloReply reply {};
-    reply.set_message(std::move("heyheyhey!!!"));
+    reply.set_message("heyheyhey!!!");
 
     std::string tmp {};
     reply.SerializeToString(&tmp);
