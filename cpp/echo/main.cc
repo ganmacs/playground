@@ -442,6 +442,9 @@ int ServerConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* 
 
 static uint8_t STATUS[8] = ":status";
 static uint8_t STATUS_CODE[4] = "200";
+static std::string GRPC_STATUS = "grpc-status";
+static std::string GRPC_STATUS_VALUE = "0";
+static std::string MESSAGE = "heyheyhey!!!";
 
 void alwaysSuccess(nghttp2_session *session, Stream* stream) {
     // const nghttp2_nv hdrs {STATUS, STATUS_CODE, sizeof(STATUS)-1, sizeof(STATUS_CODE)-1, 0};
@@ -450,43 +453,38 @@ void alwaysSuccess(nghttp2_session *session, Stream* stream) {
 }
 #include <cstring>
 
+static nghttp2_nv hdrs = {(unsigned char *)GRPC_STATUS.c_str(), (unsigned char *)GRPC_STATUS_VALUE.c_str(), GRPC_STATUS.length(), 1, 0};
+
 static ssize_t file_read_callback(nghttp2_session *session, int32_t stream_id,
                                   uint8_t *buf, size_t length,
                                   uint32_t *data_flags,
                                   nghttp2_data_source *source,
                                   void *user_data) {
     buffer::BufferWriter* data = (buffer::BufferWriter*)source->ptr;
-    puts("\n===================================== start print");
-
     size_t a = data->write_to(buf);
     if (a == 0) {
-        *data_flags |= NGHTTP2_DATA_FLAG_EOF;
+        // send trailers
+        *data_flags |= NGHTTP2_DATA_FLAG_NO_END_STREAM;
+
+        // trailers
+        // should be free
+
+        int rv;
+        rv  = nghttp2_submit_trailer(session, stream_id, &hdrs, 1);
+        if (rv != 0) {
+            warnx("Fatal error: %s", nghttp2_strerror(rv));
+        }
         return 0;
     } else {
         return a;
     }
-
-    // ssize_t r;
-    // (void)session;
-    // (void)stream_id;
-    // (void)user_data;
-
-    // while ((r = read(fd, buf, length)) == -1 && errno == EINTR)
-    //   ;
-    // if (r == -1) {
-    //   return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
-    // }
-    // if (r == 0) {
-    //   *data_flags |= NGHTTP2_DATA_FLAG_EOF;
-    // }
-    // return r;
 }
 
 #include <fstream>
 
 void sendReply(nghttp2_session *session, Stream* stream) {
     helloworld::HelloReply reply {};
-    reply.set_message("heyheyhey!!!");
+    reply.set_message(std::move("heyheyhey!!!"));
 
     std::string tmp {};
     reply.SerializeToString(&tmp);
