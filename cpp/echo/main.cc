@@ -1,7 +1,7 @@
 #include "main.hpp"
 #include <err.h>
 
-static Http2Callbacks callbacks {};
+// static Http2Callbacks callbacks {};
 
 int Buffer::add(const void* data, uint64_t size) {
     return evbuffer_add(buffer_, data, size);
@@ -156,17 +156,10 @@ void SocketEvent::assignEvents(uint32_t events) {
                  this);
 }
 
-ServerConnection::ServerConnection(event_base* ebase, evutil_socket_t fd): fd_{fd} {
+ServerConnection::ServerConnection(event_base* ebase, evutil_socket_t fd): fd_{fd}, session_{http2::Session { base() }} {
     std::cout << "[init ServerConnection]\n";
     auto fn = [this](uint32_t events) -> void { onSocketEvent(events); };
     event_ = SocketEventPtr(new SocketEvent(ebase, fd, fn, SocketEventType::Read|SocketEventType::Write));
-
-    nghttp2_session_server_new(&session_, callbacks.callbacks(), base());
-    int rc = nghttp2_submit_settings(session_, NGHTTP2_FLAG_NONE, 0, 0);
-    if (rc != 0) {
-        std::cout << "invalid fd\n";
-        exit(1);
-    }
 }
 
 void ServerConnection::onSocketEvent(uint32_t events) {
@@ -200,25 +193,15 @@ void ServerConnection::onSocketRead(){
 
 
     for (auto s : slices) {
-        // printf("%s\n", static_cast<const uint8_t*>(s.mem_));
-        ssize_t rc = nghttp2_session_mem_recv(session_, static_cast<const uint8_t*>(s.mem_), s.len_);
-        if (rc != s.len_) {
-            std::cout  << "nghttp2_session_mem_recv failed? " << nghttp2_strerror(rc) << "\n";
+        auto rv = session_.processData(static_cast<const uint8_t*>(s.mem_), s.len_);
+        if (rv == -1) {
+            // XXX
+            std::cout << "ERRROR" << std::endl;
         }
     }
 
     read_buffer_.drain(read_buffer_.length());
-
-    sendData();
-}
-
-int ServerConnection::sendData() {
-    int rv = nghttp2_session_send(session_);
-    if (rv != 0) {
-        printf("Fatal error: %s", nghttp2_strerror(rv));
-        return -1;
-    }
-    return 0;
+    session_.sendData();
 }
 
 uint64_t ServerConnection::readData(){
@@ -243,11 +226,11 @@ uint64_t ServerConnection::readData(){
 }
 
 // XXX
-Stream::Stream(int32_t stream_id):
-    stream_id_{stream_id},
-    headers_{},
-    headers_state_{HeadersStatePtr { new HeadersState() }}
-{}
+// Stream::Stream(int32_t stream_id):
+//     stream_id_{stream_id},
+//     headers_{},
+//     headers_state_{HeadersStatePtr { new HeadersState() }}
+// {}
 
 int ServerConnection::onBeginHeaderCallback(nghttp2_session *session, const nghttp2_frame *frame) {
     std::cout << "[onBeginHeaderCall]\n";
@@ -264,11 +247,11 @@ int ServerConnection::onBeginHeaderCallback(nghttp2_session *session, const nght
         return 0;
     }
 
-    StreamPtr stream { new Stream(frame->hd.stream_id) };
-
+    http2::StreamPtr stream { new http2::Stream(frame->hd.stream_id) };
     streams_.emplace_front(std::move(stream));
 
-    nghttp2_session_set_stream_user_data(session_, frame->hd.stream_id, streams_.front().get());
+    session_.registerStream(frame->hd.stream_id, streams_.front().get());
+
     std::cout << "[user data set]\n";
     return 0;
 }
@@ -314,32 +297,14 @@ ssize_t ServerConnection::onSendCallback(const uint8_t* data, const size_t lengt
     return length;
 };
 
-int ServerConnection::saveHeader(const nghttp2_frame *frame, std::string name, std::string value) {
-    Stream* stream = getStream(frame->hd.stream_id);
-    if (!stream) {
-        std::cout << "[saveHeader] stream does not exist\n";
-        return 0;
-    }
-
-    stream->saveHeader(std::move(name), std::move(value));
-
-    // TODO: EHADER size is acceptable
-    return 0;
-}
-
-Stream* ServerConnection::getStream(int32_t stream_id) {
-    auto user_data = nghttp2_session_get_stream_user_data(session_, stream_id);
-    return static_cast<Stream*>(user_data);
-}
-
 int ServerConnection::onHeaderCallback(const nghttp2_frame *frame, std::string name, std::string value) {
     std::cout << "[onHeaderCallback] " << name << " : " <<  value << " \n";
-    Stream* s = getStream(frame->hd.stream_id);
+    http2::Stream* s = session_.getStream(frame->hd.stream_id);
 
     if (frame->hd.type == NGHTTP2_HEADERS) {
         // if (frame->headers.cat == NGHTTP2_HCAT_RESPONSE || frame->headers.cat == NGHTTP2_HCAT_HEADERS) {
         // std::cout << "[HEADER]:  " << name << " : " <<  value << " \n";
-        s->headers_state_->processHeaderField(std::move(name), std::move(value));
+        s->headers_state_.processHeaderField(std::move(name), std::move(value));
         return 0;
         // }
     }
@@ -347,77 +312,77 @@ int ServerConnection::onHeaderCallback(const nghttp2_frame *frame, std::string n
     return 0;
 };
 
-namespace GRPC {
-    Path::Path(std::string p) {
-        std::cout << p << "\n";
-        if (p != "" && p[0] == '/') {
-            p.erase(p.begin());
-        }
+// namespace GRPC {
+//     Path::Path(std::string p) {
+//         std::cout << p << "\n";
+//         if (p != "" && p[0] == '/') {
+//             p.erase(p.begin());
+//         }
 
-        int pos = p.find("/");
-        if (pos < -1) {
-            // error
-        } else {
-            service_name_ = p.substr(0, pos-1);
-            method_name_ = p.substr(pos + 1, p.length()-1);
-        }
-    }
+//         int pos = p.find("/");
+//         if (pos < -1) {
+//             // error
+//         } else {
+//             service_name_ = p.substr(0, pos-1);
+//             method_name_ = p.substr(pos + 1, p.length()-1);
+//         }
+//     }
 
-    const std::string& Path::MethodName() {
-        return method_name_;
-    }
+//     const std::string& Path::MethodName() {
+//         return method_name_;
+//     }
 
-    const std::string& Path::ServiceName() {
-        return service_name_;
-    }
-}
+//     const std::string& Path::ServiceName() {
+//         return service_name_;
+//     }
+// }
 
-// Support request header only now.
-void HeadersState::processHeaderField(std::string name, std::string value) {
-    if (name == "content-type") {
-    } else if (name == ":path")  {
-        path_ = GRPC::Path { std::move(value) };
-    } else if (name == "schema")  {
-        if ((value == "http") || (value == "http2")) {
-            schema_ = std::move(value);
-        } else {
-            // error
-        }
-    } else if (name == "grpc-encoding") {
-        encoding_ = std::move(value);
-    } else if (reservedHeader(name) && !whiteListeHeader(name)) {
-        return;
+// // Support request header only now.
+// void HeadersState::processHeaderField(std::string name, std::string value) {
+//     if (name == "content-type") {
+//     } else if (name == ":path")  {
+//         path_ = GRPC::Path { std::move(value) };
+//     } else if (name == "schema")  {
+//         if ((value == "http") || (value == "http2")) {
+//             schema_ = std::move(value);
+//         } else {
+//             // error
+//         }
+//     } else if (name == "grpc-encoding") {
+//         encoding_ = std::move(value);
+//     } else if (reservedHeader(name) && !whiteListeHeader(name)) {
+//         return;
 
-    } else {
-        // TODO: other header sholud be filtered
-        addMetadata(std::move(name), std::move(value));
-    }
-}
+//     } else {
+//         // TODO: other header sholud be filtered
+//         addMetadata(std::move(name), std::move(value));
+//     }
+// }
 
-void HeadersState::addMetadata(std::string name, std::string value) {
-    // XXX: duplicate name exists...
-    metadata_[std::move(name)] = std::move(value);
-}
+// void HeadersState::addMetadata(std::string name, std::string value) {
+//     // XXX: duplicate name exists...
+//     metadata_[std::move(name)] = std::move(value);
+// }
 
-bool HeadersState::whiteListeHeader(const std::string& name) {
-    return (name == ":authority" || name == "user-agent");
-}
+// bool HeadersState::whiteListeHeader(const std::string& name) {
+//     return (name == ":authority" || name == "user-agent");
+// }
 
-bool HeadersState::reservedHeader(const std::string& name) {
-    if (name != "" && name[0] == ':') {
-        return true;
-    }
+// bool HeadersState::reservedHeader(const std::string& name) {
+//     if (name != "" && name[0] == ':') {
+//         return true;
+//     }
 
-    return (name == "content-type" ||
-            name == "user-agent"||
-            name == "grpc-message-type"||
-            name == "grpc-encoding"||
-            name == "grpc-message"||
-            name == "grpc-status"||
-            name == "grpc-timeout"||
-            name == "grpc-status-details-bin"||
-            name == "te");
-}
+//     return (name == "content-type" ||
+//             name == "user-agent"||
+//             name == "grpc-message-type"||
+//             name == "grpc-encoding"||
+//             name == "grpc-message"||
+//             name == "grpc-status"||
+//             name == "grpc-timeout"||
+//             name == "grpc-status-details-bin"||
+//             name == "te");
+// }
 
 int ServerConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len) {
     std::cout << "[onDataChunkRecvCallback]\n";
@@ -440,55 +405,30 @@ int ServerConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* 
     return 0;
 }
 
-static uint8_t STATUS[8] = ":status";
-static uint8_t STATUS_CODE[4] = "200";
-static std::string GRPC_STATUS = "grpc-status";
-static std::string GRPC_STATUS_VALUE = "0";
-static std::string MESSAGE = "heyheyhey!!!";
+// static uint8_t STATUS[8] = ":status";
+// static uint8_t STATUS_CODE[4] = "200";
+// static std::string GRPC_STATUS = "grpc-status";
+// static std::string GRPC_STATUS_VALUE = "0";
+// static std::string MESSAGE = "heyheyhey!!!";
 
-void alwaysSuccess(nghttp2_session *session, Stream* stream) {
+// void alwaysSuccess(nghttp2_session *session, Stream* stream) {
     // const nghttp2_nv hdrs {STATUS, STATUS_CODE, sizeof(STATUS)-1, sizeof(STATUS_CODE)-1, 0};
     // puts("Always success");
     // nghttp2_submit_response(session, stream->stream_id_, &hdrs, 1, nullptr);
-}
+// }
 #include <cstring>
-
-static nghttp2_nv hdrs = {(unsigned char *)GRPC_STATUS.c_str(), (unsigned char *)GRPC_STATUS_VALUE.c_str(), GRPC_STATUS.length(), 1, 0};
-
-static ssize_t file_read_callback(nghttp2_session *session, int32_t stream_id,
-                                  uint8_t *buf, size_t length,
-                                  uint32_t *data_flags,
-                                  nghttp2_data_source *source,
-                                  void *user_data) {
-    buffer::BufferWriter* data = (buffer::BufferWriter*)source->ptr;
-    size_t a = data->write_to(buf);
-    if (a == 0) {
-        // send trailers
-        *data_flags |= NGHTTP2_DATA_FLAG_NO_END_STREAM;
-
-        // trailers
-        // should be free
-
-        int rv;
-        rv  = nghttp2_submit_trailer(session, stream_id, &hdrs, 1);
-        if (rv != 0) {
-            warnx("Fatal error: %s", nghttp2_strerror(rv));
-        }
-        return 0;
-    } else {
-        return a;
-    }
-}
-
 #include <fstream>
 
-void sendReply(nghttp2_session *session, Stream* stream) {
+// static nghttp2_nv hdrs = {(unsigned char *)GRPC_STATUS.c_str(), (unsigned char *)GRPC_STATUS_VALUE.c_str(), GRPC_STATUS.length(), 1, 0};
+
+void sendReply(http2::Session &session, http2::Stream *stream) {
     helloworld::HelloReply reply {};
     reply.set_message("heyheyhey!!!");
 
     std::string tmp {};
     reply.SerializeToString(&tmp);
 
+    // XXX
     auto bufw = new buffer::BufferWriter();
     bufw->putUINT8(0);             // non encoding
     bufw->putUINT32(tmp.length()); // pre length
@@ -496,17 +436,21 @@ void sendReply(nghttp2_session *session, Stream* stream) {
 
     // std::ofstream file3("./out3.txt");
     // file3.write(bufw->inner().c_str(), bufw->length());
+    // int rv;
+    // const nghttp2_nv hdrs {STATUS, STATUS_CODE, sizeof(STATUS)-1, sizeof(STATUS_CODE)-1, 0};
+    // free?
+    auto v = new std::map<std::string, std::string> {
+        {http2::headers::HTTP_STATUS, "200"},
+        {http2::headers::CONTENT_TYPE, http2::headers::CONTENT_TYPE_VALUE},
+    };
 
-    nghttp2_data_provider data_prd;
-    data_prd.source.ptr = bufw;
-    data_prd.read_callback = file_read_callback;
+    auto d = new http2::DataFrame { stream->stream_id_, true, *v };
+    d->data_ = bufw;
 
-    int rv;
-    const nghttp2_nv hdrs {STATUS, STATUS_CODE, sizeof(STATUS)-1, sizeof(STATUS_CODE)-1, 0};
-    rv = nghttp2_submit_response(session, stream->stream_id_, &hdrs, 1, &data_prd);
-    if (rv != 0) {
-        warnx("Fatal error: %s", nghttp2_strerror(rv));
-        return;
+    // XXX: true
+    // copy...
+    if (session.submitResponse(d) != 0) {
+        exit(1);
     }
 }
 
@@ -526,7 +470,7 @@ void sendReply(nghttp2_session *session, Stream* stream) {
 */
 int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
     std::cout << "[onFrameRecvCallback]" << frame->hd.type << "\n";
-    Stream* stream = getStream(frame->hd.stream_id);
+    http2::Stream* stream = session_.getStream(frame->hd.stream_id);
 
     switch(frame->hd.type) {
     case NGHTTP2_GOAWAY: {
@@ -536,6 +480,7 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
     case NGHTTP2_DATA: {
         std::cout << "[Frame Recv] DATA\n";
         stream->end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
+
         sendReply(session_, stream);
         break;
     }
@@ -549,7 +494,7 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
         }
         case NGHTTP2_HCAT_REQUEST: {
             std::cout << "[Frame Recv] HEADERS NGHTTP2_HCAT_REQUEST \n";
-            alwaysSuccess(session_, stream);
+            // alwaysSuccess(session_, stream);
             break;
         }
         case NGHTTP2_HCAT_HEADERS: {
@@ -570,52 +515,48 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
 
 }
 
-int Stream::saveHeader(std::string name, std::string value) {
-    return 0;
-}
+// Http2Callbacks::Http2Callbacks() {
+//     nghttp2_session_callbacks_new(&callbacks_);
 
-Http2Callbacks::Http2Callbacks() {
-    nghttp2_session_callbacks_new(&callbacks_);
+//     // nghttp2_session_callbacks_set_on_frame_send_callback(
+//     //     callbacks_, [](nghttp2_session*, const nghttp2_frame* frame, void* user_data) -> int {
+//     //         return static_cast<ConnectionImpl*>(user_data)->onFrameSend(frame);
+//     //     });
 
-    // nghttp2_session_callbacks_set_on_frame_send_callback(
-    //     callbacks_, [](nghttp2_session*, const nghttp2_frame* frame, void* user_data) -> int {
-    //         return static_cast<ConnectionImpl*>(user_data)->onFrameSend(frame);
-    //     });
+//     nghttp2_session_callbacks_set_send_callback(
+//        callbacks_,
+//        [](nghttp2_session*, const uint8_t* data, size_t length, int, void* user_data) -> ssize_t {
+//            return static_cast<ServerConnection*>(user_data)->onSendCallback(data, length);
+//        }
+//     );
 
-    nghttp2_session_callbacks_set_send_callback(
-       callbacks_,
-       [](nghttp2_session*, const uint8_t* data, size_t length, int, void* user_data) -> ssize_t {
-           return static_cast<ServerConnection*>(user_data)->onSendCallback(data, length);
-       }
-    );
+//     nghttp2_session_callbacks_set_on_begin_headers_callback(
+//        callbacks_,
+//        [](nghttp2_session* session, const nghttp2_frame *frame, void *user_data) -> int {
+//            return static_cast<ServerConnection*>(user_data)->onBeginHeaderCallback(session, frame);
+//        }
+//     );
 
-    nghttp2_session_callbacks_set_on_begin_headers_callback(
-       callbacks_,
-       [](nghttp2_session* session, const nghttp2_frame *frame, void *user_data) -> int {
-           return static_cast<ServerConnection*>(user_data)->onBeginHeaderCallback(session, frame);
-       }
-    );
+//     nghttp2_session_callbacks_set_on_data_chunk_recv_callback(
+//       callbacks_,
+//       [](nghttp2_session*, uint8_t, int32_t stream_id, const uint8_t* data, size_t len, void* user_data) -> int {
+//         return static_cast<ServerConnection*>(user_data)->onDataChunkRecvCallback(stream_id, data, len);
+//       });
 
-    nghttp2_session_callbacks_set_on_data_chunk_recv_callback(
-      callbacks_,
-      [](nghttp2_session*, uint8_t, int32_t stream_id, const uint8_t* data, size_t len, void* user_data) -> int {
-        return static_cast<ServerConnection*>(user_data)->onDataChunkRecvCallback(stream_id, data, len);
-      });
+//     nghttp2_session_callbacks_set_on_frame_recv_callback(
+//       callbacks_, [](nghttp2_session*, const nghttp2_frame* frame, void* user_data) -> int {
+//         return static_cast<ServerConnection*>(user_data)->onFrameRecvCallback(frame);
+//       });
 
-    nghttp2_session_callbacks_set_on_frame_recv_callback(
-      callbacks_, [](nghttp2_session*, const nghttp2_frame* frame, void* user_data) -> int {
-        return static_cast<ServerConnection*>(user_data)->onFrameRecvCallback(frame);
-      });
-
-    nghttp2_session_callbacks_set_on_header_callback(
-      callbacks_,
-      [](nghttp2_session*, const nghttp2_frame* frame, const uint8_t* raw_name, size_t name_length,
-         const uint8_t* raw_value, size_t value_length, uint8_t, void* user_data) -> int {
-          std::string name { raw_name, raw_name+name_length };
-          std::string value { raw_value, raw_value+value_length };
-          return static_cast<ServerConnection*>(user_data)->onHeaderCallback(frame, std::move(name), std::move(value));
-      });
-}
+//     nghttp2_session_callbacks_set_on_header_callback(
+//       callbacks_,
+//       [](nghttp2_session*, const nghttp2_frame* frame, const uint8_t* raw_name, size_t name_length,
+//          const uint8_t* raw_value, size_t value_length, uint8_t, void* user_data) -> int {
+//           std::string name { raw_name, raw_name+name_length };
+//           std::string value { raw_value, raw_value+value_length };
+//           return static_cast<ServerConnection*>(user_data)->onHeaderCallback(frame, std::move(name), std::move(value));
+//       });
+// }
 
 int main(int argc, char **argv) {
     event_base* base { event_base_new() };

@@ -21,9 +21,9 @@
 
 #include "hellworld.pb.h"
 #include "buffer.hpp"
-#include "http2/frame.hpp"
-#include "http2/headers.hpp"
-#include "http2/server.hpp"
+#include "frame.hpp"
+#include "headers.hpp"
+#include "server.hpp"
 
 struct RawSlice {
     void* mem_ = nullptr;
@@ -41,43 +41,43 @@ static_assert(offsetof(RawSlice, mem_) == offsetof(evbuffer_iovec, iov_base),
 static_assert(offsetof(RawSlice, len_) == offsetof(evbuffer_iovec, iov_len),
               "RawSlice != evbuffer_iovec");
 
-namespace GRPC {
-    class Path {
-    public:
-        Path() {};
-        Path(std::string name);
-        const std::string& MethodName();
-        const std::string& ServiceName();
+// namespace GRPC {
+//     class Path {
+//     public:
+//         Path() {};
+//         Path(std::string name);
+//         const std::string& MethodName();
+//         const std::string& ServiceName();
 
-        Path& operator=(Path &&rhs) noexcept {
-            this->method_name_ = std::move(rhs.method_name_);
-            this->service_name_ = std::move(rhs.service_name_);
-            return *this;
-        }
+//         Path& operator=(Path &&rhs) noexcept {
+//             this->method_name_ = std::move(rhs.method_name_);
+//             this->service_name_ = std::move(rhs.service_name_);
+//             return *this;
+//         }
 
-        std::string method_name_;
-        std::string service_name_;
-    };
+//         std::string method_name_;
+//         std::string service_name_;
+//     };
 
-}
+// }
 
-class HeadersState {
-public:
-    HeadersState() {};
+// class HeadersState {
+// public:
+//     HeadersState() {};
 
-    // return errro?
-    bool reservedHeader(const std::string& name);
-    bool whiteListeHeader(const std::string& name);
-    void processHeaderField(std::string name, std::string value);
-    void addMetadata(std::string name, std::string value);
-    std::unordered_map<std::string, std::string> metadata_;
+//     // return errro?
+//     bool reservedHeader(const std::string& name);
+//     bool whiteListeHeader(const std::string& name);
+//     void processHeaderField(std::string name, std::string value);
+//     void addMetadata(std::string name, std::string value);
+//     std::unordered_map<std::string, std::string> metadata_;
 
-    GRPC::Path path_;
-    std::string encoding_;
-    std::string schema_;
-};
+//     GRPC::Path path_;
+//     std::string encoding_;
+//     std::string schema_;
+// };
 
-using HeadersStatePtr = std::unique_ptr<HeadersState>;
+// using HeadersStatePtr = std::unique_ptr<HeadersState>;
 
 class Buffer {
 public:
@@ -126,30 +126,30 @@ private:
 
 using SocketEventPtr = std::unique_ptr<SocketEvent>;
 
-enum class StreamStatus {
-    StreamActive,
-	StreamWriteDone,
-	StreamReadDone,
-	StreamDone,
-};
+// enum class StreamStatus {
+//     StreamActive,
+// 	StreamWriteDone,
+// 	StreamReadDone,
+// 	StreamDone,
+// };
 
-class Stream {
-public:
-    Stream(int32_t stream_id);
-    int saveHeader(std::string name, std::string value);
+// class Stream {
+// public:
+//     Stream(int32_t stream_id);
+//     int saveHeader(std::string name, std::string value);
 
-    int32_t stream_id_;
-    std::unordered_map<std::string, std::string> headers_;
-    HeadersStatePtr headers_state_;
-    Buffer buffer_;
+//     int32_t stream_id_;
+//     std::unordered_map<std::string, std::string> headers_;
+//     HeadersStatePtr headers_state_;
+//     Buffer buffer_;
 
-    bool end_stream_{false};
-    StreamStatus stream_status_ {StreamStatus::StreamActive};
-};
+//     bool end_stream_{false};
+//     StreamStatus stream_status_ {StreamStatus::StreamActive};
+// };
 
-using StreamPtr = std::unique_ptr<Stream>;
+// using StreamPtr = std::unique_ptr<Stream>;
 
-class ServerConnection {
+class ServerConnection: public http2::ConnectionHandler {
 public:
     // ~ServerConnection() { nghttp2_session_callbacks_del(session_); }
     ServerConnection(event_base* base, evutil_socket_t fd);
@@ -168,30 +168,29 @@ public:
     int onFrameRecvCallback(const nghttp2_frame* frame);
 private:
     uint64_t readData();
-    int sendData();
     void onSocketRead();
     void onSocketWrite();
-    Stream* getStream(int32_t stream_id);
+    // Stream* getStream(int32_t stream_id);
 
-    int saveHeader(const nghttp2_frame *frame, std::string name, std::string value);
+    // int saveHeader(const nghttp2_frame *frame, std::string name, std::string value);
 
     int fd_;
     Buffer read_buffer_;
     Buffer write_buffer_;
     // nghttp2_session* session_;
     SocketEventPtr event_;
-    nghttp2_session* session_;
+    http2::Session session_;
     // linked list
-    std::list<StreamPtr> streams_;
+    std::list<http2::StreamPtr> streams_;
 };
 
 using ServerConnectionPtr = std::unique_ptr<ServerConnection>;
 
-class Http2Callbacks {
-public:
-    Http2Callbacks();
+// class Http2Callbacks {
+// public:
+//     Http2Callbacks();
 
-    const nghttp2_session_callbacks* callbacks() { return callbacks_; }
-private:
-    nghttp2_session_callbacks* callbacks_;
-};
+//     const nghttp2_session_callbacks* callbacks() { return callbacks_; }
+// private:
+//     nghttp2_session_callbacks* callbacks_;
+// };
