@@ -1,5 +1,8 @@
 #include <fstream>
 #include <iostream>
+#include <vector>
+#include <map>
+#include <queue>
 
 void EncodeFixed32(char* buf, uint32_t value) {
     buf[0] = value & 0xff;
@@ -55,8 +58,6 @@ public:
     };
 };
 
-#include <queue>
-
 using APtr = std::shared_ptr<A>;
 using BPtr = std::shared_ptr<B>;
 
@@ -93,7 +94,6 @@ void test3() {
     file.write(a.c_str(), 1);
 }
 
-#include <map>
 
 void test5(){
     std::map<std::string, std::string> v = { {"a", "200"} };
@@ -102,14 +102,33 @@ void test5(){
 
 struct AAA {
 public:
-    AAA() {};
+    AAA() {
+        puts("construtor AAA");
+    };
     ~AAA() {
         puts("destructor AAA");
-        // printf("%s\n", v);
     }
+    AAA(AAA &&a) noexcept {
+        *this = std::move(a);
+        puts("Move AAA");
+    }
+
+    AAA& operator = (AAA &&a) noexcept {
+        std::cout << "Move = " << this << std::endl;
+        this->v = a.v;
+        this->str = std::move(a.str);
+
+        a.v = nullptr;
+        return *this;
+    }
+
+    AAA(AAA &a) noexcept {
+        puts("copy");
+    }
+
     AAA(uint8_t *vv): v{vv} {};
     uint8_t *v;
-
+    std::string str;
 };
 
 void test6(){
@@ -134,6 +153,44 @@ void test6(){
     printf("%s\n", hdrs[0].v);
 }
 
+void hoge7(AAA &aaa) {
+    std::string a = "kkkkkkkkkkkkkkkkkkkkkkkkkkkkasfsdfghjklsdfghjkldfghjsssssssssssssssssssssssssss";
+    aaa.v = (uint8_t *)a.data();
+    aaa.str = std::move(a);
+
+    printf("%p\n", &a);
+    printf("%p\n", aaa.v);
+    printf("%p\n", &aaa.str);
+    printf("%s\n", aaa.v);
+    puts("\n===================================== start print");
+    // return std::move(aaa);
+}
+
+std::string hoge7_1() {
+    auto v = "asdfghjkldfghjklqwertyuiopsdfghjklbnm, dfghjkrkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkktyuio";
+    printf("%p\n", &v);
+    return std::move(v);
+}
+
+void test7() {
+    AAA a;
+
+    puts("\n===================================== start print");
+    // auto b = hoge7(a);
+    // hoge7(a);
+    // std::cout << a.str.data() << std::endl;
+    // printf("%p\n", &a);
+    // printf("%d\n", a.str.length());
+    // printf("%s\n", a.v);
+    // printf("%p\n", a.v);
+    // printf("%p\n", &a.str);
+
+    auto v = hoge7_1();
+    printf("%p\n", &v);
+
+    puts("===================================== finish print\n");
+}
+
 int main(int argc, char *argv[])
 {
     // test1();
@@ -141,6 +198,7 @@ int main(int argc, char *argv[])
     // test3();
     // test4();
     // test5();
-    test6();
+    // test6();
+    test7();
     return 0;
 }

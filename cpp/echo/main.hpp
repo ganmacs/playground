@@ -24,6 +24,7 @@
 #include "frame.hpp"
 #include "headers.hpp"
 #include "server.hpp"
+#include "logger.hpp"
 
 struct RawSlice {
     void* mem_ = nullptr;

@@ -1,19 +1,22 @@
 CXX = g++
 CXXFLAGS = -std=c++14 -stdlib=libc++
-CFLAGS = -MMD -MP -Wall  -g -fsanitize=address -fno-omit-frame-pointer
+CFLAGS = -MMD -MP -Wall -g -fsanitize=address -fno-omit-frame-pointer
 LIBS = -L/opt/brew/Cellar/libevent/2.1.8/lib -levent -L/opt/brew/Cellar/nghttp2/1.32.0/lib -lnghttp2  -L/opt/brew/Cellar/protobuf/3.6.0/lib -lprotobuf
-INCLUDE = -I./http2 -I/opt/brew/include -I/opt/brew/Cellar/protobuf/3.6.0/include
+
+INC_DIRS := /opt/brew/include /opt/brew/Cellar/protobuf/3.6.0/include
+INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
 TARGET = server
-SRCS := main.cc hellworld.pb.cc buffer.cc frame.cc server.cc stream.cc headers.cc
-OBJS = $(addsuffix .o, $(basename $(SRCS)))
+SRCS := $(shell find . -name '*.cc')
+OBJS := $(SRCS:%.cc=%.o)
 DEPS := $(SRCS:%.cc=%.d)
 
 $(TARGET): $(OBJS)
 		$(CXX) $(CFLAGS) $(OBJS) -o $@ $(LIBS)
 
 $(OBJS): $(SRCS)
-		$(CXX) $(CFLAGS) $(CXXFLAGS) -c $^ $(INCLUDE)
+		$(CXX) $(CFLAGS) $(CXXFLAGS) $(INC_FLAGS) -c $(SRCS)
+# %^ can't use...
 
 .PHONY: clean all
 

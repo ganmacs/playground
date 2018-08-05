@@ -12,6 +12,7 @@
 #include "stream.hpp"
 #include "buffer.hpp"        // XXX
 #include "headers.hpp"        // XXX
+#include "logger.hpp"
 
 namespace http2 {
     class Server {
@@ -23,7 +24,7 @@ namespace http2 {
     public:
         Session(ConnectionHandler *handler);
         ssize_t processData(const uint8_t *data, size_t len);
-        ssize_t submitResponse(DataFrame *d);
+        ssize_t submitResponse(DataFrame &d);
         ssize_t sendData();
         void registerStream(int32_t stream_id, Stream *stream);
         Stream *getStream(int32_t stream_id);

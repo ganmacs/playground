@@ -22,6 +22,6 @@ namespace http2 {
             nvs.emplace_back(make_nghttp2_nv(h.first, h.second, true));
         }
 
-        return std::move(nvs);
+        return nvs;
     }
 }

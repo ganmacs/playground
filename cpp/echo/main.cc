@@ -53,7 +53,6 @@ void Buffer::commit(RawSlice* iovecs, uint64_t const size) {
 }
 
 int Buffer::read(const int fd, const uint64_t max_length) {
-    std::cout << "[read] target file descriptor " << fd <<  "\n";
     const uint64_t MaxSlices = 2;
     RawSlice slices[MaxSlices];
     const uint64_t num_slices = reserve(max_length, slices, MaxSlices);
@@ -71,9 +70,13 @@ int Buffer::read(const int fd, const uint64_t max_length) {
 
     const ssize_t rc = ::readv(fd, iov, static_cast<int>(i));
     if (rc < 0) {
-        // TODO: if EAGAIN, then more data would read.
-        std::cout << "[read] " << strerror(errno) <<  "\n";
-        return rc;
+        if (errno == EAGAIN) {
+            // ok
+            return 0;
+        } else {
+            logger->error("Read data from {fd} failed: {}", fd, strerror(errno));
+            return rc;
+        }
     }
 
     uint64_t num_to_commit = rc;
@@ -111,8 +114,9 @@ uint64_t Buffer::reserve(uint64_t const length, RawSlice* iovecs, uint64_t const
 }
 
 static void accept_conn_cb(evconnlistener *listener, evutil_socket_t fd, struct sockaddr *address, int socklen, void *ctx) {
+    SPDLOG_TRACE(logger, "Accept connection: fd={}", fd);
     event_base *base = evconnlistener_get_base(listener);
-    std::cout << "[accept_conn_cb] \n";
+    // TODO: free
     ServerConnection *conn = new ServerConnection(base, fd);
 }
 
@@ -157,20 +161,22 @@ void SocketEvent::assignEvents(uint32_t events) {
                  this);
 }
 
-ServerConnection::ServerConnection(event_base* ebase, evutil_socket_t fd): fd_{fd}, session_{http2::Session { base() }} {
-    std::cout << "[init ServerConnection]\n";
+ServerConnection::ServerConnection(event_base* ebase, evutil_socket_t fd):
+    fd_{fd},
+    session_{http2::Session { base() }}
+{
     auto fn = [this](uint32_t events) -> void { onSocketEvent(events); };
-    event_ = SocketEventPtr(new SocketEvent(ebase, fd, fn, SocketEventType::Read|SocketEventType::Write));
+    event_ = std::make_unique<SocketEvent>(ebase, fd, fn, SocketEventType::Read|SocketEventType::Write);
 }
 
 void ServerConnection::onSocketEvent(uint32_t events) {
     if (fd_ < 0) {
-        std::cout << "invalid fd\n";
+        logger->warn("invalid fd {}", fd_);
         return;
     }
 
     if (events & SocketEventType::Closed) {
-        std::cout << "closed\n";
+        logger->info("closed fd={}", fd_);
         return;
     }
 
@@ -184,20 +190,23 @@ void ServerConnection::onSocketEvent(uint32_t events) {
 }
 
 void ServerConnection::onSocketRead(){
-    std::cout << "[onSocketRead]\n";
+    SPDLOG_TRACE(logger, "fd={} is read-ready ", fd_);
+
     uint64_t rc = readData();
-    std::cout << "recv data " << read_buffer_.length() << "|" << rc << " bytes\n";
+    SPDLOG_TRACE(logger, "fd={} recieved data is {} bytes", fd_, rc);
+    if (rc == 0) {
+        // return;
+    }
 
     uint64_t slice_size = read_buffer_.getAvailableSliceCount();
     RawSlice slices[slice_size];
     read_buffer_.getRawSlice(slices, slice_size);
 
-
     for (auto s : slices) {
         auto rv = session_.processData(static_cast<const uint8_t*>(s.mem_), s.len_);
         if (rv == -1) {
-            // XXX
-            std::cout << "ERRROR" << std::endl;
+            logger->error("processData failed {},", fd_);
+            // return;
         }
     }
 
@@ -210,14 +219,10 @@ uint64_t ServerConnection::readData(){
 
     while(true) {
         int rc = read_buffer_.read(fd_, 65535);
-
         if (rc == 0) {
-            puts("finish!");
             break;
         } else if (rc < 0){
-            // puts("failed?");
             break;
-            // exit(1);
         } else {
             bytes_read += rc;
         }
@@ -227,7 +232,7 @@ uint64_t ServerConnection::readData(){
 }
 
 int ServerConnection::onBeginHeaderCallback(nghttp2_session *session, const nghttp2_frame *frame) {
-    std::cout << "[onBeginHeaderCall]\n";
+    SPDLOG_TRACE(logger, "start header process... fd={}, stream_id={}", fd_, frame->hd.stream_id);
 
     // Skip push promise frame
     if (frame->hd.type != NGHTTP2_HEADERS) {
@@ -243,10 +248,7 @@ int ServerConnection::onBeginHeaderCallback(nghttp2_session *session, const nght
 
     http2::StreamPtr stream { new http2::Stream(frame->hd.stream_id) };
     streams_.emplace_front(std::move(stream));
-
     session_.registerStream(frame->hd.stream_id, streams_.front().get());
-
-    std::cout << "[user data set]\n";
     return 0;
 }
 
@@ -254,7 +256,8 @@ void ServerConnection::onSocketWrite(){
     if (write_buffer_.length() == 0) {
         return;
     }
-    std::cout << "[onSocketWrite]\n"; // XXX
+    SPDLOG_TRACE(logger, "fd={} is write-ready", fd_);
+
     uint64_t bytes_written = 0;
 
     // TODO: check connection is active
@@ -279,22 +282,23 @@ void ServerConnection::onSocketWrite(){
         }
     } while(true);
 
+    SPDLOG_TRACE(logger, "Sending data {} bytes fd={}", bytes_written, fd_);
     if (bytes_written > 0) {
-        std::cout << "write " << bytes_written << " bytes\n";
+        // TODO
     }
 }
 
 ssize_t ServerConnection::onSendCallback(const uint8_t* data, const size_t length) {
-    std::cout << "[onSendCallback] Send data: " << length <<  " bytes\n";
+    SPDLOG_TRACE(logger, "Queueing data {} bytes fd={}", length, fd_);
     Buffer buf { data, length };
     write_buffer_.takeIn(buf);
     return length;
 };
 
 int ServerConnection::onHeaderCallback(const nghttp2_frame *frame, std::string name, std::string value) {
-    std::cout << "[onHeaderCallback] " << name << " : " <<  value << " \n";
-    http2::Stream* s = session_.getStream(frame->hd.stream_id);
+    SPDLOG_TRACE(logger, "{} => {}", name, value);
 
+    http2::Stream* s = session_.getStream(frame->hd.stream_id);
     if (frame->hd.type == NGHTTP2_HEADERS) {
         // if (frame->headers.cat == NGHTTP2_HCAT_RESPONSE || frame->headers.cat == NGHTTP2_HCAT_HEADERS) {
         s->headers_state_.processHeaderField(std::move(name), std::move(value));
@@ -338,13 +342,13 @@ void sendReply(http2::Session &session, http2::Stream *stream) {
     bufw->putUINT32(tmp.length()); // pre length
     bufw->append(std::move(tmp));
 
-    auto v = new std::map<std::string, std::string> {
+    std::map<std::string, std::string> v = {
         {http2::headers::HTTP_STATUS, "200"},
         {http2::headers::CONTENT_TYPE, http2::headers::CONTENT_TYPE_VALUE},
     };
 
-    auto d = new http2::DataFrame { stream->stream_id_, true, *v };
-    d->data_ = bufw;
+    http2::DataFrame d { stream->stream_id_, true, std::move(v) };
+    d.data_ = bufw;
 
     // XXX: true
     // copy...
@@ -368,22 +372,24 @@ void sendReply(http2::Session &session, http2::Stream *stream) {
   NGHTTP2_ORIGIN
 */
 int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
-    std::cout << "[onFrameRecvCallback]" << frame->hd.type << "\n";
     http2::Stream* stream = session_.getStream(frame->hd.stream_id);
 
     switch(frame->hd.type) {
     case NGHTTP2_GOAWAY: {
-        std::cout << "[Frame Recv] GOAWAY\n";
+        SPDLOG_TRACE(logger, "[TODO]Recieved GOAWAY frame fd={}, stream_id={}", fd_, frame->hd.stream_id);
+        // handleGoawayFrame()
         break;
     }
     case NGHTTP2_DATA: {
-        std::cout << "[Frame Recv] DATA\n";
+        SPDLOG_TRACE(logger, "Recieved DATA frame fd={}, stream_id={}", fd_, frame->hd.stream_id);
+        // handleDataFrame();
         stream->end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
-
         sendReply(session_, stream);
         break;
     }
     case NGHTTP2_HEADERS: {
+        SPDLOG_TRACE(logger, "Recieved HEADERS frame fd={}, stream_id={}", fd_, frame->hd.stream_id);
+
         stream->end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
 
         switch (frame->headers.cat) {
@@ -405,15 +411,19 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
         }
     }
     case NGHTTP2_RST_STREAM: {
-        std::cout << "[Frame Recv] NGHTTP2_RST_STREAM\n";
+        SPDLOG_TRACE(logger, "[TODO] Recieved RST_STREAM frame fd={}, stream_id={}", fd_, frame->hd.stream_id);
         break;
     }
     }
-    return 0;
 
+    return 0;
 }
 
 int main(int argc, char **argv) {
+    logger->set_level(spdlog::level::trace);
+
+    logger->info("starting server...");
+
     event_base* base { event_base_new() };
 
     struct sockaddr_in sin;

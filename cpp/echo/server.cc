@@ -59,9 +59,11 @@ namespace http2 {
     }
 
     ssize_t Session::sendData() {
+        SPDLOG_TRACE(logger, "Start sending data...");
+
         int rv = nghttp2_session_send(session_);
         if (rv != 0) {
-            printf("Fatal error: %s", nghttp2_strerror(rv));
+            logger->error("sending packed failed: {}", nghttp2_strerror(rv));
             return -1;
         }
         return 0;
@@ -79,13 +81,13 @@ namespace http2 {
         return static_cast<Stream*>(user_data);
     }
 
-    ssize_t Session::submitResponse(DataFrame *d) {
+    ssize_t Session::submitResponse(DataFrame &d) {
         nghttp2_data_provider data_prd;
-        data_prd.source.ptr = d->data_;
+        data_prd.source.ptr = d.data_;
         data_prd.read_callback = send_data_with_trailer;
 
-        auto nvs = http2::makeHeaderNv(d->hdrs_);
-        auto rv = nghttp2_submit_response(session_, d->stream_id_, nvs.data(), d->hdrs_.size(), &data_prd);
+        auto nvs = http2::makeHeaderNv(d.hdrs_);
+        auto rv = nghttp2_submit_response(session_, d.stream_id_, nvs.data(), d.hdrs_.size(), &data_prd);
         if (rv != 0) {
             warnx("Fatal error: %s", nghttp2_strerror(rv));
             return rv;
