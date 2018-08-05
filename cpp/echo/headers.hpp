@@ -1,7 +1,11 @@
 #pragma once
 
+#include <vector>
 #include <cstdint>
 #include <string>
+#include <map>
+
+#include "nghttp2/nghttp2.h"
 
 namespace http2 {
     namespace headers {
@@ -17,4 +21,10 @@ namespace http2 {
 
         static const std::string CONTENT_TYPE_VALUE = "application/grpc";
     }
+
+    nghttp2_nv make_nghttp2_nv(const std::string &name, const std::string &value, bool noIndex);
+
+    using HeaderMap = std::map<std::string, std::string>;
+
+    std::vector<nghttp2_nv> makeHeaderNv(const HeaderMap &headers);
 }

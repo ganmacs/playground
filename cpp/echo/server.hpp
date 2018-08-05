@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "nghttp2/nghttp2.h"
 
@@ -10,7 +11,7 @@
 #include "headers.hpp"
 #include "stream.hpp"
 #include "buffer.hpp"        // XXX
-
+#include "headers.hpp"        // XXX
 
 namespace http2 {
     class Server {

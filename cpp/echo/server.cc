@@ -2,14 +2,7 @@
 
 #include "server.hpp"
 
-#define MAKE_NV(NAME, VALUE)                                                   \
-  {                                                                            \
-    (uint8_t *)NAME, (uint8_t *)VALUE, sizeof(NAME) - 1, sizeof(VALUE) - 1,    \
-        NGHTTP2_NV_FLAG_NONE                                                   \
-  }
-
 namespace http2 {
-
     static Http2CallbacksBuilder cb_builder {};
 
     // TODO: make callback like method
@@ -26,8 +19,9 @@ namespace http2 {
             *data_flags |= NGHTTP2_DATA_FLAG_NO_END_STREAM;
 
             // trailers
-            nghttp2_nv hdrs[] = { MAKE_NV(http2::headers::GRPC_STATUS.c_str(), "0") };
-            int rv  = nghttp2_submit_trailer(session, stream_id, hdrs, 1);
+            HeaderMap hd = { {http2::headers::GRPC_STATUS, "0"} };
+            auto nvs = http2::makeHeaderNv(hd);
+            int rv  = nghttp2_submit_trailer(session, stream_id, nvs.data(), 1);
             if (rv != 0) {
                 warnx("Fatal error: %s", nghttp2_strerror(rv));
             }
@@ -90,19 +84,8 @@ namespace http2 {
         data_prd.source.ptr = d->data_;
         data_prd.read_callback = send_data_with_trailer;
 
-        nghttp2_nv hdrs[d->hdrs_.size()];
-
-        int j = 0;
-        for(auto i = d->hdrs_.begin(); i != d->hdrs_.end() ; ++i) {
-            auto key = i->first;
-            auto val = i->second;
-            hdrs[j] = nghttp2_nv {(unsigned char *) key.c_str(), (unsigned char *) val.c_str(), key.size(), val.size(), 0};
-        }
-
-        puts("\n===================================== start print");
-        printf("%s\n", hdrs[1].name);
-        puts("===================================== finish print\n");
-        auto rv = nghttp2_submit_response(session_, d->stream_id_, hdrs, d->hdrs_.size(), &data_prd);
+        auto nvs = http2::makeHeaderNv(d->hdrs_);
+        auto rv = nghttp2_submit_response(session_, d->stream_id_, nvs.data(), d->hdrs_.size(), &data_prd);
         if (rv != 0) {
             warnx("Fatal error: %s", nghttp2_strerror(rv));
             return rv;
