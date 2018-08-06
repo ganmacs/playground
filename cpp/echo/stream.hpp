@@ -55,7 +55,8 @@ namespace http2 {
         const int32_t stream_id_;
         HeadersState headers_state_;
 
-        bool end_stream_ { false };
+        bool remote_end_stream_ { false };
+        bool local_end_stream_ { false };
         StreamStatus stream_status_ {StreamStatus::StreamActive};
     };
 

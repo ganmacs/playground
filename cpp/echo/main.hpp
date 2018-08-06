@@ -98,6 +98,12 @@ namespace network {
     };
 }
 
+struct IoResult {
+  uint64_t bytes_processed_;
+  bool need_close_;
+  bool end_stream_read_;
+};
+
 class ServerConnection: public http2::ConnectionHandler {
 public:
     // ~ServerConnection() { nghttp2_session_callbacks_del(session_); }
@@ -115,12 +121,14 @@ public:
     int onHeaderCallback(const nghttp2_frame *frame, std::string name, std::string value);
     int onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len);
     int onFrameRecvCallback(const nghttp2_frame* frame);
+    int onStreamCloseCallback(int32_t stream_id, uint32_t error_code);
 
     network::SocketState state_ {network::SocketState::OPEN};
 private:
-    uint64_t readData();
+    IoResult readData();
     void onSocketRead();
     void onSocketWrite();
+    void closeSocket();
     // Stream* getStream(int32_t stream_id);
 
     // int saveHeader(const nghttp2_frame *frame, std::string name, std::string value);

@@ -117,6 +117,10 @@ namespace http2 {
         return static_cast<ConnectionHandler*>(user_data)->onHeaderCallback(frame, std::move(name), std::move(value));
     }
 
+    static int onStreamCloseCallback(nghttp2_session*, int32_t stream_id, uint32_t error_code, void* user_data) {
+        return static_cast<ConnectionHandler*>(user_data)->onStreamCloseCallback(stream_id, error_code);
+    }
+
     Http2CallbacksBuilder::Http2CallbacksBuilder() {
         nghttp2_session_callbacks_new(&callbacks_);
 
@@ -131,5 +135,7 @@ namespace http2 {
         nghttp2_session_callbacks_set_on_frame_recv_callback(callbacks_, onFrameRecvCallback);
 
         nghttp2_session_callbacks_set_on_header_callback(callbacks_, onHeaderCallback);
+
+        nghttp2_session_callbacks_set_on_stream_close_callback(callbacks_, onStreamCloseCallback);
     }
 }

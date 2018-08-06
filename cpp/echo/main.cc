@@ -70,13 +70,7 @@ int Buffer::read(const int fd, const uint64_t max_length) {
 
     const ssize_t rc = ::readv(fd, iov, static_cast<int>(i));
     if (rc < 0) {
-        if (errno == EAGAIN) {
-            // ok
-            return 0;
-        } else {
-            logger->error("Read data from {} failed: {}", fd, strerror(errno));
-            return rc;
-        }
+        return rc;
     }
 
     uint64_t num_to_commit = rc;
@@ -118,7 +112,6 @@ static void accept_conn_cb(evconnlistener *listener, evutil_socket_t fd, struct 
     ConnectionManager *cm = static_cast<ConnectionManager*>(ctx);
 
     event_base *base = evconnlistener_get_base(listener);
-    // TODO: free
 
     ServerConnectionPtr conn = std::make_unique<ServerConnection>(base, fd);
     if (conn.get()->state_ != network::SocketState::CLOSE) {
@@ -172,7 +165,7 @@ ServerConnection::ServerConnection(event_base* ebase, evutil_socket_t fd):
     session_{http2::Session { base() }}
 {
     auto fn = [this](uint32_t events) -> void { onSocketEvent(events); };
-    event_ = std::make_unique<SocketEvent>(ebase, fd, fn, SocketEventType::Read|SocketEventType::Write);
+    event_ = std::make_unique<SocketEvent>(ebase, fd, fn, SocketEventType::Read|SocketEventType::Write|SocketEventType::Closed);
 }
 
 void ServerConnection::onSocketEvent(uint32_t events) {
@@ -196,12 +189,15 @@ void ServerConnection::onSocketEvent(uint32_t events) {
 }
 
 void ServerConnection::onSocketRead(){
-    SPDLOG_TRACE(logger, "fd={} is read-ready ", fd_);
+    IoResult result = readData();
+    if (result.bytes_processed_ == 0) {
+        return;
+    }
+    SPDLOG_TRACE(logger, "fd={} is read-ready and receives data is {} bytes", fd_, result.bytes_processed_);
 
-    uint64_t rc = readData();
-    SPDLOG_TRACE(logger, "fd={} recieved data is {} bytes", fd_, rc);
-    if (rc == 0) {
-        // return;
+    // not support half-close, so need_close_ == end_stream_end_
+    if (result.need_close_ || result.end_stream_read_) {
+        closeSocket();
     }
 
     uint64_t slice_size = read_buffer_.getAvailableSliceCount();
@@ -220,21 +216,32 @@ void ServerConnection::onSocketRead(){
     session_.sendData();
 }
 
-uint64_t ServerConnection::readData(){
+void ServerConnection::closeSocket() {
+    SPDLOG_TRACE(logger, "closing connection fd={}", fd_);
+}
+
+IoResult ServerConnection::readData(){
     uint64_t bytes_read = 0;
+    bool end_stream = false;
+    bool need_close = false;
 
     while(true) {
         int rc = read_buffer_.read(fd_, 65535);
+
         if (rc == 0) {
+            end_stream = true;
             break;
         } else if (rc < 0){
+            if (errno != EAGAIN) {
+                need_close = true;
+            }
             break;
         } else {
             bytes_read += rc;
         }
     }
 
-    return bytes_read;
+    return {bytes_read, need_close, end_stream};
 }
 
 int ServerConnection::onBeginHeaderCallback(nghttp2_session *session, const nghttp2_frame *frame) {
@@ -262,6 +269,7 @@ void ServerConnection::onSocketWrite(){
     if (write_buffer_.length() == 0) {
         return;
     }
+
     SPDLOG_TRACE(logger, "fd={} is write-ready", fd_);
 
     uint64_t bytes_written = 0;
@@ -363,6 +371,20 @@ void sendReply(http2::Session &session, http2::Stream *stream) {
     }
 }
 
+int ServerConnection::onStreamCloseCallback(int32_t stream_id, uint32_t error_code) {
+    http2::Stream* stream = session_.getStream(stream_id);
+
+    if (stream) {
+        if (stream->remote_end_stream_) {
+            SPDLOG_TRACE(logger, "stream={} fd={} is closed by peer", stream_id, fd_);
+        }
+    }
+
+    // remote stream from streams
+    session_.registerStream(stream_id, nullptr);
+    return 0;
+}
+
 /*
   NGHTTP2_DATA
   NGHTTP2_HEADERS
@@ -389,14 +411,15 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
     case NGHTTP2_DATA: {
         SPDLOG_TRACE(logger, "Recieved DATA frame fd={}, stream_id={}", fd_, frame->hd.stream_id);
         // handleDataFrame();
-        stream->end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
+        stream->remote_end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
         sendReply(session_, stream);
         break;
     }
     case NGHTTP2_HEADERS: {
+        stream->remote_end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
+
         SPDLOG_TRACE(logger, "Recieved HEADERS frame fd={}, stream_id={}", fd_, frame->hd.stream_id);
 
-        stream->end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
 
         switch (frame->headers.cat) {
         case NGHTTP2_HCAT_RESPONSE: {
