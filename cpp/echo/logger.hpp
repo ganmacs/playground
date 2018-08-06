@@ -4,7 +4,6 @@
 #define SPDLOG_DEBUG_ON
 
 #include <spdlog/spdlog.h>
-namespace loggger {
-}
+namespace loggger {}
 
 extern std::shared_ptr<spdlog::logger> logger;

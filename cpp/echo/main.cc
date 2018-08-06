@@ -74,7 +74,7 @@ int Buffer::read(const int fd, const uint64_t max_length) {
             // ok
             return 0;
         } else {
-            logger->error("Read data from {fd} failed: {}", fd, strerror(errno));
+            logger->error("Read data from {} failed: {}", fd, strerror(errno));
             return rc;
         }
     }
@@ -115,9 +115,15 @@ uint64_t Buffer::reserve(uint64_t const length, RawSlice* iovecs, uint64_t const
 
 static void accept_conn_cb(evconnlistener *listener, evutil_socket_t fd, struct sockaddr *address, int socklen, void *ctx) {
     SPDLOG_TRACE(logger, "Accept connection: fd={}", fd);
+    ConnectionManager *cm = static_cast<ConnectionManager*>(ctx);
+
     event_base *base = evconnlistener_get_base(listener);
     // TODO: free
-    ServerConnection *conn = new ServerConnection(base, fd);
+
+    ServerConnectionPtr conn = std::make_unique<ServerConnection>(base, fd);
+    if (conn.get()->state_ != network::SocketState::CLOSE) {
+        cm->registerConnection((int)fd, std::move(conn));
+    }
 }
 
 static void accept_error_cb(struct evconnlistener *listener, void *ctx) {
@@ -129,7 +135,7 @@ static void accept_error_cb(struct evconnlistener *listener, void *ctx) {
     event_base_loopexit(base, NULL);
 }
 
-SocketEvent::SocketEvent(event_base* base, int fd, SocketEventCb cb, uint32_t events): base_{base}, cb_{cb}, fd_{fd} {
+SocketEvent::SocketEvent(event_base* base, int fd , SocketEventCb cb, uint32_t events): base_{base}, cb_{cb}, fd_{fd} {
     assignEvents(events);
     event_add(&raw_event_, nullptr);
 }
@@ -419,6 +425,28 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
     return 0;
 }
 
+ConnectionManager::ConnectionManager(event_base *base):
+    connection_cleaner_{ Event::TimerPtr { new Event::Timer(base, [this]() -> void { clearUnavailableConnection(); }) }} {}
+
+
+void ConnectionManager::clearUnavailableConnection() {
+    // SPDLOG_TRACE(logger, "clearUnavailableConnection");
+    for (auto c : unavailable_connections_) {
+        SPDLOG_TRACE(logger, "erase fd={} from active connections", c);
+        active_connections_.erase(c);
+    }
+}
+
+void ConnectionManager::deleteConnection(const int fd) {
+    if (active_connections_.erase(fd) == 0) {
+        logger->warn("fd={} does not exist", fd);
+    };
+}
+
+void ConnectionManager::registerConnection(const int fd, ServerConnectionPtr&& conn) {
+    active_connections_.emplace(fd, std::move(conn));
+}
+
 int main(int argc, char **argv) {
     logger->set_level(spdlog::level::trace);
 
@@ -438,6 +466,8 @@ int main(int argc, char **argv) {
 
     int on = 1;
     evconnlistener* listener;
+    ConnectionManager cm {base};
+
     if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on))<0) {
         goto err;
     }
@@ -446,7 +476,7 @@ int main(int argc, char **argv) {
         goto err;
     }
 
-    listener = evconnlistener_new(base, accept_conn_cb, NULL, LEV_OPT_CLOSE_ON_FREE, -1, fd);
+    listener = evconnlistener_new(base, accept_conn_cb, &cm, LEV_OPT_CLOSE_ON_FREE, -1, fd);
 
     if (!listener) {
         perror("Couldn't create listener");

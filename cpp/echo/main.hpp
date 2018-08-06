@@ -25,6 +25,7 @@
 #include "headers.hpp"
 #include "server.hpp"
 #include "logger.hpp"
+#include "timer.hpp"
 
 struct RawSlice {
     void* mem_ = nullptr;
@@ -73,7 +74,7 @@ struct SocketEventType {
     static const uint32_t Closed = 0x4;
 };
 
-class  SocketEvent {
+class SocketEvent {
 public:
     SocketEvent(event_base* base, int fd, SocketEventCb cb, uint32_t events);
     void assignEvents(uint32_t events);
@@ -88,6 +89,14 @@ private:
 };
 
 using SocketEventPtr = std::unique_ptr<SocketEvent>;
+
+namespace network {
+    enum class SocketState {
+        OPEN,
+        CLOSING,
+        CLOSE,
+    };
+}
 
 class ServerConnection: public http2::ConnectionHandler {
 public:
@@ -106,6 +115,8 @@ public:
     int onHeaderCallback(const nghttp2_frame *frame, std::string name, std::string value);
     int onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len);
     int onFrameRecvCallback(const nghttp2_frame* frame);
+
+    network::SocketState state_ {network::SocketState::OPEN};
 private:
     uint64_t readData();
     void onSocketRead();
@@ -125,3 +136,15 @@ private:
 };
 
 using ServerConnectionPtr = std::unique_ptr<ServerConnection>;
+
+class ConnectionManager {
+public:
+    ConnectionManager(event_base *base);
+    void registerConnection(const int fd, ServerConnectionPtr&& conn);
+    void deleteConnection(const int fd);
+    void clearUnavailableConnection();
+
+    std::map<int, ServerConnectionPtr> active_connections_; // use abstract class
+    Event::TimerPtr connection_cleaner_;
+    std::vector<int> unavailable_connections_;
+};
