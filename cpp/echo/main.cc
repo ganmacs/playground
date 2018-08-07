@@ -327,24 +327,28 @@ int ServerConnection::onHeaderCallback(const nghttp2_frame *frame, std::string n
     return 0;
 };
 
+static int handleRouteGuideRecordGuide(std::string& buf) {
+    routeguide::Point point {};
+    if (!point.ParseFromString(buf)) {
+        logger->error("parsing request protobuf failed");
+        return 1;
+    }
+
+    SPDLOG_TRACE(logger, "Point latitude={}, longitude={}", point.latitude(), point.longitude());
+    return 0;
+}
+
 int ServerConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len) {
-    std::cout << "[onDataChunkRecvCallback]\n";
-    // Stream* stream = getStream(streama_id);
-    // buffer::BufferReader buf {(const char *)data, len};
-    // auto encode_flag =  buf.readUINT8();
-    // auto plength =  buf.readUINT32();
+    SPDLOG_TRACE(logger, "Receives data {} bytes fd={},  stream_id={}", len, fd_, stream_id);
 
-    // helloworld::HelloRequest request {};
-    // std::string s { buf.buffer(), plength };
-    // if (!request.ParseFromString(s)) {
-    //     std::cout << "error when parsing request protobuf" << std::endl;
-    //     return 1;
-    // }
+    http2::Stream *stream = session_.getStream(stream_id);
 
-    // TODO use response
+    buffer::BufferReader buf {(const char *)data, len};
+    auto encode_flag =  buf.readUINT8();
+    auto plength =  buf.readUINT32();
+    std::string s { buf.buffer(), plength };
+    handleRouteGuideRecordGuide(s);
 
-    // stream->buffer_.add(data, len);
-    // TODO
     return 0;
 }
 

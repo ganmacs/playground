@@ -20,6 +20,8 @@
 #include "nghttp2/nghttp2.h"
 
 #include "hellworld.pb.h"
+#include "route_guide.pb.h"
+
 #include "buffer.hpp"
 #include "frame.hpp"
 #include "headers.hpp"
