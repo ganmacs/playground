@@ -77,6 +77,7 @@ struct SocketEventType {
 class SocketEvent {
 public:
     SocketEvent(event_base* base, int fd, SocketEventCb cb, uint32_t events);
+    ~SocketEvent() { event_del(&raw_event_); };
     void assignEvents(uint32_t events);
 
 private:
@@ -92,9 +93,9 @@ using SocketEventPtr = std::unique_ptr<SocketEvent>;
 
 namespace network {
     enum class SocketState {
-        OPEN,
-        CLOSING,
-        CLOSE,
+        Open,
+        Closing,
+        Closed,
     };
 }
 
@@ -104,10 +105,12 @@ struct IoResult {
   bool end_stream_read_;
 };
 
+using markClosedConnection = std::function<void(int)>;
+
 class ServerConnection: public http2::ConnectionHandler {
 public:
     // ~ServerConnection() { nghttp2_session_callbacks_del(session_); }
-    ServerConnection(event_base* base, evutil_socket_t fd);
+    ServerConnection(event_base* base, evutil_socket_t fd, markClosedConnection cb);
     ServerConnection* base() { return this; }
     // void sessionRecv(Buffer& buf);
     // void sendPendingFrames();
@@ -123,8 +126,9 @@ public:
     int onFrameRecvCallback(const nghttp2_frame* frame);
     int onStreamCloseCallback(int32_t stream_id, uint32_t error_code);
 
-    network::SocketState state_ {network::SocketState::OPEN};
+    network::SocketState state_ {network::SocketState::Open};
 private:
+    markClosedConnection mark_closed_;
     IoResult readData();
     void onSocketRead();
     void onSocketWrite();
@@ -137,7 +141,7 @@ private:
     Buffer read_buffer_;
     Buffer write_buffer_;
     // nghttp2_session* session_;
-    SocketEventPtr event_;
+    SocketEventPtr socket_event_;
     http2::Session session_;
     // linked list
     std::list<http2::StreamPtr> streams_;

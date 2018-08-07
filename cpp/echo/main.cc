@@ -113,8 +113,8 @@ static void accept_conn_cb(evconnlistener *listener, evutil_socket_t fd, struct 
 
     event_base *base = evconnlistener_get_base(listener);
 
-    ServerConnectionPtr conn = std::make_unique<ServerConnection>(base, fd);
-    if (conn.get()->state_ != network::SocketState::CLOSE) {
+    ServerConnectionPtr conn = std::make_unique<ServerConnection>(base, fd, [cm](int fd) -> void { cm->deleteConnection(fd); });
+    if (conn.get()->state_ != network::SocketState::Closed) {
         cm->registerConnection((int)fd, std::move(conn));
     }
 }
@@ -160,12 +160,13 @@ void SocketEvent::assignEvents(uint32_t events) {
                  this);
 }
 
-ServerConnection::ServerConnection(event_base* ebase, evutil_socket_t fd):
+ServerConnection::ServerConnection(event_base* ebase, evutil_socket_t fd, markClosedConnection cb):
     fd_{fd},
-    session_{http2::Session { base() }}
+    session_{http2::Session { base() }},
+    mark_closed_{cb}
 {
     auto fn = [this](uint32_t events) -> void { onSocketEvent(events); };
-    event_ = std::make_unique<SocketEvent>(ebase, fd, fn, SocketEventType::Read|SocketEventType::Write|SocketEventType::Closed);
+    socket_event_ = std::make_unique<SocketEvent>(ebase, fd, fn, SocketEventType::Read|SocketEventType::Write|SocketEventType::Closed);
 }
 
 void ServerConnection::onSocketEvent(uint32_t events) {
@@ -179,45 +180,49 @@ void ServerConnection::onSocketEvent(uint32_t events) {
         return;
     }
 
-    if (events & SocketEventType::Read) {
-        onSocketRead();
+    if ((state_ == network::SocketState::Open) && (events & SocketEventType::Write)) {
+        onSocketWrite();
     }
 
-    if (events & SocketEventType::Write) {
-        onSocketWrite();
+    if ((state_ == network::SocketState::Open) && (events & SocketEventType::Read)) {
+        onSocketRead();
     }
 }
 
 void ServerConnection::onSocketRead(){
     IoResult result = readData();
-    if (result.bytes_processed_ == 0) {
-        return;
-    }
     SPDLOG_TRACE(logger, "fd={} is read-ready and receives data is {} bytes", fd_, result.bytes_processed_);
+
+    if (result.bytes_processed_ > 0) {
+        uint64_t slice_size = read_buffer_.getAvailableSliceCount();
+        RawSlice slices[slice_size];
+        read_buffer_.getRawSlice(slices, slice_size);
+
+        for (auto s : slices) {
+            auto rv = session_.processData(static_cast<const uint8_t*>(s.mem_), s.len_);
+            if (rv == -1) {
+                logger->error("processData failed {},", fd_);
+                // return;
+            }
+        }
+
+        read_buffer_.drain(read_buffer_.length());
+        session_.sendData();
+    }
 
     // not support half-close, so need_close_ == end_stream_end_
     if (result.need_close_ || result.end_stream_read_) {
         closeSocket();
     }
-
-    uint64_t slice_size = read_buffer_.getAvailableSliceCount();
-    RawSlice slices[slice_size];
-    read_buffer_.getRawSlice(slices, slice_size);
-
-    for (auto s : slices) {
-        auto rv = session_.processData(static_cast<const uint8_t*>(s.mem_), s.len_);
-        if (rv == -1) {
-            logger->error("processData failed {},", fd_);
-            // return;
-        }
-    }
-
-    read_buffer_.drain(read_buffer_.length());
-    session_.sendData();
 }
 
 void ServerConnection::closeSocket() {
     SPDLOG_TRACE(logger, "closing connection fd={}", fd_);
+    // ::close(fd_);
+    state_ = network::SocketState::Closed;
+    socket_event_.reset();
+
+    mark_closed_(fd_);
 }
 
 IoResult ServerConnection::readData(){
@@ -227,6 +232,7 @@ IoResult ServerConnection::readData(){
 
     while(true) {
         int rc = read_buffer_.read(fd_, 65535);
+        SPDLOG_TRACE(logger, "read bytes is {}",rc);
 
         if (rc == 0) {
             end_stream = true;
@@ -266,11 +272,10 @@ int ServerConnection::onBeginHeaderCallback(nghttp2_session *session, const nght
 }
 
 void ServerConnection::onSocketWrite(){
+    SPDLOG_TRACE(logger, "fd={} is write-ready", fd_);
     if (write_buffer_.length() == 0) {
         return;
     }
-
-    SPDLOG_TRACE(logger, "fd={} is write-ready", fd_);
 
     uint64_t bytes_written = 0;
 
@@ -453,17 +458,19 @@ ConnectionManager::ConnectionManager(event_base *base):
 
 
 void ConnectionManager::clearUnavailableConnection() {
-    // SPDLOG_TRACE(logger, "clearUnavailableConnection");
     for (auto c : unavailable_connections_) {
         SPDLOG_TRACE(logger, "erase fd={} from active connections", c);
-        active_connections_.erase(c);
+        if (active_connections_.erase(c) == 0) {
+            logger->warn("fd={} does not exist in active_connections", c);
+        }
     }
+    unavailable_connections_.clear();
 }
 
-void ConnectionManager::deleteConnection(const int fd) {
-    if (active_connections_.erase(fd) == 0) {
-        logger->warn("fd={} does not exist", fd);
-    };
+void ConnectionManager::deleteConnection(int fd) {
+    SPDLOG_TRACE(logger, "enqueue fd={} into unavailable_connections", fd);
+    unavailable_connections_.emplace_back(fd);
+    connection_cleaner_.get()->enable(std::chrono::milliseconds(0));
 }
 
 void ConnectionManager::registerConnection(const int fd, ServerConnectionPtr&& conn) {
