@@ -338,6 +338,23 @@ static int handleRouteGuideRecordGuide(std::string& buf) {
     return 0;
 }
 
+static int handleRouteGuideListFeatures(std::string& buf) {
+    routeguide::Rectangle rect {};
+    if (!rect.ParseFromString(buf)) {
+        logger->error("parsing request protobuf failed");
+        return 1;
+    }
+
+    SPDLOG_TRACE(logger, "rectangle lo latitude={}, longitude={}", rect.lo().latitude(), rect.lo().longitude());
+    SPDLOG_TRACE(logger, "rectangle hi latitude={}, longitude={}", rect.hi().latitude(), rect.hi().longitude());
+
+    return 0;
+}
+
+static routeguide::Feature respRouteGuideListFeatures(std::string& buf) {
+
+}
+
 int ServerConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len) {
     SPDLOG_TRACE(logger, "Receives data {} bytes fd={},  stream_id={}", len, fd_, stream_id);
 
@@ -347,7 +364,8 @@ int ServerConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* 
     auto encode_flag =  buf.readUINT8();
     auto plength =  buf.readUINT32();
     std::string s { buf.buffer(), plength };
-    handleRouteGuideRecordGuide(s);
+    handleRouteGuideListFeatures(s);
+    // handleRouteGuideRecordGuide(s);
 
     return 0;
 }
@@ -418,16 +436,17 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
         break;
     }
     case NGHTTP2_DATA: {
-        SPDLOG_TRACE(logger, "Recieved DATA frame fd={}, stream_id={}", fd_, frame->hd.stream_id);
-        // handleDataFrame();
         stream->remote_end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
+
+        SPDLOG_TRACE(logger, "Recieved DATA frame fd={}, stream_id={}, end_stream={}", fd_, frame->hd.stream_id, stream->remote_end_stream_);
+
         sendReply(session_, stream);
         break;
     }
     case NGHTTP2_HEADERS: {
         stream->remote_end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
 
-        SPDLOG_TRACE(logger, "Recieved HEADERS frame fd={}, stream_id={}", fd_, frame->hd.stream_id);
+        SPDLOG_TRACE(logger, "Recieved HEADERS frame fd={}, stream_id={}, end_stream={}", fd_, frame->hd.stream_id, stream->remote_end_stream_);
 
 
         switch (frame->headers.cat) {
