@@ -352,7 +352,7 @@ static int handleRouteGuideListFeatures(std::string& buf) {
 }
 
 static routeguide::Feature respRouteGuideListFeatures(std::string& buf) {
-
+    // return routeguide::Feature {};
 }
 
 int ServerConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len) {
