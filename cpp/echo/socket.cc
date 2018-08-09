@@ -10,7 +10,7 @@ namespace Network {
     void Socket::close() { ::close(fd_); }
 
     const int Socket::bind(const std::string host, const uint port) {
-        int rv;
+        int rv = 0;
         rv = sockaddrIn(host, port);
         if (rv < 0) {
             return rv;
@@ -25,7 +25,21 @@ namespace Network {
         return 0;
     }
 
-    void Socket::connect() {  }
+    const int Socket::connect(const std::string host, const uint port) {
+        int rv = 0;
+        rv = sockaddrIn(host, port);
+        if (rv < 0) {
+            return rv;
+        }
+
+        rv = ::connect(fd_, reinterpret_cast<const sockaddr*>(&address_), sizeof(struct sockaddr));
+        if (rv < 0) {
+            logger->error("connect failed: {}", strerror(errno));
+            return rv;
+        }
+
+        return 0;
+    }
 
     // only ipv4 support
     const int Socket::sockaddrIn(const std::string host, const uint port) {

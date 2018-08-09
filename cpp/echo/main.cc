@@ -1,7 +1,3 @@
-#include <err.h>
-#include <cstring>
-#include <fstream>
-
 #include "main.hpp"
 
 int Buffer::add(const void* data, uint64_t size) {
@@ -107,66 +103,13 @@ uint64_t Buffer::reserve(uint64_t const length, RawSlice* iovecs, uint64_t const
     return ret;
 }
 
-static void accept_conn_cb(evconnlistener *listener, evutil_socket_t fd, struct sockaddr *address, int socklen, void *ctx) {
-    SPDLOG_TRACE(logger, "Accept connection: fd={}", fd);
-    ConnectionManager *cm = static_cast<ConnectionManager*>(ctx);
-
-    event_base *base = evconnlistener_get_base(listener);
-
-    ServerConnectionPtr conn = std::make_unique<ServerConnection>(base, fd, [cm](int fd) -> void { cm->deleteConnection(fd); });
-    if (conn.get()->state_ != network::SocketState::Closed) {
-        cm->registerConnection((int)fd, std::move(conn));
-    }
-}
-
-static void accept_error_cb(struct evconnlistener *listener, void *ctx) {
-    struct event_base *base = evconnlistener_get_base(listener);
-    int err = EVUTIL_SOCKET_ERROR();
-    fprintf(stderr, "Got an error %d (%s) on the listener. "
-            "Shutting down.\n", err, evutil_socket_error_to_string(err));
-
-    event_base_loopexit(base, NULL);
-}
-
-SocketEvent::SocketEvent(event_base* base, int fd , SocketEventCb cb, uint32_t events): base_{base}, cb_{cb}, fd_{fd} {
-    assignEvents(events);
-    event_add(&raw_event_, nullptr);
-}
-
-void SocketEvent::assignEvents(uint32_t events) {
-    uint32_t what =
-        EV_PERSIST |
-        (events & SocketEventType::Read ? EV_READ : 0) |
-        (events & SocketEventType::Write ? EV_WRITE : 0) |
-        (events & SocketEventType::Closed ? EV_CLOSED : 0);
-    raw_event_ = *event_new(base_, fd_, what,
-                            [](evutil_socket_t fd, short what, void* arg) -> void {
-                                SocketEvent* e = static_cast<SocketEvent *>(arg);
-                                uint32_t events = 0;
-                                if (what & EV_READ) {
-                                    events |= SocketEventType::Read;
-                                }
-
-                                if (what & EV_WRITE) {
-                                    events |= SocketEventType::Write;
-                                }
-
-                                if (what & EV_CLOSED) {
-                                    events |= SocketEventType::Closed;
-                                }
-
-                                e->cb_(events);
-                            },
-                 this);
-}
-
 ServerConnection::ServerConnection(event_base* ebase, evutil_socket_t fd, markClosedConnection cb):
     fd_{fd},
     session_{http2::Session { base() }},
     mark_closed_{cb}
 {
     auto fn = [this](uint32_t events) -> void { onSocketEvent(events); };
-    socket_event_ = std::make_unique<SocketEvent>(ebase, fd, fn, SocketEventType::Read|SocketEventType::Write|SocketEventType::Closed);
+    socket_event_ = std::make_unique<Event::SocketEvent>(ebase, fd, fn,  Event::SocketEventType::Read|Event::SocketEventType::Write);
 }
 
 void ServerConnection::onSocketEvent(uint32_t events) {
@@ -175,16 +118,16 @@ void ServerConnection::onSocketEvent(uint32_t events) {
         return;
     }
 
-    if (events & SocketEventType::Closed) {
+    if (events & Event::SocketEventType::Closed) {
         logger->info("closed fd={}", fd_);
         return;
     }
 
-    if ((state_ == network::SocketState::Open) && (events & SocketEventType::Write)) {
+    if ((state_ == network::SocketState::Open) && (events & Event::SocketEventType::Write)) {
         onSocketWrite();
     }
 
-    if ((state_ == network::SocketState::Open) && (events & SocketEventType::Read)) {
+    if ((state_ == network::SocketState::Open) && (events & Event::SocketEventType::Read)) {
         onSocketRead();
     }
 }
@@ -477,6 +420,7 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
 }
 
 ConnectionManager::ConnectionManager(event_base *base):
+    base_{base},
     connection_cleaner_{ Event::TimerPtr { new Event::Timer(base, [this]() -> void { clearUnavailableConnection(); }) }} {}
 
 
@@ -500,28 +444,25 @@ void ConnectionManager::registerConnection(const int fd, ServerConnectionPtr&& c
     active_connections_.emplace(fd, std::move(conn));
 }
 
+void ConnectionManager::onAccept(int fd) {
+    // Pass unavailable_connections_ ?
+    ServerConnectionPtr conn = std::make_unique<ServerConnection>(base_, fd, [this](int fd) -> void { deleteConnection(fd); });
+
+    if (conn.get()->state_ != network::SocketState::Closed) {
+        registerConnection((int)fd, std::move(conn));
+    }
+}
+
 int main(int argc, char **argv) {
     logger->set_level(spdlog::level::trace);
 
     logger->info("starting server...");
 
     event_base* base { event_base_new() };
-
-    Network::Socket sock {};
-
-    if (sock.bind("0.0.0.0", 3000) < 0) {
-        return 1;
-    };
-
-    ConnectionManager cm {base};
-    evconnlistener*  listener = evconnlistener_new(base, accept_conn_cb, &cm, LEV_OPT_CLOSE_ON_FREE, -1, sock.fd());
-
-    if (!listener) {
-        perror("Couldn't create listener");
-        return 1;
-    }
-    evconnlistener_set_error_cb(listener, accept_error_cb);
-
+    Tcp::Server server { "0.0.0.0", 3000 };
+    ConnectionManager cm { base }; // XXX
+    server.listen(base, std::move(cm));
     event_base_loop(base, 0);
+
     return 0;
 }

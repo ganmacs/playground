@@ -1,41 +1,31 @@
 #pragma once
 
-#include <iostream>
 #include <algorithm>
-#include <unistd.h>
 #include <string>
 #include <list>
-#include <unordered_map>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <fcntl.h>
 #include <memory>
 #include <utility>
 
 #include "event2/bufferevent.h"
 #include "event2/buffer.h"
-#include "event2/listener.h"
-#include "event2/event.h"
-#include "event2/event_struct.h"
 #include "nghttp2/nghttp2.h"
 
 #include "hellworld.pb.h"
 #include "route_guide.pb.h"
 
 #include "buffer.hpp"
-#include "frame.hpp"
 #include "headers.hpp"
 #include "server.hpp"
 #include "logger.hpp"
 #include "timer.hpp"
 #include "socket.hpp"
+#include "tcp_server.hpp"
+#include "socket_event.hpp"
 
 struct RawSlice {
     void* mem_ = nullptr;
     size_t len_ = 0;
 };
-
-using SocketEventCb = std::function<void(uint32_t events)>;
 
 // RawSlice is the same structure as evbuffer_iovec. This was put into place to avoid leaking
 // libevent into most code since we will likely replace evbuffer with our own implementation at
@@ -70,29 +60,6 @@ private:
     uint64_t reserve(uint64_t const length, RawSlice* iovecs, uint64_t const iovecs_num);
     evbuffer* buffer_;
 };
-
-struct SocketEventType {
-    static const uint32_t Read = 0x1;
-    static const uint32_t Write = 0x2;
-    static const uint32_t Closed = 0x4;
-};
-
-class SocketEvent {
-public:
-    SocketEvent(event_base* base, int fd, SocketEventCb cb, uint32_t events);
-    ~SocketEvent() { event_del(&raw_event_); };
-    void assignEvents(uint32_t events);
-
-private:
-    static void onEventCallback(evutil_socket_t, short what, void* arg);
-
-    event_base* base_;
-    SocketEventCb cb_;
-    int fd_;
-    event raw_event_;
-};
-
-using SocketEventPtr = std::unique_ptr<SocketEvent>;
 
 namespace network {
     enum class SocketState {
@@ -131,7 +98,6 @@ public:
 
     network::SocketState state_ {network::SocketState::Open};
 private:
-    markClosedConnection mark_closed_;
     IoResult readData();
     void onSocketRead();
     void onSocketWrite();
@@ -143,22 +109,27 @@ private:
     int fd_;
     Buffer read_buffer_;
     Buffer write_buffer_;
+    markClosedConnection mark_closed_;
+
     // nghttp2_session* session_;
-    SocketEventPtr socket_event_;
+    Event::SocketEventPtr socket_event_;
     http2::Session session_;
+
     // linked list
     std::list<http2::StreamPtr> streams_;
 };
 
 using ServerConnectionPtr = std::unique_ptr<ServerConnection>;
 
-class ConnectionManager {
+class ConnectionManager: public Tcp::AcceptHandler {     // XXX
 public:
     ConnectionManager(event_base *base);
     void registerConnection(const int fd, ServerConnectionPtr&& conn);
     void deleteConnection(const int fd);
     void clearUnavailableConnection();
+    void onAccept(int fd) override;
 
+    event_base* base_;
     std::map<int, ServerConnectionPtr> active_connections_; // use abstract class
     Event::TimerPtr connection_cleaner_;
     std::vector<int> unavailable_connections_;

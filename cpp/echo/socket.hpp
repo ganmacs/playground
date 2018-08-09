@@ -44,8 +44,9 @@ namespace Network {
         Socket();
         int fd() const { return fd_; }
         void close();
-        void connect();
+        // change new name of socket? to identify binded socket and connected socket
         const int bind(const std::string host, const uint port);
+        const int connect(const std::string host, const uint port);
         const int sockaddrIn(const std::string host, const uint port);
 
     private:
