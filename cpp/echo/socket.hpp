@@ -1,15 +1,15 @@
 #pragma once
 
 #include <memory>
-// #include <sys/socket.h>
-// #include <sys/types.h>
+#include <string>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <fcntl.h>
-
-#include "event2/event.h"
 
 #include "logger.hpp"
 
-namespace Socket {
+namespace Network {
     enum class SocketType { Stream, Datagram };
 
     static const int buildSocketFromType(SocketType type) {
@@ -37,33 +37,21 @@ namespace Socket {
 
         return fd;
     }
-}
 
-enum class SocketState {
-    Open,
-    Closing,
-    Closed,
-};
+    class Socket {
+    public:
+        Socket(SocketType t);
+        Socket();
+        int fd() const { return fd_; }
+        void close();
+        void connect();
+        const int bind(const std::string host, const uint port);
+        const int sockaddrIn(const std::string host, const uint port);
 
-#include "event2/listener.h"
-
-class Listener {
-public:
-    Listener(event_base *baes, int fd): fd_{fd} {
-        listener_ = evconnlistener_new(base, accept_conn_cb, &cm, LEV_OPT_CLOSE_ON_FREE, -1, fd_);
+    private:
+        sockaddr_in address_;
+        int fd_;
     };
 
-private:
-    int fd_;
-    evconnlistener* listner_;
-};
-
-// class ConnectionSocket {
-// public:
-//     ConnectionSocket();
-
-// private:
-//     int fd_;
-// };
-
-// using ConnectionSocketPtr = std::unique_ptr<ConnectionSocket>;
+    using SocketPtr = std::unique_ptr<Socket>;
+}

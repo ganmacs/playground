@@ -28,6 +28,7 @@
 #include "server.hpp"
 #include "logger.hpp"
 #include "timer.hpp"
+#include "socket.hpp"
 
 struct RawSlice {
     void* mem_ = nullptr;

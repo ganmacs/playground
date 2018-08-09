@@ -507,29 +507,14 @@ int main(int argc, char **argv) {
 
     event_base* base { event_base_new() };
 
-    struct sockaddr_in sin;
-    memset(&sin, 0, sizeof(sin));
-    sin.sin_family = AF_INET;
-    sin.sin_addr.s_addr = htonl(0); // 0.0.0.0
-    sin.sin_port = htons(3000);
+    Network::Socket sock {};
 
-    int fd = socket(AF_INET, SOCK_STREAM, 0);
-    fcntl(fd, F_SETFL, O_NONBLOCK); // macos does not have SOCK_NONBLOCK
-    ::bind(fd, reinterpret_cast<const sockaddr*>(&sin), sizeof(sin));
+    if (sock.bind("0.0.0.0", 3000) < 0) {
+        return 1;
+    };
 
-    int on = 1;
-    evconnlistener* listener;
     ConnectionManager cm {base};
-
-    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on))<0) {
-        goto err;
-    }
-
-    if (setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on))<0) {
-        goto err;
-    }
-
-    listener = evconnlistener_new(base, accept_conn_cb, &cm, LEV_OPT_CLOSE_ON_FREE, -1, fd);
+    evconnlistener*  listener = evconnlistener_new(base, accept_conn_cb, &cm, LEV_OPT_CLOSE_ON_FREE, -1, sock.fd());
 
     if (!listener) {
         perror("Couldn't create listener");
@@ -539,9 +524,4 @@ int main(int argc, char **argv) {
 
     event_base_loop(base, 0);
     return 0;
-
- err:
-    std::cout << "error\n";
-    evutil_closesocket(fd);
-    return 1;
 }
