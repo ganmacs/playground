@@ -22,20 +22,22 @@ namespace http2 {
 
     class Session {
     public:
-        Session(ConnectionHandler *handler);
+        static Session buildClientSession(ConnectionHandler *handler);
+        static Session buildServerSession(ConnectionHandler *handler);
+
+        Session();
         ssize_t processData(const uint8_t *data, size_t len);
         ssize_t submitResponse(DataFrame &d);
-        ssize_t sendData();
+        ssize_t sendRequest();
+        ssize_t sendResponse();
         void registerStream(int32_t stream_id, Stream *stream);
         Stream *getStream(int32_t stream_id);
 
     private:
         int bootstrap();
         void processControlBuf(const size_t process_size);
-
         nghttp2_session *session_;
     };
-
 
     class Http2CallbacksBuilder {
     public:

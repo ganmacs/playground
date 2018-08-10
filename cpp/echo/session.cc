@@ -5,6 +5,22 @@
 namespace http2 {
     static Http2CallbacksBuilder cb_builder {};
 
+    // static
+    Session Session::buildClientSession(ConnectionHandler *handler) {
+        Session s {};
+        nghttp2_session_server_new_session_client_new(&s.session_, cb_builder.build(), (void *)handler);
+        s.bootstrap();
+        return s;
+    }
+
+    // static
+    Session Session::buildServerSession(ConnectionHandler *handler) {
+        Session s {};
+        nghttp2_session_server_new(&s.session_, cb_builder.build(), (void *)handler);
+        s.bootstrap();
+        return s;
+    }
+
     // TODO: make callback like method
     // this is grpc logic...
     static ssize_t send_data_with_trailer(nghttp2_session *session, int32_t stream_id,
@@ -31,13 +47,7 @@ namespace http2 {
         }
     }
 
-    Session::Session(ConnectionHandler *handler) {
-        nghttp2_session_server_new(&session_, cb_builder.build(), (void *)handler);
-        auto rv = bootstrap();
-        if (rv != 0) {
-            exit(1);            // XXX
-        }
-    }
+    Session::Session() {}
 
     int Session::bootstrap() {
         int rv = nghttp2_submit_settings(session_, NGHTTP2_FLAG_NONE, 0, 0);
@@ -58,8 +68,8 @@ namespace http2 {
         return rv;
     }
 
-    ssize_t Session::sendData() {
-        SPDLOG_TRACE(logger, "Start sending data...");
+    ssize_t Session::sendResponse() {
+        SPDLOG_TRACE(logger, "Start sending reponse data...");
 
         int rv = nghttp2_session_send(session_);
         if (rv != 0) {
@@ -67,6 +77,11 @@ namespace http2 {
             return -1;
         }
         return 0;
+    }
+
+    ssize_t Session::sendRequest() {
+        SPDLOG_TRACE(logger, "Start sending request data...");
+        // XXX
     }
 
     void Session::registerStream(int32_t stream_id, Stream *stream) {

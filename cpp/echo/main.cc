@@ -1,111 +1,8 @@
 #include "main.hpp"
 
-int Buffer::add(const void* data, uint64_t size) {
-    return evbuffer_add(buffer_, data, size);
-}
-
-// buffer is not correct position
-int Buffer::write(const int fd) {
-    const uint64_t MaxSlices = 16; // 16?
-    RawSlice slices[MaxSlices];
-    const uint64_t num_slices = std::min(getRawSlice(slices, MaxSlices), MaxSlices);
-    iovec iov[num_slices];
-
-    uint64_t write_count = 0;
-    for (uint64_t i = 0; i < num_slices; i++) {
-        if (slices[i].mem_ == nullptr || slices[i].len_ == 0) {
-            continue;
-        }
-        iov[i].iov_base = slices[i].mem_;
-        iov[i].iov_len = slices[i].len_;
-        write_count++;
-    }
-    if (write_count == 0) {
-        return 0;
-    }
-
-    const ssize_t rc = writev(fd, iov, write_count);
-    if (rc > 0) {
-        drain(static_cast<uint64_t>(rc));
-    }
-
-    return rc;
-}
-
-
-void Buffer::takeIn(Buffer& b) {
-    int rc = evbuffer_add_buffer(buffer_, b.buffer_);
-    if (rc != 0) {
-        std::cout << "[takein] miss\n";
-    }
-}
-
-void Buffer::commit(RawSlice* iovecs, uint64_t const size) {
-    int ret = evbuffer_commit_space(buffer_, reinterpret_cast<evbuffer_iovec*>(iovecs), size);
-    if (ret != 0) {
-        puts("evbuffer_commit_sapce failed");
-        exit(1);
-    }
-}
-
-int Buffer::read(const int fd, const uint64_t max_length) {
-    const uint64_t MaxSlices = 2;
-    RawSlice slices[MaxSlices];
-    const uint64_t num_slices = reserve(max_length, slices, MaxSlices);
-    iovec iov[num_slices];
-    uint64_t num_bytes_to_read = 0;
-
-    uint64_t i = 0;
-    // TODO
-    for (; i < num_slices; i++) {
-        iov[i].iov_base = slices[i].mem_;
-        const size_t len = std::min(slices[i].len_, static_cast<size_t>(max_length - num_bytes_to_read));
-        iov[i].iov_len = len;
-        num_bytes_to_read += max_length;
-    }
-
-    const ssize_t rc = ::readv(fd, iov, static_cast<int>(i));
-    if (rc < 0) {
-        return rc;
-    }
-
-    uint64_t num_to_commit = rc;
-    uint64_t j = 0;
-    while (num_to_commit > 0) {
-        slices[j].len_ = std::min(slices[j].len_, static_cast<size_t>(num_to_commit));
-        num_to_commit -= slices[j].len_;
-        j++;
-    }
-
-    commit(slices, j);
-    return rc;
-}
-
-void Buffer::drain(const uint64_t len) {
-    if (len <= 0) {
-        puts("drain must not call with negative value");
-        exit(1);
-    }
-
-    int rc = evbuffer_drain(buffer_, len);
-    if (rc != 0) {
-        puts("drain error %s");
-        exit(1);
-    }
-}
-
-uint64_t Buffer::reserve(uint64_t const length, RawSlice* iovecs, uint64_t const iovecs_num) {
-    int ret = evbuffer_reserve_space(buffer_, length, reinterpret_cast<evbuffer_iovec*>(iovecs), iovecs_num);
-    if (ret < 0) {
-        printf("%d\n", ret);
-        exit(1);
-    }
-    return ret;
-}
-
 ServerConnection::ServerConnection(event_base* ebase, evutil_socket_t fd, markClosedConnection cb):
-    fd_{fd},
-    session_{http2::Session { base() }},
+    socket_{std::make_unique<Network::BufferedSocket>(fd)},
+    session_{http2::Session::buildServerSession(base())},
     mark_closed_{cb}
 {
     auto fn = [this](uint32_t events) -> void { onSocketEvent(events); };
@@ -113,13 +10,13 @@ ServerConnection::ServerConnection(event_base* ebase, evutil_socket_t fd, markCl
 }
 
 void ServerConnection::onSocketEvent(uint32_t events) {
-    if (fd_ < 0) {
-        logger->warn("invalid fd {}", fd_);
+    if (fd() < 0) {
+        logger->warn("invalid fd {}", fd());
         return;
     }
 
     if (events & Event::SocketEventType::Closed) {
-        logger->info("closed fd={}", fd_);
+        logger->info("closed fd={}", fd());
         return;
     }
 
@@ -132,69 +29,36 @@ void ServerConnection::onSocketEvent(uint32_t events) {
     }
 }
 
-void ServerConnection::onSocketRead(){
-    IoResult result = readData();
-    SPDLOG_TRACE(logger, "fd={} is read-ready and receives data is {} bytes", fd_, result.bytes_processed_);
-
-    if (result.bytes_processed_ > 0) {
-        uint64_t slice_size = read_buffer_.getAvailableSliceCount();
-        RawSlice slices[slice_size];
-        read_buffer_.getRawSlice(slices, slice_size);
-
-        for (auto s : slices) {
-            auto rv = session_.processData(static_cast<const uint8_t*>(s.mem_), s.len_);
+void ServerConnection::onSocketRead() {
+    auto result = socket_.get()->onRead([this](const uint8_t *data, size_t len) -> int {
+            auto rv = session_.processData(data, len);
             if (rv == -1) {
-                logger->error("processData failed {},", fd_);
-                // return;
+                logger->error("processData failed {},", fd());
+                return -1;
             }
-        }
+            return 0;
+        });
 
-        read_buffer_.drain(read_buffer_.length());
-        session_.sendData();
-    }
+    session_.sendResponse();
 
-    // not support half-close, so need_close_ == end_stream_end_
     if (result.need_close_ || result.end_stream_read_) {
         closeSocket();
     }
 }
 
 void ServerConnection::closeSocket() {
-    SPDLOG_TRACE(logger, "closing connection fd={}", fd_);
-    // ::close(fd_);
+    auto sock = socket_.get();
+
+    SPDLOG_TRACE(logger, "closing connection fd={}", sock->fd());
+    // sock->close()
     state_ = network::SocketState::Closed;
     socket_event_.reset();
 
-    mark_closed_(fd_);
-}
-
-IoResult ServerConnection::readData(){
-    uint64_t bytes_read = 0;
-    bool end_stream = false;
-    bool need_close = false;
-
-    while(true) {
-        int rc = read_buffer_.read(fd_, 65535);
-        SPDLOG_TRACE(logger, "read bytes is {}",rc);
-
-        if (rc == 0) {
-            end_stream = true;
-            break;
-        } else if (rc < 0){
-            if (errno != EAGAIN) {
-                need_close = true;
-            }
-            break;
-        } else {
-            bytes_read += rc;
-        }
-    }
-
-    return {bytes_read, need_close, end_stream};
+    mark_closed_(sock->fd());
 }
 
 int ServerConnection::onBeginHeaderCallback(nghttp2_session *session, const nghttp2_frame *frame) {
-    SPDLOG_TRACE(logger, "start header process... fd={}, stream_id={}", fd_, frame->hd.stream_id);
+    SPDLOG_TRACE(logger, "start header process... fd={}, stream_id={}", fd(), frame->hd.stream_id);
 
     // Skip push promise frame
     if (frame->hd.type != NGHTTP2_HEADERS) {
@@ -215,8 +79,8 @@ int ServerConnection::onBeginHeaderCallback(nghttp2_session *session, const nght
 }
 
 void ServerConnection::onSocketWrite(){
-    SPDLOG_TRACE(logger, "fd={} is write-ready", fd_);
-    if (write_buffer_.length() == 0) {
+    SPDLOG_TRACE(logger, "fd={} is write-ready", fd());
+    if (!socket_.get()->needFlush()) {
         return;
     }
 
@@ -224,17 +88,17 @@ void ServerConnection::onSocketWrite(){
 
     // TODO: check connection is active
     do {
-        if (write_buffer_.length() == 0) {
+        if (!socket_.get()->needFlush()) {
             // keep open
             break;
         }
 
-        int rc = write_buffer_.write(fd_);
-
+        int rc = socket_.get()->flush();
         if (rc == -1) {
             if (errno == EAGAIN) {
                 // keep open
             } else {
+                logger->error("flush failed {}", strerror(errno));
                 // close
             }
 
@@ -244,16 +108,15 @@ void ServerConnection::onSocketWrite(){
         }
     } while(true);
 
-    SPDLOG_TRACE(logger, "Sending data {} bytes fd={}", bytes_written, fd_);
+    SPDLOG_TRACE(logger, "Sending data {} bytes fd={}", bytes_written, fd());
     if (bytes_written > 0) {
         // TODO
     }
 }
 
 ssize_t ServerConnection::onSendCallback(const uint8_t* data, const size_t length) {
-    SPDLOG_TRACE(logger, "Queueing data {} bytes fd={}", length, fd_);
-    Buffer buf { data, length };
-    write_buffer_.takeIn(buf);
+    SPDLOG_TRACE(logger, "Queueing data {} bytes fd={}", length, fd());
+    socket_.get()->write(data, length);
     return length;
 };
 
@@ -299,7 +162,7 @@ static routeguide::Feature respRouteGuideListFeatures(std::string& buf) {
 }
 
 int ServerConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len) {
-    SPDLOG_TRACE(logger, "Receives data {} bytes fd={},  stream_id={}", len, fd_, stream_id);
+    SPDLOG_TRACE(logger, "Receives data {} bytes fd={},  stream_id={}", len, fd(), stream_id);
 
     http2::Stream *stream = session_.getStream(stream_id);
 
@@ -346,7 +209,7 @@ int ServerConnection::onStreamCloseCallback(int32_t stream_id, uint32_t error_co
 
     if (stream) {
         if (stream->remote_end_stream_) {
-            SPDLOG_TRACE(logger, "stream={} fd={} is closed by peer", stream_id, fd_);
+            SPDLOG_TRACE(logger, "stream={} fd={} is closed by peer", stream_id, fd());
         }
     }
 
@@ -374,14 +237,14 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
 
     switch(frame->hd.type) {
     case NGHTTP2_GOAWAY: {
-        SPDLOG_TRACE(logger, "[TODO]Recieved GOAWAY frame fd={}, stream_id={}", fd_, frame->hd.stream_id);
+        SPDLOG_TRACE(logger, "[TODO]Recieved GOAWAY frame fd={}, stream_id={}", fd(), frame->hd.stream_id);
         // handleGoawayFrame()
         break;
     }
     case NGHTTP2_DATA: {
         stream->remote_end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
 
-        SPDLOG_TRACE(logger, "Recieved DATA frame fd={}, stream_id={}, end_stream={}", fd_, frame->hd.stream_id, stream->remote_end_stream_);
+        SPDLOG_TRACE(logger, "Recieved DATA frame fd={}, stream_id={}, end_stream={}", fd(), frame->hd.stream_id, stream->remote_end_stream_);
 
         sendReply(session_, stream);
         break;
@@ -389,7 +252,7 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
     case NGHTTP2_HEADERS: {
         stream->remote_end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
 
-        SPDLOG_TRACE(logger, "Recieved HEADERS frame fd={}, stream_id={}, end_stream={}", fd_, frame->hd.stream_id, stream->remote_end_stream_);
+        SPDLOG_TRACE(logger, "Recieved HEADERS frame fd={}, stream_id={}, end_stream={}", fd(), frame->hd.stream_id, stream->remote_end_stream_);
 
 
         switch (frame->headers.cat) {
@@ -411,7 +274,7 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
         }
     }
     case NGHTTP2_RST_STREAM: {
-        SPDLOG_TRACE(logger, "[TODO] Recieved RST_STREAM frame fd={}, stream_id={}", fd_, frame->hd.stream_id);
+        SPDLOG_TRACE(logger, "[TODO] Recieved RST_STREAM frame fd={}, stream_id={}", fd(), frame->hd.stream_id);
         break;
     }
     }
@@ -456,13 +319,21 @@ void ConnectionManager::onAccept(int fd) {
 int main(int argc, char **argv) {
     logger->set_level(spdlog::level::trace);
 
-    logger->info("starting server...");
-
+    auto v = std::getenv("CLIENT");
     event_base* base { event_base_new() };
-    Tcp::Server server { "0.0.0.0", 3000 };
-    ConnectionManager cm { base }; // XXX
-    server.listen(base, std::move(cm));
-    event_base_loop(base, 0);
+
+    // XXX
+    if (v == nullptr) {
+        logger->info("starting server...");
+        Tcp::Server server { "0.0.0.0", 3000 };
+        auto cm = new ConnectionManager(base);
+        server.listen(base, std::move(*cm));
+        event_base_loop(base, 0);
+
+        delete cm;
+    } else {
+        logger->info("starting request...");
+    }
 
     return 0;
 }
