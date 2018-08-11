@@ -17,6 +17,38 @@ ClientConnection ClientConnection::connect(event_base* base, const std::string h
     return {base, std::make_unique<Network::Socket>(sock)};
 }
 
+void ClientConnection::request() {
+    SPDLOG_TRACE(logger, "Sending request");
+
+    helloworld::HelloRequest req {};
+    req.set_name("muyclient");
+
+    std::string tmp {};
+    req.SerializeToString(&tmp);
+
+    // XXX
+    auto bufw = new buffer::BufferWriter();
+    bufw->putUINT8(0);             // non encoding
+    bufw->putUINT32(tmp.length()); // pre length
+    bufw->append(std::move(tmp));
+
+    std::map<std::string, std::string> v = {
+        {http2::headers::METHOD, "POST"},
+        {http2::headers::SCHEMA, "http"},
+        {http2::headers::PATH, "helloworld"},
+        {http2::headers::GRPC_TIMEOUT, "10"}, // XXX
+        {http2::headers::CONTENT_TYPE, http2::headers::CONTENT_TYPE_VALUE},
+        {http2::headers::GRPC_ENCODING, "gzip"},
+        {http2::headers::GRPC_ENCODING, "gzip"},
+    };
+
+    http2::DataFrame d { 0, true, std::move(v) };
+    d.data_ = bufw;
+
+    auto stream_id = session_.submitRequest(d);
+    SPDLOG_TRACE(logger, "Submit request to stream_id={}", stream_id);
+    session_.sendData();
+}
 
 void ClientConnection::onSocketEvent(uint32_t events) {
     if (socket_->fd() < 0) {
@@ -38,12 +70,46 @@ void ClientConnection::onSocketEvent(uint32_t events) {
     }
 }
 
-
 void ClientConnection::onSocketWrite() {
-    session_.sendRequest();
+    SPDLOG_TRACE(logger, "fd={} is write-ready", fd());
+    if (!socket_.get()->needFlush()) {
+        return;
+    }
+
+    uint64_t bytes_written = 0;
+
+    // TODO: check connection is active
+    do {
+        if (!socket_.get()->needFlush()) {
+            // keep open
+            break;
+        }
+
+        int rc = socket_.get()->flush();
+        if (rc == -1) {
+            if (errno == EAGAIN) {
+                // keep open
+            } else {
+                logger->error("flush failed {}", strerror(errno));
+                // close
+            }
+
+            break;
+        } else {
+            bytes_written += rc;
+        }
+    } while(true);
+
+
+    SPDLOG_TRACE(logger, "Sending data {} bytes fd={}", bytes_written, fd());
+    if (bytes_written > 0) {
+        // TODO
+        session_.sendData();
+    }
 }
 
 void ClientConnection::onSocketRead(){
+    SPDLOG_TRACE(logger, "ready ready");
     auto result = socket_.get()->onRead([this](const uint8_t *data, size_t len) -> int {
             auto rv = session_.processData(data, len);
             if (rv == -1) {
@@ -51,26 +117,75 @@ void ClientConnection::onSocketRead(){
                 return -1;
             }
             return 0;
-    });
-
+        });
 }
 
 ssize_t ClientConnection::onSendCallback(const uint8_t *data, size_t length) {
+    SPDLOG_TRACE(logger, "Queueing data {} bytes fd={}", length, fd());
+    socket_.get()->write(data, length);
+    return length;
+    return 0;
 }
 
 int ClientConnection::onBeginHeaderCallback(nghttp2_session* session, const nghttp2_frame *frame) {
+    // skip push prom
+    if (frame->hd.type != NGHTTP2_HEADERS)  {
+        return 0;
+    }
+
+    http2::StreamPtr stream { new http2::Stream(frame->hd.stream_id) };
+    // need?
+    streams_.emplace_front(std::move(stream));
+    session_.registerStream(frame->hd.stream_id, streams_.front().get());
+
+    return 0;
 }
 
 int ClientConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len) {
+    SPDLOG_TRACE(logger, "Receives data {} bytes fd={},  stream_id={}", len, fd(), stream_id);
+
+    http2::Stream *stream = session_.getStream(stream_id);
+
+    buffer::BufferReader buf {(const char *)data, len};
+    auto encode_flag =  buf.readUINT8();
+    auto plength =  buf.readUINT32();
+    std::string s { buf.buffer(), plength };
+
+
+    SPDLOG_TRACE(logger, "{}", s);
+
+    // handle!
+    return 0;
 }
 
 int ClientConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
+    return 0;
 }
 
 int ClientConnection::onHeaderCallback(const nghttp2_frame* frame, std::string name, std::string value) {
+    switch (frame->hd.type) {
+    case NGHTTP2_HEADERS: {
+        SPDLOG_TRACE(logger, "{} => {}", name, value);
+        break;
+    }
+    }
+
+    return 0;
 }
 
 int ClientConnection::onStreamCloseCallback(int32_t stream_id, uint32_t error_code) {
+    http2::Stream* stream = session_.getStream(stream_id);
+
+    if (stream) {
+        if (stream->remote_end_stream_) {
+            SPDLOG_TRACE(logger, "stream={} fd={} is closed by peer", stream_id, fd());
+        }
+    }
+
+    // remove stream from streams
+    session_.registerStream(stream_id, nullptr);
+
+    return 0;
 }
 
 namespace Tcp {

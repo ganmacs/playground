@@ -39,7 +39,7 @@ void ServerConnection::onSocketRead() {
             return 0;
         });
 
-    session_.sendResponse();
+    session_.sendData();
 
     if (result.need_close_ || result.end_stream_read_) {
         closeSocket();
@@ -213,7 +213,7 @@ int ServerConnection::onStreamCloseCallback(int32_t stream_id, uint32_t error_co
         }
     }
 
-    // remote stream from streams
+    // remove stream from streams
     session_.registerStream(stream_id, nullptr);
     return 0;
 }
@@ -334,6 +334,10 @@ int main(int argc, char **argv) {
         delete cm;
     } else {
         logger->info("starting request...");
+
+        auto c = ClientConnection::connect(base, "127.0.0.1", 3000);
+        c.request();
+        event_base_loop(base, 0);
     }
 
     return 0;

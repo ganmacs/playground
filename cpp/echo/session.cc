@@ -1,6 +1,5 @@
-#include <err.h>
 
-#include "server.hpp"
+#include "session.hpp"
 
 namespace http2 {
     static Http2CallbacksBuilder cb_builder {};
@@ -8,7 +7,7 @@ namespace http2 {
     // static
     Session Session::buildClientSession(ConnectionHandler *handler) {
         Session s {};
-        nghttp2_session_server_new_session_client_new(&s.session_, cb_builder.build(), (void *)handler);
+        nghttp2_session_client_new(&s.session_, cb_builder.build(), (void *)handler);
         s.bootstrap();
         return s;
     }
@@ -28,6 +27,8 @@ namespace http2 {
                                       uint32_t *data_flags,
                                       nghttp2_data_source *source,
                                       void *user_data) {
+        SPDLOG_TRACE(logger, "send data with trailer {} bytes fd={}", stream_id, length);
+
         buffer::BufferWriter* data = (buffer::BufferWriter*)source->ptr;
         size_t a = data->write_to(buf);
         if (a == 0) {
@@ -39,7 +40,7 @@ namespace http2 {
             auto nvs = http2::makeHeaderNv(hd);
             int rv  = nghttp2_submit_trailer(session, stream_id, nvs.data(), 1);
             if (rv != 0) {
-                warnx("Fatal error: %s", nghttp2_strerror(rv));
+                logger->error("sending error: %s", nghttp2_strerror(rv));
             }
             return 0;
         } else {
@@ -52,7 +53,7 @@ namespace http2 {
     int Session::bootstrap() {
         int rv = nghttp2_submit_settings(session_, NGHTTP2_FLAG_NONE, 0, 0);
         if (rv != 0) {
-            warnx("Fatal error: %s", nghttp2_strerror(rv));
+            logger->error("Fatal error bootstap: %s", nghttp2_strerror(rv));
             return -1;
         }
 
@@ -62,13 +63,13 @@ namespace http2 {
     ssize_t Session::processData(const uint8_t *data, size_t len) {
         ssize_t rv = nghttp2_session_mem_recv(session_, data, len);
         if (rv != len) {
-            warnx("Fatal error nghttp2_session_mem_recv: %s", nghttp2_strerror(rv));
+            logger->error("Fatal error nghttp2_session_mem_recv: {}", nghttp2_strerror(rv));
             return -1;
         }
         return rv;
     }
 
-    ssize_t Session::sendResponse() {
+    ssize_t Session::sendData() {
         SPDLOG_TRACE(logger, "Start sending reponse data...");
 
         int rv = nghttp2_session_send(session_);
@@ -79,21 +80,31 @@ namespace http2 {
         return 0;
     }
 
-    ssize_t Session::sendRequest() {
-        SPDLOG_TRACE(logger, "Start sending request data...");
-        // XXX
-    }
-
     void Session::registerStream(int32_t stream_id, Stream *stream) {
         int rv = nghttp2_session_set_stream_user_data(session_, stream_id, stream);
         if (rv != 0) {
-            printf("Fatal error: %s", nghttp2_strerror(rv));
+            logger->error("register stream failed: {}", nghttp2_strerror(rv));
         }
     }
 
     Stream *Session::getStream(int32_t stream_id) {
         auto user_data = nghttp2_session_get_stream_user_data(session_, stream_id);
         return static_cast<Stream*>(user_data);
+    }
+
+    ssize_t Session::submitRequest(DataFrame &d) {
+        nghttp2_data_provider data_prd;
+        data_prd.source.ptr = d.data_;
+        data_prd.read_callback = send_data_with_trailer;
+
+        auto nvs = http2::makeHeaderNv(d.hdrs_);
+        auto stream_id = nghttp2_submit_request(session_, nullptr, nvs.data(), d.hdrs_.size(), &data_prd, nullptr);
+        if (stream_id < 0) {
+            logger->error("Submit request failed: {} {}", stream_id, nghttp2_strerror(stream_id));
+            return stream_id;
+        }
+
+        return stream_id;
     }
 
     ssize_t Session::submitResponse(DataFrame &d) {
@@ -104,7 +115,7 @@ namespace http2 {
         auto nvs = http2::makeHeaderNv(d.hdrs_);
         auto rv = nghttp2_submit_response(session_, d.stream_id_, nvs.data(), d.hdrs_.size(), &data_prd);
         if (rv != 0) {
-            warnx("Fatal error: %s", nghttp2_strerror(rv));
+            logger->error("Submit response failed: {}", nghttp2_strerror(rv));
             return rv;
         }
         return 0;

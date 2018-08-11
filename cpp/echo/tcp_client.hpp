@@ -1,9 +1,12 @@
 #pragma once
 
-#include "string"
+#include <string>
+#include <list>
 
 #include "event2/event.h"
 #include "nghttp2/nghttp2.h"
+
+#include "hellworld.pb.h"
 
 #include "logger.hpp"
 #include "socket.hpp"
@@ -17,6 +20,7 @@ public:
     ClientConnection(event_base* base, Network::SocketPtr socket);
     ClientConnection* base() { return this; }
     int fd() { return socket_.get()->fd(); }
+    void request();
 
     void onSocketEvent(uint32_t events);
     void onSocketRead();
@@ -30,11 +34,11 @@ public:
     int onHeaderCallback(const nghttp2_frame* frame, std::string name, std::string value) override;
     int onStreamCloseCallback(int32_t stream_id, uint32_t error_code) override;
 
-
 private:
     event_base *base_;
     Network::BufferedSocketPtr socket_;
     Event::SocketEventPtr socket_event_;
+    std::list<http2::StreamPtr> streams_;
 
     // make unique ptr
     http2::Session session_;

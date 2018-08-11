@@ -29,6 +29,8 @@ namespace Network {
     }
 
     const int Socket::connect(const std::string host, const uint port) {
+        memset(&address_, 0, sizeof(address_));
+
         int rv = 0;
         rv = sockaddrIn(host, port);
         if (rv < 0) {
@@ -36,10 +38,11 @@ namespace Network {
         }
 
         rv = ::connect(fd_, reinterpret_cast<const sockaddr*>(&address_), sizeof(struct sockaddr));
-        if (rv < 0) {
-            logger->error("connect failed: {}", strerror(errno));
-            return rv;
-        }
+        // TODO
+        // if (rv < 0) {
+            // logger->error("connect failed: {}", strerror(errno));
+            // return rv;
+        // }
 
         return 0;
     }
