@@ -274,7 +274,8 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
         }
     }
     case NGHTTP2_RST_STREAM: {
-        SPDLOG_TRACE(logger, "[TODO] Recieved RST_STREAM frame fd={}, stream_id={}", fd(), frame->hd.stream_id);
+        SPDLOG_TRACE(logger, "Recieved RST_STREAM (remote closed) frame fd={}, stream_id={}, error_code={}", fd(), frame->hd.stream_id, frame->rst_stream.error_code);
+        // stream.closed() ?
         break;
     }
     }

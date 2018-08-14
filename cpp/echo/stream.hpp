@@ -25,8 +25,10 @@ namespace http2 {
 
     enum class StreamStatus {
         StreamActive,
-        // StreamWriteDone,
-        // StreamReadDone,
+        // half-closed and send END_STREAM
+        StreamWriteDone,
+        // half-closed and recv END_STREAM
+        StreamReadDone,
         StreamClose,
     };
 
