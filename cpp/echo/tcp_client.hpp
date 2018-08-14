@@ -33,6 +33,8 @@ public:
     int onFrameRecvCallback(const nghttp2_frame* frame) override;
     int onHeaderCallback(const nghttp2_frame* frame, std::string name, std::string value) override;
     int onStreamCloseCallback(int32_t stream_id, uint32_t error_code) override;
+    int onInvalidFrameRecvCallback(const nghttp2_frame *frame, int error_code) override;
+
 
 private:
     event_base *base_;

@@ -51,7 +51,9 @@ namespace http2 {
     Session::Session() {}
 
     int Session::bootstrap() {
-        int rv = nghttp2_submit_settings(session_, NGHTTP2_FLAG_NONE, 0, 0);
+        nghttp2_settings_entry iv[1] = {{NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, 100}};
+
+        int rv = nghttp2_submit_settings(session_, NGHTTP2_FLAG_NONE, iv, sizeof(iv)/ sizeof(iv[0]));
         if (rv != 0) {
             logger->error("Fatal error bootstap: %s", nghttp2_strerror(rv));
             return -1;
@@ -93,12 +95,13 @@ namespace http2 {
     }
 
     ssize_t Session::submitRequest(DataFrame &d) {
-        nghttp2_data_provider data_prd;
-        data_prd.source.ptr = d.data_;
-        data_prd.read_callback = send_data_with_trailer;
+        // nghttp2_data_provider data_prd;
+        // data_prd.source.ptr = d.data_;
+        // data_prd.read_callback = send_data_with_trailer;
 
         auto nvs = http2::makeHeaderNv(d.hdrs_);
-        auto stream_id = nghttp2_submit_request(session_, nullptr, nvs.data(), d.hdrs_.size(), &data_prd, nullptr);
+
+        auto stream_id = nghttp2_submit_request(session_, nullptr, nvs.data(), d.hdrs_.size(), nullptr, nullptr);
         if (stream_id < 0) {
             logger->error("Submit request failed: {} {}", stream_id, nghttp2_strerror(stream_id));
             return stream_id;
@@ -147,6 +150,10 @@ namespace http2 {
         return static_cast<ConnectionHandler*>(user_data)->onStreamCloseCallback(stream_id, error_code);
     }
 
+    static int onInvalidFrameRecvCallback(nghttp2_session *session, const nghttp2_frame *frame, int lib_error_code, void *user_data) {
+        return static_cast<ConnectionHandler*>(user_data)->onInvalidFrameRecvCallback(frame, lib_error_code);
+    }
+
     Http2CallbacksBuilder::Http2CallbacksBuilder() {
         nghttp2_session_callbacks_new(&callbacks_);
 
@@ -161,6 +168,8 @@ namespace http2 {
         nghttp2_session_callbacks_set_on_frame_recv_callback(callbacks_, onFrameRecvCallback);
 
         nghttp2_session_callbacks_set_on_header_callback(callbacks_, onHeaderCallback);
+
+        nghttp2_session_callbacks_set_on_invalid_frame_recv_callback(callbacks_, onInvalidFrameRecvCallback);
 
         nghttp2_session_callbacks_set_on_stream_close_callback(callbacks_, onStreamCloseCallback);
     }

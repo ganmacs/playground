@@ -34,12 +34,12 @@ void ClientConnection::request() {
 
     std::map<std::string, std::string> v = {
         {http2::headers::METHOD, "POST"},
-        {http2::headers::SCHEMA, "http"},
-        {http2::headers::PATH, "helloworld"},
+        {http2::headers::SCHEME, "http"},
+        {http2::headers::PATH, "/helloworld.Greeter/SayHello"},
         {http2::headers::GRPC_TIMEOUT, "10"}, // XXX
         {http2::headers::CONTENT_TYPE, http2::headers::CONTENT_TYPE_VALUE},
         {http2::headers::GRPC_ENCODING, "gzip"},
-        {http2::headers::GRPC_ENCODING, "gzip"},
+        {":authority",  "echo.server"}
     };
 
     http2::DataFrame d { 0, true, std::move(v) };
@@ -71,7 +71,7 @@ void ClientConnection::onSocketEvent(uint32_t events) {
 }
 
 void ClientConnection::onSocketWrite() {
-    SPDLOG_TRACE(logger, "fd={} is write-ready", fd());
+    // SPDLOG_TRACE(logger, "fd={} is write-ready", fd());
     if (!socket_.get()->needFlush()) {
         return;
     }
@@ -141,6 +141,16 @@ int ClientConnection::onBeginHeaderCallback(nghttp2_session* session, const nght
     return 0;
 }
 
+void handleHelloWorld(std::string buf) {
+    helloworld::HelloReply rep {};
+    if (!rep.ParseFromString(buf)) {
+        logger->error("parsing request protobuf failed");
+        return;
+    }
+
+    SPDLOG_TRACE(logger, "handlhelloworld message {}", rep.message());
+}
+
 int ClientConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len) {
     SPDLOG_TRACE(logger, "Receives data {} bytes fd={},  stream_id={}", len, fd(), stream_id);
 
@@ -151,14 +161,46 @@ int ClientConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* 
     auto plength =  buf.readUINT32();
     std::string s { buf.buffer(), plength };
 
-
-    SPDLOG_TRACE(logger, "{}", s);
+    puts("\n===================================== start print");
+    handleHelloWorld(std::move(s));
+    puts("===================================== finish print\n");
 
     // handle!
     return 0;
 }
 
 int ClientConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
+    switch(frame->hd.type) {
+    case NGHTTP2_GOAWAY: {
+        SPDLOG_TRACE(logger, "[TODO]Recieved GOAWAY frame fd={}, stream_id={}", fd(), frame->hd.stream_id);
+        break;
+    }
+    case NGHTTP2_DATA: {
+        SPDLOG_TRACE(logger, "Recieved DATA frame fd={}, stream_id={}", fd(), frame->hd.stream_id);
+        break;
+    }
+    case NGHTTP2_HEADERS: {
+        SPDLOG_TRACE(logger, "Recieved HEADERS frame fd={}, stream_id={}", fd(), frame->hd.stream_id);
+        break;
+    }
+    case NGHTTP2_SETTINGS: {
+        SPDLOG_TRACE(logger, "Recieved SETTINGS frame fd={}, stream_id={}", fd(), frame->hd.stream_id);
+        break;
+    }
+    case NGHTTP2_RST_STREAM: {
+        SPDLOG_TRACE(logger, "Recieved RST_STREAM frame fd={}, stream_id={}, error_code={}({})",
+                     fd(),
+                     frame->hd.stream_id,
+                     frame->rst_stream.error_code, nghttp2_http2_strerror(frame->rst_stream.error_code));
+        break;
+    }
+    }
+
+    return 0;
+}
+
+int ClientConnection::onInvalidFrameRecvCallback(const nghttp2_frame *frame, int error_code) {
+    SPDLOG_TRACE(logger, "onInvalidFrameRecvCallback error_code={}, {}, stream_id={}", error_code, nghttp2_strerror(error_code), frame->hd.stream_id);
     return 0;
 }
 

@@ -17,7 +17,7 @@ namespace http2 {
         static const std::string HTTP_STATUS = ":status";
         static const std::string PATH = ":path";
         static const std::string METHOD = ":method";
-        static const std::string SCHEMA = ":schema";
+        static const std::string SCHEME = ":scheme";
 
         static const std::string CONTENT_TYPE_VALUE = "application/grpc+proto";
     }

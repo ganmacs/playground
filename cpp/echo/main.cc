@@ -79,7 +79,7 @@ int ServerConnection::onBeginHeaderCallback(nghttp2_session *session, const nght
 }
 
 void ServerConnection::onSocketWrite(){
-    SPDLOG_TRACE(logger, "fd={} is write-ready", fd());
+    // SPDLOG_TRACE(logger, "fd={} is write-ready", fd());
     if (!socket_.get()->needFlush()) {
         return;
     }
@@ -161,21 +161,6 @@ static routeguide::Feature respRouteGuideListFeatures(std::string& buf) {
     // return routeguide::Feature {};
 }
 
-int ServerConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len) {
-    SPDLOG_TRACE(logger, "Receives data {} bytes fd={},  stream_id={}", len, fd(), stream_id);
-
-    http2::Stream *stream = session_.getStream(stream_id);
-
-    buffer::BufferReader buf {(const char *)data, len};
-    auto encode_flag =  buf.readUINT8();
-    auto plength =  buf.readUINT32();
-    std::string s { buf.buffer(), plength };
-    handleRouteGuideListFeatures(s);
-    // handleRouteGuideRecordGuide(s);
-
-    return 0;
-}
-
 void sendReply(http2::Session &session, http2::Stream *stream) {
     helloworld::HelloReply reply {};
     reply.set_message("heyheyhey!!!");
@@ -202,6 +187,23 @@ void sendReply(http2::Session &session, http2::Stream *stream) {
     if (session.submitResponse(d) != 0) {
         exit(1);
     }
+}
+
+int ServerConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len) {
+    SPDLOG_TRACE(logger, "Receives data {} bytes fd={},  stream_id={}", len, fd(), stream_id);
+
+    http2::Stream *stream = session_.getStream(stream_id);
+
+    buffer::BufferReader buf {(const char *)data, len};
+    auto encode_flag =  buf.readUINT8();
+    auto plength =  buf.readUINT32();
+    std::string s { buf.buffer(), plength };
+    sendReply(session_, stream);
+
+// handleRouteGuideListFeatures(s);
+    // handleRouteGuideRecordGuide(s);
+
+    return 0;
 }
 
 int ServerConnection::onStreamCloseCallback(int32_t stream_id, uint32_t error_code) {
