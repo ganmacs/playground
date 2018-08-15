@@ -48,6 +48,29 @@ namespace http2 {
         }
     }
 
+    static ssize_t send_data_with_trailer2(nghttp2_session *session, int32_t stream_id,
+                                      uint8_t *buf, size_t length,
+                                      uint32_t *data_flags,
+                                      nghttp2_data_source *source,
+                                      void *user_data) {
+        SPDLOG_TRACE(logger, "send data with trailer {} bytes fd={}", stream_id, length);
+
+        buffer::BufferWriter* data = (buffer::BufferWriter*)source->ptr;
+        size_t a = data->write_to(buf);
+
+        if (a == 0) {
+            *data_flags |= NGHTTP2_DATA_FLAG_EOF;
+            return 0;
+        } else {
+
+            if (a == length) {
+                *data_flags |= NGHTTP2_DATA_FLAG_EOF;
+                return 0;
+            }
+            return a;
+        }
+    }
+
     Session::Session() {}
 
     int Session::bootstrap() {
@@ -95,13 +118,13 @@ namespace http2 {
     }
 
     ssize_t Session::submitRequest(DataFrame &d) {
-        // nghttp2_data_provider data_prd;
-        // data_prd.source.ptr = d.data_;
-        // data_prd.read_callback = send_data_with_trailer;
+        nghttp2_data_provider data_prd;
+        data_prd.source.ptr = d.data_;
+        data_prd.read_callback = send_data_with_trailer2;
 
         auto nvs = http2::makeHeaderNv(d.hdrs_);
 
-        auto stream_id = nghttp2_submit_request(session_, nullptr, nvs.data(), d.hdrs_.size(), nullptr, nullptr);
+        auto stream_id = nghttp2_submit_request(session_, nullptr, nvs.data(), d.hdrs_.size(), &data_prd, nullptr);
         if (stream_id < 0) {
             logger->error("Submit request failed: {} {}", stream_id, nghttp2_strerror(stream_id));
             return stream_id;

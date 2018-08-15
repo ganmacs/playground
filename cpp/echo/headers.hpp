@@ -19,7 +19,7 @@ namespace http2 {
         static const std::string METHOD = ":method";
         static const std::string SCHEME = ":scheme";
 
-        static const std::string CONTENT_TYPE_VALUE = "application/grpc+proto";
+        static const std::string CONTENT_TYPE_VALUE = "application/grpc";
     }
 
     nghttp2_nv make_nghttp2_nv(const std::string &name, const std::string &value, bool noIndex);

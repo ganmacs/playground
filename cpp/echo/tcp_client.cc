@@ -36,10 +36,10 @@ void ClientConnection::request() {
         {http2::headers::METHOD, "POST"},
         {http2::headers::SCHEME, "http"},
         {http2::headers::PATH, "/helloworld.Greeter/SayHello"},
-        {http2::headers::GRPC_TIMEOUT, "10"}, // XXX
+        // {http2::headers::GRPC_TIMEOUT, "10"}, // XXX
         {http2::headers::CONTENT_TYPE, http2::headers::CONTENT_TYPE_VALUE},
-        {http2::headers::GRPC_ENCODING, "gzip"},
-        {":authority",  "echo.server"}
+        // {http2::headers::GRPC_ENCODING, "gzip"},
+        {":authority",  "echo.server:3000"}
     };
 
     http2::DataFrame d { 0, true, std::move(v) };
@@ -161,9 +161,7 @@ int ClientConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* 
     auto plength =  buf.readUINT32();
     std::string s { buf.buffer(), plength };
 
-    puts("\n===================================== start print");
     handleHelloWorld(std::move(s));
-    puts("===================================== finish print\n");
 
     // handle!
     return 0;
