@@ -117,14 +117,16 @@ namespace http2 {
         return static_cast<Stream*>(user_data);
     }
 
-    ssize_t Session::submitRequest(DataFrame &d) {
+    ssize_t Session::submitRequest(DataFrame &d, Stream *stream) {
         nghttp2_data_provider data_prd;
         data_prd.source.ptr = d.data_;
         data_prd.read_callback = send_data_with_trailer2;
 
         auto nvs = http2::makeHeaderNv(d.hdrs_);
 
-        auto stream_id = nghttp2_submit_request(session_, nullptr, nvs.data(), d.hdrs_.size(), &data_prd, nullptr);
+        // set stream for get stream
+        auto stream_id = nghttp2_submit_request(session_, nullptr, nvs.data(), d.hdrs_.size(), &data_prd, stream);
+        stream->stream_id_ = stream_id;
         if (stream_id < 0) {
             logger->error("Submit request failed: {} {}", stream_id, nghttp2_strerror(stream_id));
             return stream_id;
@@ -163,6 +165,10 @@ namespace http2 {
         return static_cast<ConnectionHandler*>(user_data)->onFrameRecvCallback(frame);
     }
 
+    static int onFrameSendCallback(nghttp2_session*, const nghttp2_frame *frame, void *user_data) {
+        return static_cast<ConnectionHandler*>(user_data)->onFrameSendCallback(frame);
+    }
+
     static int onHeaderCallback(nghttp2_session*, const nghttp2_frame* frame, const uint8_t* raw_name, size_t name_length, const uint8_t* raw_value, size_t value_length, uint8_t, void* user_data) {
         std::string name { raw_name, raw_name+name_length };
         std::string value { raw_value, raw_value+value_length };
@@ -180,8 +186,6 @@ namespace http2 {
     Http2CallbacksBuilder::Http2CallbacksBuilder() {
         nghttp2_session_callbacks_new(&callbacks_);
 
-        // nghttp2_session_callbacks_set_on_frame_send_callback(callbacks_, onFrameSendCallback)
-
         nghttp2_session_callbacks_set_send_callback(callbacks_, onSendCallback);
 
         nghttp2_session_callbacks_set_on_begin_headers_callback(callbacks_, onBeginHeaderCallback);
@@ -189,6 +193,8 @@ namespace http2 {
         nghttp2_session_callbacks_set_on_data_chunk_recv_callback(callbacks_, onDataChunkRecvCallback);
 
         nghttp2_session_callbacks_set_on_frame_recv_callback(callbacks_, onFrameRecvCallback);
+
+        nghttp2_session_callbacks_set_on_frame_send_callback(callbacks_, onFrameSendCallback);
 
         nghttp2_session_callbacks_set_on_header_callback(callbacks_, onHeaderCallback);
 

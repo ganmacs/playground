@@ -45,7 +45,11 @@ void ClientConnection::request() {
     http2::DataFrame d { 0, true, std::move(v) };
     d.data_ = bufw;
 
-    auto stream_id = session_.submitRequest(d);
+    auto sm = new http2::Stream();
+    auto stream_id = session_.submitRequest(d, sm);
+    http2::StreamPtr stream { sm };
+    streams_.emplace_front(std::move(stream));
+
     SPDLOG_TRACE(logger, "Submit request to stream_id={}", stream_id);
     session_.sendData();
 }
@@ -133,11 +137,6 @@ int ClientConnection::onBeginHeaderCallback(nghttp2_session* session, const nght
         return 0;
     }
 
-    http2::StreamPtr stream { new http2::Stream(frame->hd.stream_id) };
-    // need?
-    streams_.emplace_front(std::move(stream));
-    session_.registerStream(frame->hd.stream_id, streams_.front().get());
-
     return 0;
 }
 
@@ -151,6 +150,8 @@ void handleHelloWorld(std::string buf) {
     SPDLOG_TRACE(logger, "handlhelloworld message {}", rep.message());
 }
 
+const uint32_t MAX_RECV_MESASGE_SIZE = 1024*1024*4;
+
 int ClientConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len) {
     SPDLOG_TRACE(logger, "Receives data {} bytes fd={},  stream_id={}", len, fd(), stream_id);
 
@@ -159,26 +160,36 @@ int ClientConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* 
     buffer::BufferReader buf {(const char *)data, len};
     auto encode_flag =  buf.readUINT8();
     auto plength =  buf.readUINT32();
+
+    if (plength > MAX_RECV_MESASGE_SIZE) {
+        return NGHTTP2_ERR_CALLBACK_FAILURE; // XXX
+    }
+
     std::string s { buf.buffer(), plength };
 
     handleHelloWorld(std::move(s));
 
-    // handle!
     return 0;
 }
 
 int ClientConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
+    http2::Stream* stream = session_.getStream(frame->hd.stream_id);
+
     switch(frame->hd.type) {
     case NGHTTP2_GOAWAY: {
         SPDLOG_TRACE(logger, "[TODO]Recieved GOAWAY frame fd={}, stream_id={}", fd(), frame->hd.stream_id);
         break;
     }
     case NGHTTP2_DATA: {
-        SPDLOG_TRACE(logger, "Recieved DATA frame fd={}, stream_id={}", fd(), frame->hd.stream_id);
+        stream->remote_end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
+
+        SPDLOG_TRACE(logger, "Recieved DATA frame fd={}, stream_id={}, end_stream={}", fd(), frame->hd.stream_id, stream->remote_end_stream_);
         break;
     }
     case NGHTTP2_HEADERS: {
-        SPDLOG_TRACE(logger, "Recieved HEADERS frame fd={}, stream_id={}", fd(), frame->hd.stream_id);
+        stream->remote_end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
+        SPDLOG_TRACE(logger, "Recieved HEADERS frame fd={}, stream_id={}, end_stream={}", fd(), frame->hd.stream_id, stream->remote_end_stream_);
+
         break;
     }
     case NGHTTP2_SETTINGS: {
@@ -194,6 +205,29 @@ int ClientConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
     }
     }
 
+    return 0;
+}
+
+int ClientConnection::onFrameSendCallback(const nghttp2_frame* frame) {
+    SPDLOG_TRACE(logger, "sent frame type={}", static_cast<uint64_t>(frame->hd.type));
+
+    switch(frame->hd.type) {
+    case NGHTTP2_GOAWAY: {
+        SPDLOG_TRACE(logger, "GOAWAY");
+        break;
+    }
+    case NGHTTP2_RST_STREAM: {
+        SPDLOG_TRACE(logger, "RST_STREAM");
+        break;
+    }
+    case NGHTTP2_HEADERS:
+    case NGHTTP2_DATA: {
+        http2::Stream* stream = session_.getStream(frame->hd.stream_id);
+        stream->local_end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
+        SPDLOG_TRACE(logger, "sent end stream={}", stream->local_end_stream_);
+        break;
+    }
+    }
     return 0;
 }
 
@@ -224,6 +258,18 @@ int ClientConnection::onStreamCloseCallback(int32_t stream_id, uint32_t error_co
 
     // remove stream from streams
     session_.registerStream(stream_id, nullptr);
+
+    for (auto s = streams_.begin(); streams_.end() != s; s++) {
+        if (s->get()->stream_id_ == stream_id) {
+            streams_.erase(s);
+            break;
+        }
+    }
+
+    if (streams_.empty()) {
+        SPDLOG_TRACE(logger, "there is no streams, Close socket");
+        socket_->close();
+    }
 
     return 0;
 }

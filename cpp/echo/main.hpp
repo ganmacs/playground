@@ -44,6 +44,7 @@ public:
     int onHeaderCallback(const nghttp2_frame *frame, std::string name, std::string value);
     int onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len);
     int onFrameRecvCallback(const nghttp2_frame* frame);
+    int onFrameSendCallback(const nghttp2_frame* frame);
     int onStreamCloseCallback(int32_t stream_id, uint32_t error_code);
 
     network::SocketState state_ {network::SocketState::Open};

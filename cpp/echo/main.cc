@@ -50,7 +50,7 @@ void ServerConnection::closeSocket() {
     auto sock = socket_.get();
 
     SPDLOG_TRACE(logger, "closing connection fd={}", sock->fd());
-    // sock->close()
+    sock->close();
     state_ = network::SocketState::Closed;
     socket_event_.reset();
 
@@ -282,6 +282,29 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
     }
     }
 
+    return 0;
+}
+
+int ServerConnection::onFrameSendCallback(const nghttp2_frame* frame) {
+    SPDLOG_TRACE(logger, "sent frame type={}", static_cast<uint64_t>(frame->hd.type));
+
+    switch(frame->hd.type) {
+    case NGHTTP2_GOAWAY: {
+        SPDLOG_TRACE(logger, "GOAWAY");
+        break;
+    }
+    case NGHTTP2_RST_STREAM: {
+        SPDLOG_TRACE(logger, "RST_STREAM");
+        break;
+    }
+    case NGHTTP2_HEADERS:
+    case NGHTTP2_DATA: {
+        http2::Stream* stream = session_.getStream(frame->hd.stream_id);
+        stream->local_end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
+        SPDLOG_TRACE(logger, "sent end stream={}", stream->local_end_stream_);
+        break;
+    }
+    }
     return 0;
 }
 

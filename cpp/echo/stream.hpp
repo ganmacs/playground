@@ -53,8 +53,9 @@ namespace http2 {
     class Stream {
     public:
         Stream(int32_t stream_id);
+        Stream() {};
 
-        const int32_t stream_id_;
+        int32_t stream_id_{-1};
         HeadersState headers_state_;
 
         bool remote_end_stream_ { false };
@@ -62,7 +63,7 @@ namespace http2 {
         StreamStatus stream_status_ {StreamStatus::StreamActive};
     };
 
-    using StreamPtr = std::unique_ptr<Stream>;
+    using StreamPtr = std::shared_ptr<Stream>;
 
     int grpc_path_build(GrpcPath& v , std::string p);
 }

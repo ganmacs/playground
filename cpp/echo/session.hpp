@@ -28,7 +28,7 @@ namespace http2 {
         Session();
         ssize_t processData(const uint8_t *data, size_t len);
         ssize_t submitResponse(DataFrame &d);
-        ssize_t submitRequest(DataFrame &d);
+        ssize_t submitRequest(DataFrame &d, Stream *stream);
 
         ssize_t sendData();
         void registerStream(int32_t stream_id, Stream *stream);
