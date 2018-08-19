@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <map>
 
 #include "nghttp2/nghttp2.h"
 
@@ -15,6 +16,8 @@
 #include "logger.hpp"
 
 namespace http2 {
+    class Stream;
+
     class Server {
     public:
         Server() {};
@@ -34,6 +37,13 @@ namespace http2 {
         void registerStream(int32_t stream_id, Stream *stream);
         Stream *getStream(int32_t stream_id);
 
+        ssize_t writeHeader(DataFramePtr d, Stream *stream);
+        ssize_t writeData(DataFrame &d);
+        ssize_t writeData2(std::list<DataFramePtr> *list);
+        ssize_t resume(int32_t stream_id);
+
+        // ssize_t sendMsg(DataFrame &d, Stream *stream);
+        // ssize_t sendCloseMsg(DataFrame &d);
     private:
         int bootstrap();
         void processControlBuf(const size_t process_size);

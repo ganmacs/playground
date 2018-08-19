@@ -31,8 +31,8 @@ namespace http2 {
         // int32_t streamId() { return stream_id_; }
         // FrameType frameType() override { return FrameType::DATA; }
 
-        void* data_;
-        const int32_t stream_id_;
+        void* data_ {nullptr};
+        int32_t stream_id_;
         const bool end_stream_ { false };
         std::map<std::string, std::string> hdrs_; // XXX
 

@@ -2,11 +2,16 @@
 
 #include <cstdint>
 #include <string>
+#include <list>
 #include <unordered_map>
 
+#include "session.hpp"
 #include "headers.hpp"
+#include "frame.hpp"
 
 namespace http2 {
+    class Session;
+
     struct GrpcPath {
     public:
         GrpcPath() {};
@@ -55,12 +60,17 @@ namespace http2 {
         Stream(int32_t stream_id);
         Stream() {};
 
+        ssize_t sendMsg(DataFramePtr d, http2::Session &session);
+        ssize_t sendMsg2(http2::Session &session);
+
         int32_t stream_id_{-1};
         HeadersState headers_state_;
 
         bool remote_end_stream_ { false };
         bool local_end_stream_ { false };
         StreamStatus stream_status_ {StreamStatus::StreamActive};
+        std::list<DataFramePtr> item_list_;
+        bool sending_{false};
     };
 
     using StreamPtr = std::shared_ptr<Stream>;

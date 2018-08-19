@@ -62,7 +62,6 @@ namespace http2 {
             *data_flags |= NGHTTP2_DATA_FLAG_EOF;
             return 0;
         } else {
-
             if (a == length) {
                 *data_flags |= NGHTTP2_DATA_FLAG_EOF;
                 return 0;
@@ -74,6 +73,8 @@ namespace http2 {
     Session::Session() {}
 
     int Session::bootstrap() {
+        SPDLOG_TRACE(logger, "sending initianl setting frame");
+
         nghttp2_settings_entry iv[1] = {{NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, 100}};
 
         int rv = nghttp2_submit_settings(session_, NGHTTP2_FLAG_NONE, iv, sizeof(iv)/ sizeof(iv[0]));
@@ -134,6 +135,133 @@ namespace http2 {
 
         return stream_id;
     }
+
+    ssize_t Session::writeHeader(DataFramePtr d, Stream *stream) {
+        if (d->hdrs_.size() <=  0) {
+            return 0;
+        }
+
+        auto nvs = http2::makeHeaderNv(d->hdrs_);
+        // not END_STREAM
+        auto rv = nghttp2_submit_headers(session_, NGHTTP2_FLAG_NONE, d->stream_id_, nullptr, nvs.data(), d->hdrs_.size(), stream);
+        if (rv < 0) {
+            logger->error("Submit header failed: {} {}", rv, nghttp2_strerror(rv));
+            return rv;
+        }
+
+        return rv;
+    }
+
+    ssize_t Session::resume(int32_t stream_id) {
+        auto rv = nghttp2_session_resume_data(session_, stream_id);
+        if (rv != 0) {
+            logger->error("resume sending data failed: {}", nghttp2_strerror(rv));
+            return rv;
+        }
+        return rv;
+    }
+
+    ssize_t Session::writeData2(std::list<DataFramePtr> *list) {
+        if (list->empty()) {
+            return 0;
+        }
+        nghttp2_data_provider data_prd;
+        data_prd.source.ptr = (void *)list;
+
+        data_prd.read_callback = [](nghttp2_session *session, int32_t stream_id, uint8_t *buf, size_t length, uint32_t *data_flags, nghttp2_data_source *source, void *user_data) -> ssize_t {
+            std::list<DataFramePtr>* item_list = (std::list<DataFramePtr> *)source->ptr;
+            auto total = 0;
+            bool end = false;
+
+            while (!item_list->empty()) {
+                auto d = item_list->front();
+                buffer::BufferWriter *b = (buffer::BufferWriter *)d->data_;
+                // TODO: check total buffer size + buffer size <  length
+                size_t size = b->write_to(buf);
+
+                if (size == 0) {
+                    item_list->pop_front();
+
+                    if (d->end_stream_) {
+                        *data_flags |= NGHTTP2_DATA_FLAG_EOF;
+                        return total;
+                    }
+                }
+                total += size;
+            }
+
+            if (total > 0) {
+                return total;
+            } else {
+                return NGHTTP2_ERR_DEFERRED;
+            }
+        };
+
+        // data_prd.read_callback = send_data_with_trailer2;
+
+        auto d = list->front();
+        auto rv = nghttp2_submit_data(session_, NGHTTP2_FLAG_END_STREAM, d->stream_id_, &data_prd);
+        if (rv != 0) {
+            logger->error("Submit data failed: {}", nghttp2_strerror(rv));
+            return rv;
+        }
+
+        return 0;
+    }
+
+    ssize_t Session::writeData(DataFrame &d) {
+        nghttp2_data_provider data_prd;
+        data_prd.source.ptr = d.data_;
+
+        int rv;
+        if (d.end_stream_) {
+            if (d.data_ == nullptr) {
+                rv = nghttp2_submit_data(session_, NGHTTP2_FLAG_END_STREAM, d.stream_id_, &data_prd);
+            } else {
+                data_prd.read_callback = send_data_with_trailer2;
+                rv = nghttp2_submit_data(session_, NGHTTP2_FLAG_END_STREAM, d.stream_id_, &data_prd);
+            }
+        } else {
+            data_prd.read_callback = [](nghttp2_session *session, int32_t stream_id, uint8_t *buf, size_t length, uint32_t *data_flags, nghttp2_data_source *source, void *user_data) -> ssize_t {
+                buffer::BufferWriter* data = (buffer::BufferWriter*)source->ptr;
+                size_t a = data->write_to(buf);
+                printf("%ld %ld\n", length, a);
+
+                if (a == 0) {
+                    return NGHTTP2_ERR_DEFERRED;
+                }
+                return a;
+            };
+
+            // data_prd.read_callback = send_data_with_trailer2;
+            rv = nghttp2_submit_data(session_, NGHTTP2_FLAG_END_STREAM, d.stream_id_, &data_prd);
+        }
+
+        if (rv != 0) {
+            logger->error("Submit data failed: {}", nghttp2_strerror(rv));
+            return rv;
+        }
+
+        return d.stream_id_;
+    }
+
+    // ssize_t Session::sendMsg(DataFrame &d, Stream *stream) {
+    //     auto stream_id = d.stream_id_;
+
+    //     if (d.hdrs_.size() > 0) {
+    //         auto nvs = http2::makeHeaderNv(d.hdrs_);
+    //         // not END_STREAM
+    //         auto rv = nghttp2_submit_headers(session_, 0, stream_id, nullptr, nvs.data(), d.hdrs_.size(), nullptr);
+    //         if (rv < 0) {
+    //             logger->error("Submit request failed: {} {}", stream_id, nghttp2_strerror(stream_id));
+    //             return rv;
+    //         }
+    //         stream_id = rv;
+    //     }
+
+
+    //     return stream_id;
+    // }
 
     ssize_t Session::submitResponse(DataFrame &d) {
         nghttp2_data_provider data_prd;

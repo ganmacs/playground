@@ -14,9 +14,8 @@ DEPS := $(SRCS:%.cc=%.d)
 $(TARGET): $(OBJS)
 		$(CXX) $(CFLAGS) $(OBJS) -o $@ $(LIBS)
 
-$(OBJS): $(SRCS)
-		$(CXX) $(CFLAGS) $(CXXFLAGS) $(INC_FLAGS) -c $(SRCS)
-# %^ can't use...
+.cc.o:
+		$(CXX) $(CFLAGS) $(CXXFLAGS) $(INC_FLAGS) -c $<
 
 .PHONY: clean all
 

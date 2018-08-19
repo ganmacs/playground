@@ -1,9 +1,9 @@
 #include "main.hpp"
 
 ServerConnection::ServerConnection(event_base* ebase, evutil_socket_t fd, markClosedConnection cb):
+    mark_closed_{cb},
     socket_{std::make_unique<Network::BufferedSocket>(fd)},
-    session_{http2::Session::buildServerSession(base())},
-    mark_closed_{cb}
+    session_{http2::Session::buildServerSession(base())}
 {
     auto fn = [this](uint32_t events) -> void { onSocketEvent(events); };
     socket_event_ = std::make_unique<Event::SocketEvent>(ebase, fd, fn,  Event::SocketEventType::Read|Event::SocketEventType::Write);
@@ -361,8 +361,19 @@ int main(int argc, char **argv) {
         logger->info("starting request...");
 
         auto c = ClientConnection::connect(base, "127.0.0.1", 3000);
+        std::thread t([&]{ event_base_loop(base, 0); });
+
         c.request();
-        event_base_loop(base, 0);
+
+        int second = 2;
+        sleep(second);
+
+        logger->info("request2===");
+        c.request2();
+
+
+        second = 10;
+        sleep(second);
     }
 
     return 0;

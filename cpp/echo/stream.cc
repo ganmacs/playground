@@ -1,6 +1,7 @@
 #pragma once
 
 #include "stream.hpp"
+#include "nghttp2/nghttp2.h"
 
 namespace http2 {
     int grpc_path_build(GrpcPath& v , std::string p) {
@@ -68,4 +69,75 @@ namespace http2 {
     }
 
     Stream::Stream(int32_t stream_id): stream_id_{stream_id} {}
+
+    ssize_t Stream::sendMsg(DataFramePtr d, http2::Session &s) {
+        SPDLOG_TRACE(logger, "write Header stream_id={}", d->stream_id_);
+        auto rv = s.writeHeader(d, this);
+
+        if (rv < 0) {
+            return rv;
+        } else if (rv > 0) {
+            stream_id_ = rv;
+            d->stream_id_ = stream_id_;
+        } else {                // rv==0
+            // no header
+        }
+
+        item_list_.emplace_back(std::move(d));
+
+        // SPDLOG_TRACE(logger, "write Data stream_id={}", d.stream_id_);
+        // auto rv2 = s.writeData(d);
+        // if (rv2 < 0) {
+        //     // error
+        //     return rv2;
+        // }
+
+        return 0;
+    }
+
+    // ssize_t Stream::sendMsg2(http2::Session &s) {
+    //     if (!item_list_.empty()) {
+    //         auto d = item_list_.front();
+    //         item_list_.pop_front();
+
+    //         SPDLOG_TRACE(logger, "write Data stream_id={}", d.get()->stream_id_);
+    //         auto rv2 = s.writeData(*d);
+    //         if (rv2 < 0) {
+    //             return rv2;
+    //         }
+    //     }
+    //     return 0;
+    // }
+
+    ssize_t Stream::sendMsg2(http2::Session &s) {
+        SPDLOG_TRACE(logger, "sendmsg2");
+
+        if (sending_) {
+            SPDLOG_TRACE(logger, "already sending");
+            return 0;
+        }
+
+        sending_ = true;
+        if (item_list_.empty()) {
+            SPDLOG_TRACE(logger, "item_lsit is empty");
+        }
+        s.writeData2(&item_list_);
+        return 0;
+    }
+
+    // ssize_t Stream::sendMsg2(http2::Session &s) {
+        // while (!item_list_.empty()) {
+
+            // auto d = item_list_.front();
+            // item_list_.pop_front();
+
+            // SPDLOG_TRACE(logger, "write Data stream_id={}", d.get()->stream_id_);
+        // auto rv2 = s.writeData2(&item_list_);
+            // if (rv2 < 0) {
+                // error
+                // return rv2;
+            // }
+        // }
+        // return 0;
+    // }
 }

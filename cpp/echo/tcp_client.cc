@@ -27,10 +27,6 @@ void ClientConnection::request() {
     req.SerializeToString(&tmp);
 
     // XXX
-    auto bufw = new buffer::BufferWriter();
-    bufw->putUINT8(0);             // non encoding
-    bufw->putUINT32(tmp.length()); // pre length
-    bufw->append(std::move(tmp));
 
     std::map<std::string, std::string> v = {
         {http2::headers::METHOD, "POST"},
@@ -42,17 +38,50 @@ void ClientConnection::request() {
         {":authority",  "echo.server:3000"}
     };
 
-    http2::DataFrame d { 0, true, std::move(v) };
-    d.data_ = bufw;
-
     auto sm = new http2::Stream();
-    auto stream_id = session_.submitRequest(d, sm);
+    http2::DataFramePtr d { new http2::DataFrame(sm->stream_id_, false, std::move(v))};
+    auto bufw = new buffer::BufferWriter();
+    bufw->putUINT8(0);             // non encoding
+    bufw->putUINT32(tmp.length()); // pre length
+    bufw->append(std::move(tmp));
+    d->data_ = bufw;
+    sm->sendMsg(std::move(d), session_);
+
+    // auto bufw2 = new buffer::BufferWriter();
+    // bufw2->putUINT8(0);             // non encoding
+    // bufw2->putUINT32(tmp.length()); // pre length
+    // bufw2->append("heyheyhey");
+    // dd.data_ = bufw2;
+    // sm->sendMsg(dd, session_);
+
+    // auto stream_id = session_.submitRequest(d, sm);
+
     http2::StreamPtr stream { sm };
     streams_.emplace_front(std::move(stream));
 
-    SPDLOG_TRACE(logger, "Submit request to stream_id={}", stream_id);
     session_.sendData();
 }
+
+void ClientConnection::request2() {
+    auto sm = streams_.front();
+
+    http2::DataFramePtr d2 { new http2::DataFrame(sm->stream_id_, true, {})};
+    auto bufw2 = new buffer::BufferWriter();
+    bufw2->putUINT8(0);             // non encoding
+    bufw2->putUINT32(7); // pre length
+    bufw2->append("heyheyhey");
+    d2->data_ = bufw2;
+
+    SPDLOG_TRACE(logger, "Submit request2 to stream_id={}", sm->stream_id_);
+    sm->sendMsg(std::move(d2), session_);
+
+    if (sm->sending_) {
+        session_.resume(sm->stream_id_);
+    }
+
+    session_.sendData();
+}
+
 
 void ClientConnection::onSocketEvent(uint32_t events) {
     if (socket_->fd() < 0) {
@@ -75,10 +104,11 @@ void ClientConnection::onSocketEvent(uint32_t events) {
 }
 
 void ClientConnection::onSocketWrite() {
-    // SPDLOG_TRACE(logger, "fd={} is write-ready", fd());
     if (!socket_.get()->needFlush()) {
         return;
     }
+
+    // SPDLOG_TRACE(logger, "fd={} is write-ready", fd());
 
     uint64_t bytes_written = 0;
 
@@ -105,15 +135,17 @@ void ClientConnection::onSocketWrite() {
     } while(true);
 
 
-    SPDLOG_TRACE(logger, "Sending data {} bytes fd={}", bytes_written, fd());
-    if (bytes_written > 0) {
+    SPDLOG_TRACE(logger, "Do write data {} bytes fd={}", bytes_written, fd());
+
+    // XXX
+    // if (bytes_written > 0) {
         // TODO
-        session_.sendData();
-    }
+        // session_.sendData();
+    // }
 }
 
 void ClientConnection::onSocketRead(){
-    SPDLOG_TRACE(logger, "ready ready");
+    SPDLOG_TRACE(logger, "read ready");
     auto result = socket_.get()->onRead([this](const uint8_t *data, size_t len) -> int {
             auto rv = session_.processData(data, len);
             if (rv == -1) {
@@ -125,10 +157,9 @@ void ClientConnection::onSocketRead(){
 }
 
 ssize_t ClientConnection::onSendCallback(const uint8_t *data, size_t length) {
-    SPDLOG_TRACE(logger, "Queueing data {} bytes fd={}", length, fd());
+    SPDLOG_TRACE(logger, "[onSendCallback] write data to socket {} bytes fd={}", length, fd());
     socket_.get()->write(data, length);
     return length;
-    return 0;
 }
 
 int ClientConnection::onBeginHeaderCallback(nghttp2_session* session, const nghttp2_frame *frame) {
@@ -223,7 +254,14 @@ int ClientConnection::onFrameSendCallback(const nghttp2_frame* frame) {
     case NGHTTP2_HEADERS:
     case NGHTTP2_DATA: {
         http2::Stream* stream = session_.getStream(frame->hd.stream_id);
-        stream->local_end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
+
+        stream->sendMsg2(session_);
+        // stream->sendMsg2(session_);
+
+        if (!stream->local_end_stream_) {
+            stream->local_end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
+        }
+
         SPDLOG_TRACE(logger, "sent end stream={}", stream->local_end_stream_);
         break;
     }

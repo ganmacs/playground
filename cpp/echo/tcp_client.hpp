@@ -21,6 +21,7 @@ public:
     ClientConnection* base() { return this; }
     int fd() { return socket_.get()->fd(); }
     void request();
+    void request2();
 
     void onSocketEvent(uint32_t events);
     void onSocketRead();
