@@ -28,14 +28,20 @@ void ClientConnection::request() {
 
     // XXX
 
-    std::map<std::string, std::string> v = {
-        {http2::headers::METHOD, "POST"},
+    http2::Headers v = {
+        {http2::headers::METHOD, http2::headers::POST},
         {http2::headers::SCHEME, "http"},
-        {http2::headers::PATH, "/helloworld.Greeter/SayHello"},
-        // {http2::headers::GRPC_TIMEOUT, "10"}, // XXX
+        {http2::headers::PATH, http2::headers::HTTP},
+        {http2::headers::AUTHORITY,  "echo-server:3000"},
+
+        {http2::headers::TE, http2::headers::TE_VALUE},
+        {http2::headers::GRPC_TIMEOUT, "10S"},
         {http2::headers::CONTENT_TYPE, http2::headers::CONTENT_TYPE_VALUE},
+        {http2::headers::USER_AGENT, http2::headers::UA_VALUE},
         // {http2::headers::GRPC_ENCODING, "gzip"},
-        {":authority",  "echo.server:3000"}
+
+        // meta data
+        {"mdata1",  "mdata-value"},
     };
 
     auto sm = new http2::Stream();
@@ -65,7 +71,12 @@ void ClientConnection::request() {
 void ClientConnection::request2() {
     auto sm = streams_.front();
 
-    http2::DataFramePtr d2 { new http2::DataFrame(sm->stream_id_, true )};
+    if (sm == nullptr) {
+        logger->error("connction streams does not exist");
+        return;
+    }
+
+    http2::DataFramePtr d2 { new http2::DataFrame(sm->stream_id_, true) };
     auto bufw2 = new buffer::BufferWriter();
     bufw2->putUINT8(0);             // non encoding
     bufw2->putUINT32(7); // pre length

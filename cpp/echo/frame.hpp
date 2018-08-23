@@ -1,5 +1,7 @@
 #pragma once
 
+#include "headers.hpp"
+
 #include <cstdint>
 #include <string>
 #include <map>
@@ -21,12 +23,11 @@ namespace http2 {
 
     struct DataFrame {
     public:
-        DataFrame(int32_t id, bool end_stream, std::map<std::string, std::string> headers);
+        DataFrame(int32_t id, bool end_stream, Headers headers);
         DataFrame(int32_t id, bool end_stream);
         DataFrame(int32_t id);
 
         // DataFrame(DataFrame &&a) noexcept {};
-
 
         // int32_t streamId() { return stream_id_; }
         // FrameType frameType() override { return FrameType::DATA; }
@@ -34,7 +35,7 @@ namespace http2 {
         void* data_ {nullptr};
         int32_t stream_id_;
         const bool end_stream_ { false };
-        std::map<std::string, std::string> hdrs_; // XXX
+        Headers hdrs_;
 
     private:
     };

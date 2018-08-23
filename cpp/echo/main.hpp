@@ -18,6 +18,7 @@
 #include "tcp_server.hpp"
 #include "tcp_client.hpp"
 #include "socket_event.hpp"
+#include "headers.hpp"
 
 namespace network {
     enum class SocketState {

@@ -1,4 +1,3 @@
-
 #include "session.hpp"
 
 namespace http2 {
@@ -36,7 +35,7 @@ namespace http2 {
             *data_flags |= NGHTTP2_DATA_FLAG_NO_END_STREAM;
 
             // trailers
-            HeaderMap hd = { {http2::headers::GRPC_STATUS, "0"} };
+            Headers hd = { {http2::headers::GRPC_STATUS, "0"} };
             auto nvs = http2::makeHeaderNv(hd);
             int rv  = nghttp2_submit_trailer(session, stream_id, nvs.data(), 1);
             if (rv != 0) {

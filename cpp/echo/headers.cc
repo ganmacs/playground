@@ -14,7 +14,7 @@ namespace http2 {
                                 noIndex ? NGHTTP2_NV_FLAG_NO_INDEX : NGHTTP2_NV_FLAG_NONE);
     }
 
-    std::vector<nghttp2_nv> makeHeaderNv(const HeaderMap &headers) {
+    std::vector<nghttp2_nv> makeHeaderNv(const Headers &headers) {
         auto nvs = std::vector<nghttp2_nv>();
         nvs.reserve(headers.size());
 

@@ -3,7 +3,7 @@
 #include <vector>
 #include <cstdint>
 #include <string>
-#include <map>
+#include <utility>
 
 #include "nghttp2/nghttp2.h"
 
@@ -37,7 +37,8 @@ namespace http2 {
 
     nghttp2_nv make_nghttp2_nv(const std::string &name, const std::string &value, bool noIndex);
 
-    using HeaderMap = std::map<std::string, std::string>;
+    // The order is important for header. So we use vector (no to use std::map).
+    using Headers = std::vector<std::pair<std::string, std::string>>;
 
-    std::vector<nghttp2_nv> makeHeaderNv(const HeaderMap &headers);
+    std::vector<nghttp2_nv> makeHeaderNv(const Headers &headers);
 }

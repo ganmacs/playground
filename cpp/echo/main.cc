@@ -174,7 +174,7 @@ void sendReply(http2::Session &session, http2::Stream *stream) {
     bufw->putUINT32(tmp.length()); // pre length
     bufw->append(std::move(tmp));
 
-    std::map<std::string, std::string> v = {
+    http2::Headers v = {
         {http2::headers::HTTP_STATUS, "200"},
         {http2::headers::CONTENT_TYPE, http2::headers::CONTENT_TYPE_VALUE},
     };
@@ -370,7 +370,6 @@ int main(int argc, char **argv) {
 
         logger->info("request2===");
         c.request2();
-
 
         second = 10;
         sleep(second);
