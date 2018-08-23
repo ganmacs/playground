@@ -65,7 +65,7 @@ void ClientConnection::request() {
 void ClientConnection::request2() {
     auto sm = streams_.front();
 
-    http2::DataFramePtr d2 { new http2::DataFrame(sm->stream_id_, true, {})};
+    http2::DataFramePtr d2 { new http2::DataFrame(sm->stream_id_, true )};
     auto bufw2 = new buffer::BufferWriter();
     bufw2->putUINT8(0);             // non encoding
     bufw2->putUINT32(7); // pre length

@@ -12,7 +12,7 @@ import (
 
 const (
 	address     = "localhost:3000"
-	defaultName = "hello"
+	defaultName = "world"
 )
 
 func main() {
