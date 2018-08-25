@@ -20,18 +20,24 @@ ClientConnection ClientConnection::connect(event_base* base, const std::string h
 void ClientConnection::request() {
     SPDLOG_TRACE(logger, "Sending request");
 
-    helloworld::HelloRequest req {};
-    req.set_name("muyclient");
+    // helloworld::HelloRequest req {};
+    // req.set_name("muyclient");
 
+    // std::string tmp {};
+    // req.SerializeToString(&tmp);
+
+    routeguide::Point point {};
+    point.set_latitude(1);
+    point.set_longitude(2);
     std::string tmp {};
-    req.SerializeToString(&tmp);
-
+    point.SerializeToString(&tmp);
     // XXX
 
     http2::Headers v = {
         {http2::headers::METHOD, http2::headers::POST},
         {http2::headers::SCHEME, "http"},
-        {http2::headers::PATH, http2::headers::HTTP},
+        // {http2::headers::PATH, "/helloworld.Greeter/SayHello"},
+        {http2::headers::PATH, "/routeguide.RouteGuide/RecordRoute"},
         {http2::headers::AUTHORITY,  "echo-server:3000"},
 
         {http2::headers::TE, http2::headers::TE_VALUE},
@@ -41,7 +47,7 @@ void ClientConnection::request() {
         // {http2::headers::GRPC_ENCODING, "gzip"},
 
         // meta data
-        {"mdata1",  "mdata-value"},
+        // {"mdata1",  "mdata-value"},
     };
 
     auto sm = new http2::Stream();
@@ -76,12 +82,18 @@ void ClientConnection::request2() {
         return;
     }
 
+    routeguide::Point point {};
+    point.set_latitude(1);
+    point.set_longitude(2);
+    std::string tmp {};
+    point.SerializeToString(&tmp);
+
     http2::DataFramePtr d2 { new http2::DataFrame(sm->stream_id_, true) };
-    auto bufw2 = new buffer::BufferWriter();
-    bufw2->putUINT8(0);             // non encoding
-    bufw2->putUINT32(7); // pre length
-    bufw2->append("heyheyhey");
-    d2->data_ = bufw2;
+    auto bufw = new buffer::BufferWriter();
+    bufw->putUINT8(0);             // non encoding
+    bufw->putUINT32(tmp.length()); // pre length
+    bufw->append(std::move(tmp));
+    d2->data_ = bufw;
 
     SPDLOG_TRACE(logger, "Submit request2 to stream_id={}", sm->stream_id_);
     sm->sendMsg(std::move(d2), session_);
@@ -192,6 +204,17 @@ void handleHelloWorld(std::string buf) {
     SPDLOG_TRACE(logger, "handlhelloworld message {}", rep.message());
 }
 
+
+void handleRecordRoute(std::string buf) {
+    routeguide::RouteSummary rn {};
+    if (!rn.ParseFromString(buf)) {
+        logger->error("parsing request protobuf failed");
+        return;
+    }
+
+    SPDLOG_TRACE(logger, "handleRecordRoute message {} {} {} {}", rn.point_count(), rn.feature_count(), rn.distance(), rn.elapsed_time());
+}
+
 const uint32_t MAX_RECV_MESASGE_SIZE = 1024*1024*4;
 
 int ClientConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len) {
@@ -209,7 +232,8 @@ int ClientConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* 
 
     std::string s { buf.buffer(), plength };
 
-    handleHelloWorld(std::move(s));
+    // handleHelloWorld(std::move(s));
+    handleRecordRoute(std::move(s));
 
     return 0;
 }
@@ -231,6 +255,9 @@ int ClientConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
     case NGHTTP2_HEADERS: {
         stream->remote_end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
         SPDLOG_TRACE(logger, "Recieved HEADERS frame fd={}, stream_id={}, end_stream={}", fd(), frame->hd.stream_id, stream->remote_end_stream_);
+        if (frame->headers.cat == NGHTTP2_HCAT_HEADERS) {
+            SPDLOG_TRACE(logger, "This headers is END_HEADER");
+        }
 
         break;
     }

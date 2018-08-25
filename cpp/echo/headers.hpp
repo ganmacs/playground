@@ -19,7 +19,7 @@ namespace http2 {
         static const std::string IDENTITY = "identity";
         static const std::string GRPC_ENCODING = "grpc-encoding";
         static const std::string GRPC_ACCEPT_ENCODING = "grpc-accept-encoding";
-        static const std::string USER_AGENT = "user-agentn";
+        static const std::string USER_AGENT = "user-agent";
         static const std::string GRPC_MESSAGE_TYPE = "grpc-message-type";
 
         static const std::string HTTP_STATUS = ":status";

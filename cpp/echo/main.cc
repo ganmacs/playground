@@ -256,7 +256,6 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
 
         SPDLOG_TRACE(logger, "Recieved HEADERS frame fd={}, stream_id={}, end_stream={}", fd(), frame->hd.stream_id, stream->remote_end_stream_);
 
-
         switch (frame->headers.cat) {
         case NGHTTP2_HCAT_RESPONSE: {
             std::cout << "[Frame Recv] HEADERS NGHTTP2_HCAT_RESPONSE \n";
@@ -267,7 +266,7 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
             break;
         }
         case NGHTTP2_HCAT_HEADERS: {
-            std::cout << "[Frame Recv] HEADERS NGHTTP2_HCAT_HEADERS \n";
+            SPDLOG_TRACE(logger, "This headers is END_HEADER");
             break;
         }
         default: {

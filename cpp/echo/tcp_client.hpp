@@ -7,6 +7,7 @@
 #include "nghttp2/nghttp2.h"
 
 #include "hellworld.pb.h"
+#include "route_guide.pb.h"
 
 #include "logger.hpp"
 #include "socket.hpp"

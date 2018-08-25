@@ -38,11 +38,10 @@ namespace Network {
         }
 
         rv = ::connect(fd_, reinterpret_cast<const sockaddr*>(&address_), sizeof(struct sockaddr));
-        // TODO
-        // if (rv < 0) {
-            // logger->error("connect failed: {}", strerror(errno));
-            // return rv;
-        // }
+        if (rv < 0 && errno != EINPROGRESS) {
+            logger->error("connect failed: {}", strerror(errno));
+            return rv;
+        }
 
         return 0;
     }
