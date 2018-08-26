@@ -144,7 +144,35 @@ static int handleRouteGuideRecordGuide(std::string& buf) {
     return 0;
 }
 
-static int handleRouteGuideListFeatures(std::string& buf) {
+static int sendFeature(http2::Session &session, http2::Stream *stream, std::string name,  bool end, http2::Headers header) {
+    std::string tmp2 {};
+    {
+        routeguide::Feature feature {};
+        routeguide::Point *point = new routeguide::Point();
+        point->set_latitude(1);
+        point->set_longitude(2);
+        feature.set_name(name);
+        feature.set_allocated_location(point);
+        feature.SerializeToString(&tmp2);
+    }
+
+    auto bufw2 = new buffer::BufferWriter();
+    bufw2->putUINT8(0);             // non encoding
+    bufw2->putUINT32(tmp2.length()); // pre length
+    bufw2->append(std::move(tmp2));
+
+    http2::DataFramePtr d2 { new http2::DataFrame(stream->stream_id_, end, header) };
+    d2->data_ = bufw2;
+
+    if (stream->sendRespMsg(std::move(d2), session) != 0) {
+        logger->error("submitResponse2 is error");
+        return 1;
+    }
+
+    return 0;
+}
+
+static int handleRouteGuideListFeatures(std::string& buf, http2::Session &session, http2::Stream *stream, bool end) {
     routeguide::Rectangle rect {};
     if (!rect.ParseFromString(buf)) {
         logger->error("parsing request protobuf failed");
@@ -153,12 +181,15 @@ static int handleRouteGuideListFeatures(std::string& buf) {
 
     SPDLOG_TRACE(logger, "rectangle lo latitude={}, longitude={}", rect.lo().latitude(), rect.lo().longitude());
     SPDLOG_TRACE(logger, "rectangle hi latitude={}, longitude={}", rect.hi().latitude(), rect.hi().longitude());
+    std::string tmp {};
+    http2::Headers v = {
+        {http2::headers::HTTP_STATUS, "200"},
+        {http2::headers::CONTENT_TYPE, http2::headers::CONTENT_TYPE_VALUE},
+    };
 
+    sendFeature(session, stream, "hoge", false, std::move(v));
+    sendFeature(session, stream, "fuga", true, {});
     return 0;
-}
-
-static routeguide::Feature respRouteGuideListFeatures(std::string& buf) {
-    // return routeguide::Feature {};
 }
 
 void sendReply(http2::Session &session, http2::Stream *stream) {
@@ -179,12 +210,12 @@ void sendReply(http2::Session &session, http2::Stream *stream) {
         {http2::headers::CONTENT_TYPE, http2::headers::CONTENT_TYPE_VALUE},
     };
 
-    http2::DataFrame d { stream->stream_id_, true, std::move(v) };
-    d.data_ = bufw;
+    http2::DataFramePtr d { new http2::DataFrame(stream->stream_id_, true, std::move(v)) };
+    d->data_ = bufw;
 
     // XXX: true
     // copy...
-    if (session.submitResponse(d) != 0) {
+    if (stream->sendRespMsg(std::move(d), session) != 0) {
         exit(1);
     }
 }
@@ -198,9 +229,9 @@ int ServerConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* 
     auto encode_flag =  buf.readUINT8();
     auto plength =  buf.readUINT32();
     std::string s { buf.buffer(), plength };
-    sendReply(session_, stream);
+    // sendReply(session_, stream);
 
-// handleRouteGuideListFeatures(s);
+    handleRouteGuideListFeatures(s, session_, stream, false);
     // handleRouteGuideRecordGuide(s);
 
     return 0;
@@ -247,14 +278,16 @@ int ServerConnection::onFrameRecvCallback(const nghttp2_frame* frame) {
         stream->remote_end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
 
         SPDLOG_TRACE(logger, "Recieved DATA frame fd={}, stream_id={}, end_stream={}", fd(), frame->hd.stream_id, stream->remote_end_stream_);
-
-        sendReply(session_, stream);
         break;
     }
     case NGHTTP2_HEADERS: {
         stream->remote_end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
 
         SPDLOG_TRACE(logger, "Recieved HEADERS frame fd={}, stream_id={}, end_stream={}", fd(), frame->hd.stream_id, stream->remote_end_stream_);
+
+        // sendReply(session_, stream);
+        // std::string s {};
+        // handleRouteGuideListFeatures(s, session_, stream, false);
 
         switch (frame->headers.cat) {
         case NGHTTP2_HCAT_RESPONSE: {
@@ -296,9 +329,20 @@ int ServerConnection::onFrameSendCallback(const nghttp2_frame* frame) {
         SPDLOG_TRACE(logger, "RST_STREAM");
         break;
     }
-    case NGHTTP2_HEADERS:
+    case NGHTTP2_HEADERS: {
+        http2::Stream* stream = session_.getStream(frame->hd.stream_id);
+        stream->local_end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
+        SPDLOG_TRACE(logger, "sent end stream={}", stream->local_end_stream_);
+
+        break;
+    }
     case NGHTTP2_DATA: {
         http2::Stream* stream = session_.getStream(frame->hd.stream_id);
+        // std::string s {};
+        // if (stream->sending_) {
+        //     handleRouteGuideListFeatures(s, session_, stream, true);
+        // }
+
         stream->local_end_stream_ = frame->hd.flags & NGHTTP2_FLAG_END_STREAM;
         SPDLOG_TRACE(logger, "sent end stream={}", stream->local_end_stream_);
         break;

@@ -30,7 +30,7 @@ namespace http2 {
 
         Session();
         ssize_t processData(const uint8_t *data, size_t len);
-        ssize_t submitResponse(DataFrame &d);
+        ssize_t submitResponse(DataFramePtr d, Stream *stream);
         ssize_t submitRequest(DataFrame &d, Stream *stream);
 
         ssize_t sendData();
@@ -38,7 +38,6 @@ namespace http2 {
         Stream *getStream(int32_t stream_id);
 
         ssize_t writeHeader(DataFramePtr d, Stream *stream);
-        ssize_t writeData(DataFrame &d);
         ssize_t writeData2(std::list<DataFramePtr> *list);
         ssize_t resume(int32_t stream_id);
 

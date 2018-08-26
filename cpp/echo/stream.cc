@@ -84,30 +84,8 @@ namespace http2 {
         }
 
         item_list_.emplace_back(std::move(d));
-
-        // SPDLOG_TRACE(logger, "write Data stream_id={}", d.stream_id_);
-        // auto rv2 = s.writeData(d);
-        // if (rv2 < 0) {
-        //     // error
-        //     return rv2;
-        // }
-
         return 0;
     }
-
-    // ssize_t Stream::sendMsg2(http2::Session &s) {
-    //     if (!item_list_.empty()) {
-    //         auto d = item_list_.front();
-    //         item_list_.pop_front();
-
-    //         SPDLOG_TRACE(logger, "write Data stream_id={}", d.get()->stream_id_);
-    //         auto rv2 = s.writeData(*d);
-    //         if (rv2 < 0) {
-    //             return rv2;
-    //         }
-    //     }
-    //     return 0;
-    // }
 
     ssize_t Stream::sendMsg2(http2::Session &s) {
         SPDLOG_TRACE(logger, "sendmsg2");
@@ -125,19 +103,19 @@ namespace http2 {
         return 0;
     }
 
-    // ssize_t Stream::sendMsg2(http2::Session &s) {
-        // while (!item_list_.empty()) {
+    // for server only
+    ssize_t Stream::sendRespMsg(DataFramePtr d, http2::Session &s) {
+        if (sending_) {
+            item_list_.emplace_back(std::move(d));
+            if (blocking_) {
+                return s.resume(stream_id_);
+            }
 
-            // auto d = item_list_.front();
-            // item_list_.pop_front();
+            return 0;
+        }
 
-            // SPDLOG_TRACE(logger, "write Data stream_id={}", d.get()->stream_id_);
-        // auto rv2 = s.writeData2(&item_list_);
-            // if (rv2 < 0) {
-                // error
-                // return rv2;
-            // }
-        // }
-        // return 0;
-    // }
+        sending_ = true;
+        // send header and data first
+       return s.submitResponse(std::move(d), this);
+    }
 }

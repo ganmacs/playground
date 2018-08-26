@@ -19,31 +19,74 @@ namespace http2 {
         return s;
     }
 
-    // TODO: make callback like method
-    // this is grpc logic...
+
+    static ssize_t send_trailer(nghttp2_session *session, uint32_t *data_flags, int32_t stream_id) {
+        *data_flags |= NGHTTP2_DATA_FLAG_NO_END_STREAM;
+
+        // trailers
+        Headers hd = { {http2::headers::GRPC_STATUS, "0"} };
+        auto nvs = http2::makeHeaderNv(hd);
+        int rv  = nghttp2_submit_trailer(session, stream_id, nvs.data(), 1);
+        if (rv != 0) {
+            logger->error("sending error: %s", nghttp2_strerror(rv));
+        }
+        return rv;
+    }
+
     static ssize_t send_data_with_trailer(nghttp2_session *session, int32_t stream_id,
-                                      uint8_t *buf, size_t length,
-                                      uint32_t *data_flags,
-                                      nghttp2_data_source *source,
-                                      void *user_data) {
-        SPDLOG_TRACE(logger, "send data with trailer {} bytes fd={}", stream_id, length);
+                                          uint8_t *buf, size_t length,
+                                          uint32_t *data_flags,
+                                          nghttp2_data_source *source,
+                                          void *user_data) {
+        SPDLOG_TRACE(logger, "send data  with trailer stream_id={} length={}", stream_id, length);
 
-        buffer::BufferWriter* data = (buffer::BufferWriter*)source->ptr;
-        size_t a = data->write_to(buf);
-        if (a == 0) {
-            // send trailers
-            *data_flags |= NGHTTP2_DATA_FLAG_NO_END_STREAM;
+        auto stream = (Stream *)source->ptr;
+        std::list<DataFramePtr>* item_list = &stream->item_list_;
+        auto total = 0;
+        bool end = false;
 
-            // trailers
-            Headers hd = { {http2::headers::GRPC_STATUS, "0"} };
-            auto nvs = http2::makeHeaderNv(hd);
-            int rv  = nghttp2_submit_trailer(session, stream_id, nvs.data(), 1);
-            if (rv != 0) {
-                logger->error("sending error: %s", nghttp2_strerror(rv));
+        while (!item_list->empty() && !stream->local_end_stream_) {
+            auto d = item_list->front();
+            buffer::BufferWriter *b = (buffer::BufferWriter *)d->data_;
+
+            auto buffer_size = b->length();
+            if (total + buffer_size > length) {
+                return total;
             }
-            return 0;
+
+            size_t write_size = b->write_to(buf);
+            total += write_size;
+
+            auto pop = false;
+
+            if (buffer_size == write_size || write_size == 0) {
+                item_list->pop_front();
+                pop = true;
+            }
+
+            if (pop) {
+                if (!stream->first_sent_ && d->end_stream_) {
+                    stream->local_end_stream_ = true;
+                    stream->first_sent_ = true;
+                    send_trailer(session, data_flags, stream_id);
+                    return total;
+                } else if (!stream->first_sent_) {
+                    stream->first_sent_ = true;
+                    return total;
+                } else if (d->end_stream_) {
+                    send_trailer(session, data_flags, stream_id);
+                    stream->local_end_stream_ = true;
+                    return total;
+                }
+            }
+        }
+
+        if (total > 0) {
+            return total;
         } else {
-            return a;
+            // stop stream DEFERRED;.
+            stream->blocking_ = true;
+            return NGHTTP2_ERR_DEFERRED;
         }
     }
 
@@ -208,72 +251,23 @@ namespace http2 {
         return 0;
     }
 
-    ssize_t Session::writeData(DataFrame &d) {
+    ssize_t Session::submitResponse(DataFramePtr d, Stream *stream) {
         nghttp2_data_provider data_prd;
-        data_prd.source.ptr = d.data_;
+        auto h_size = d->hdrs_.size();
+        auto nvs = http2::makeHeaderNv(d->hdrs_);
+        auto stream_id = d->stream_id_;
 
-        int rv;
-        if (d.end_stream_) {
-            if (d.data_ == nullptr) {
-                rv = nghttp2_submit_data(session_, NGHTTP2_FLAG_END_STREAM, d.stream_id_, &data_prd);
-            } else {
-                data_prd.read_callback = send_data_with_trailer2;
-                rv = nghttp2_submit_data(session_, NGHTTP2_FLAG_END_STREAM, d.stream_id_, &data_prd);
-            }
-        } else {
-            data_prd.read_callback = [](nghttp2_session *session, int32_t stream_id, uint8_t *buf, size_t length, uint32_t *data_flags, nghttp2_data_source *source, void *user_data) -> ssize_t {
-                buffer::BufferWriter* data = (buffer::BufferWriter*)source->ptr;
-                size_t a = data->write_to(buf);
-                printf("%ld %ld\n", length, a);
-
-                if (a == 0) {
-                    return NGHTTP2_ERR_DEFERRED;
-                }
-                return a;
-            };
-
-            // data_prd.read_callback = send_data_with_trailer2;
-            rv = nghttp2_submit_data(session_, NGHTTP2_FLAG_END_STREAM, d.stream_id_, &data_prd);
-        }
-
-        if (rv != 0) {
-            logger->error("Submit data failed: {}", nghttp2_strerror(rv));
-            return rv;
-        }
-
-        return d.stream_id_;
-    }
-
-    // ssize_t Session::sendMsg(DataFrame &d, Stream *stream) {
-    //     auto stream_id = d.stream_id_;
-
-    //     if (d.hdrs_.size() > 0) {
-    //         auto nvs = http2::makeHeaderNv(d.hdrs_);
-    //         // not END_STREAM
-    //         auto rv = nghttp2_submit_headers(session_, 0, stream_id, nullptr, nvs.data(), d.hdrs_.size(), nullptr);
-    //         if (rv < 0) {
-    //             logger->error("Submit request failed: {} {}", stream_id, nghttp2_strerror(stream_id));
-    //             return rv;
-    //         }
-    //         stream_id = rv;
-    //     }
-
-
-    //     return stream_id;
-    // }
-
-    ssize_t Session::submitResponse(DataFrame &d) {
-        nghttp2_data_provider data_prd;
-        data_prd.source.ptr = d.data_;
+        data_prd.source.ptr = (void *)stream;
         data_prd.read_callback = send_data_with_trailer;
 
-        auto nvs = http2::makeHeaderNv(d.hdrs_);
-        auto rv = nghttp2_submit_response(session_, d.stream_id_, nvs.data(), d.hdrs_.size(), &data_prd);
+        stream->item_list_.emplace_front(std::move(d));
+        auto rv = nghttp2_submit_response(session_, stream_id, nvs.data(), h_size, &data_prd);
         if (rv != 0) {
             logger->error("Submit response failed: {}", nghttp2_strerror(rv));
             return rv;
         }
         return 0;
+
     }
 
     static ssize_t onSendCallback(nghttp2_session*, const uint8_t* data, size_t length, int, void* user_data) {
