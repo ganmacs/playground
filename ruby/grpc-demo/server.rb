@@ -1,6 +1,6 @@
 require 'logger'
 require 'grpc'
-require 'grpc/health/checker'
+require 'grpc/health/v1/health_services_pb'
 
 module RubyLogger
   def logger
@@ -9,12 +9,25 @@ module RubyLogger
 end
 GRPC.extend(RubyLogger)
 
-health_checker = Grpc::Health::Checker.new
-health_checker.add_status('test-app', Grpc::Health::V1::HealthCheckResponse::ServingStatus::SERVING)
+module Grpc
+  module Health
+    class Checker < V1::Health::Service
+      def check(req, _call)
+        V1::HealthCheckResponse.new(status: V1::HealthCheckResponse::ServingStatus::SERVING).tap do
+          # sleep(1)
+        end
+      end
+    end
+  end
+end
 
 s = GRPC::RpcServer.new
 s.add_http2_port('127.0.0.1:3000', :this_port_is_insecure)
+<<<<<<< Updated upstream
 s.handle(health_checker)
+=======
+s.handle(Grpc::Health::Checker.new)
+>>>>>>> Stashed changes
 
 finish = Queue.new
 

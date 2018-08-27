@@ -1,7 +1,7 @@
 require 'logger'
 require 'logger'
 require 'grpc'
-require 'grpc/health/checker'
+require_relative 'helloworld_services_pb'
 
 module RubyLogger
   def logger
@@ -10,5 +10,6 @@ module RubyLogger
 end
 GRPC.extend(RubyLogger)
 
-stub = Grpc::Health::V1::Health::Stub.new('127.0.0.1:3000', :this_channel_is_insecure)
-stub.check(Grpc::Health::V1::HealthCheckRequest.new(service: 'test-app'))
+stub = Helloworld::Greeter::Stub.new('localhost:8000', :this_channel_is_insecure)
+message = stub.say_hello(Helloworld::HelloRequest.new(name: 'ganmacs')).message
+p "Greeting: #{message}"
