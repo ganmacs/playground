@@ -85,7 +85,7 @@ CFLAGS   = $(CCDLFLAGS) -isystem/opt/brew/include -isystem/opt/brew/include  -O3
 INCFLAGS = -I. -I$(arch_hdrdir) -I$(hdrdir)/ruby/backward -I$(hdrdir) -I$(srcdir)
 DEFS     = 
 CPPFLAGS =  -I/Users/yuta-iwama/.rbenv/versions/2.4.3/include -isystem/opt/brew/include -isystem/opt/brew/include  -D_XOPEN_SOURCE -D_DARWIN_C_SOURCE -D_DARWIN_UNLIMITED_SELECT -D_REENTRANT $(DEFS) $(cppflags)
-CXXFLAGS = $(CCDLFLAGS) -O2 -march=native -mtune=native -ggdb3 $(ARCH_FLAG)
+CXXFLAGS = $(CCDLFLAGS) -O2 -march=native -mtune=native -ggdb3 -std=c++17  $(ARCH_FLAG)
 ldflags  = -L. -L/Users/yuta-iwama/.rbenv/versions/2.4.3/lib -L/opt/brew/lib -L/opt/brew/lib -fstack-protector -L/usr/local/lib
 dldflags = -L/Users/yuta-iwama/.rbenv/versions/2.4.3/lib -L/opt/brew/lib -L/opt/brew/lib   -arch x86_64 -Wl,-undefined,dynamic_lookup -Wl,-multiply_defined,suppress 
 ARCH_FLAG =  -arch x86_64
@@ -134,7 +134,7 @@ extout =
 extout_prefix = 
 target_prefix = 
 LOCAL_LIBS = 
-LIBS = $(LIBRUBYARG_SHARED)  -lpthread -ldl -lobjc 
+LIBS = $(LIBRUBYARG_SHARED) -lstdc++  -lpthread -ldl -lobjc 
 ORIG_SRCS = hello.cc hello_wrapper.cc
 SRCS = $(ORIG_SRCS) 
 OBJS = hello.o hello_wrapper.o
