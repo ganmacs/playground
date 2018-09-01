@@ -8,7 +8,8 @@ printf("server is on %s\n", addr.join(":"))
 while true
   Thread.start(gs.accept) do |s|
     print(s, " is accepted\n")
-    while s.gets
+    while v = s.gets
+      p v
       s.write($_)
     end
 

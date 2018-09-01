@@ -1,0 +1,13 @@
+#!/usr/bin/env ruby
+
+require 'bundler/setup'
+require 'jaguar'
+
+p Jaguar::Core
+p c = Jaguar::Core::Socket.new
+
+begin
+  c.connect
+rescue Jaguar::Core::Socket::WouldBlock => e
+  p c.request('hogehoge')
+end

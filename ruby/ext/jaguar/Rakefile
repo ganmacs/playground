@@ -1,0 +1,12 @@
+require "bundler/gem_tasks"
+require "rspec/core/rake_task"
+require 'rake/extensiontask'
+
+RSpec::Core::RakeTask.new(:spec)
+
+Rake::ExtensionTask.new('jaguar') do |ext|
+  ext.source_pattern = '*.{cc,hpp}'
+  ext.lib_dir = 'lib/jaguar'
+end
+
+task :default => :spec
