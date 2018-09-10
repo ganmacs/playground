@@ -1,0 +1,12 @@
+workspace(name = "vega")
+
+load("//thirdparty:dependency.bzl", "vega_repository")
+
+vega_repository(
+    name = "thirdparty",
+    repos = [
+        "libev",
+        "nghttp2"
+        # "spdlog",
+    ]
+)
