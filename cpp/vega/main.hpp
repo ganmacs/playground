@@ -3,7 +3,6 @@
 #include <ev++.h>
 
 #include <string>
-
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/socket.h>

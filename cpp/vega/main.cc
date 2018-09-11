@@ -2,7 +2,6 @@
 
 #include "main.hpp"
 
-#include <ev++.h>
 #include <stdio.h>
 
 Socket::Socket(const std::string host, const uint port) {

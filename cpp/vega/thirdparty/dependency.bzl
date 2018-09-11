@@ -7,7 +7,7 @@ def _repository_rule_impl(ctxt):
                      "build_scripts/" + r + ".sh")
     result = ctxt.execute(["./build.sh"] + ctxt.attr.repos)
     print(result.stdout)
-    print(result.stderr)
+    # print(result.stderr)
     if result.return_code != 0:
         fail("external dep build faield")
 
