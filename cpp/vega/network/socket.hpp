@@ -3,22 +3,32 @@
 #include <sys/socket.h>
 #include <string>
 #include <fcntl.h>
+#include <errno.h>
 #include <unistd.h>
 
-namespace network {
-    class Socket {
-    public:
-        Socket(const std::string host, const uint port);
-        ~Socket();
+#include "ip.hpp"
+#include "../logger.hpp"
 
-        const int fd() { return fd_; }
+namespace vega {
+    namespace network {
+        enum class SocketType { Stream, Datagram };
 
-        const int connect() noexcept;
-        const int request(std::string msg) noexcept;
+        class Socket {
+        public:
+            Socket(Ip ip);
+            ~Socket();
 
-    private:
-        sockaddr_in address_;
-        int fd_;
-    };
+            const int fd() noexcept { return fd_; }
 
+            const int connect() noexcept;
+            const int request(std::string msg) noexcept;
+
+            const int openSocket(SocketType type) noexcept;
+            const int openListenerSocket() noexcept;
+
+        private:
+            Ip ip_;
+            int fd_{-1};
+        };
+    }
 }

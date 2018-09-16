@@ -9,7 +9,20 @@ cc_library(
         "socket.hpp"
     ],
     deps = [
-        "@spdlog//:spdlog"
+        "//network:ip",
+        "//:logger"
+    ],
+    copts = vega_copts()
+)
+
+cc_library(
+    name = "ip",
+    srcs = [
+        "ip.cc",
+        "ip.hpp"
+    ],
+    deps = [
+        "//:logger"
     ],
     copts = vega_copts()
 )
