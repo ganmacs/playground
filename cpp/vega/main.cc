@@ -1,8 +1,5 @@
 #include "unistd.h"
-
 #include "main.hpp"
-
-#include <stdio.h>
 
 Socket::Socket(const std::string host, const uint port) {
     printf("socket open\n");
@@ -51,7 +48,6 @@ const int Socket::request(std::string msg) {
     return ::write(fd_, (void *)msg.data(), msg.length());
 }
 
-
 class Hello {
 public:
     Hello() {}
@@ -70,14 +66,9 @@ void setTimer(ev::default_loop &loop, double sec) {
     timer1->start();
 }
 
-void setIO(ev::default_loop &loop) {
-}
-
 int main(int argc, char *argv[])
 {
     ev::default_loop loop;
-    // setTimer(loop, 1);
-    // setIO(loop);
 
     ev::io *io = new ev::io(loop);
     Socket *sock = new Socket("127.0.0.1", 3000);

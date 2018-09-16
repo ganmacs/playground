@@ -2,7 +2,19 @@ licenses(["notice"])
 
 package(default_visibility = ["//visibility:public"])
 
-load("//thirdparty:vega_main.bzl", "envoy_copts")
+load("//thirdparty:vega_main.bzl", "vega_copts")
+
+cc_library(
+    name = "logger",
+    srcs = [
+        "logger.cc",
+        "logger.hpp"
+    ],
+    deps = [
+        "@spdlog//:spdlog"
+    ],
+    copts = vega_copts()
+)
 
 cc_binary(
     name = "vega",
@@ -13,7 +25,8 @@ cc_binary(
     deps = [
         "@thirdparty//:libev",
         "@thirdparty//:nghttp2",
-        "@spdlog//:spdlog"
+        "//network:socket",
+        ":logger"
     ],
-    copts = envoy_copts()
+    copts = vega_copts()
 )

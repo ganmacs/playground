@@ -1,13 +1,15 @@
 #pragma once
 
-#include <ev++.h>
-
 #include <string>
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <unistd.h>
+
+#include <ev++.h>
+
+#include "logger.hpp"
 
 class Socket {
 public:
