@@ -3,6 +3,15 @@ package(default_visibility = ["//visibility:public"])
 load("//thirdparty:vega_main.bzl", "vega_copts")
 
 cc_library(
+    name = "network",
+    srcs = ["network.hpp"],
+    deps = [
+        "//:logger"
+    ],
+    copts = vega_copts()
+)
+
+cc_library(
     name = "socket",
     srcs = [
         "socket.cc",
@@ -10,7 +19,7 @@ cc_library(
     ],
     deps = [
         "//network:ip",
-        "//:logger"
+        "//network:network"
     ],
     copts = vega_copts()
 )
@@ -22,7 +31,7 @@ cc_library(
         "ip.hpp"
     ],
     deps = [
-        "//:logger"
+        "//network:network"
     ],
     copts = vega_copts()
 )

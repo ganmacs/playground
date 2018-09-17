@@ -38,7 +38,6 @@ public:
     int onStreamCloseCallback(int32_t stream_id, uint32_t error_code) override;
     int onInvalidFrameRecvCallback(const nghttp2_frame *frame, int error_code) override;
 
-
 private:
     event_base *base_;
     Network::BufferedSocketPtr socket_;
