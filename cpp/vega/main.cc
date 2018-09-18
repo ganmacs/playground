@@ -75,8 +75,10 @@
 // }
 
 int main() {
+    logger->set_level(spdlog::level::trace);
     // ev::default_loop loop;
 
+    logger->info("start vega");
     EvLoop loop {};
     auto server = new Server("127.0.0.1", 3000);
     server->attach(loop);

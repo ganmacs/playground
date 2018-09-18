@@ -40,5 +40,9 @@ namespace vega {
                 abort();
             }
         }
+
+        int TcpListenSocket::doListen(int backlog) noexcept {
+            return ::listen(fd(), backlog);
+        }
     }
 }

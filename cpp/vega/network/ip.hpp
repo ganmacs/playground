@@ -14,11 +14,13 @@ namespace vega {
             sockaddr_in* sockAddr() noexcept;
             int socket(SocketType type) noexcept;
             int bind(int fd) noexcept;
+            const std::string& toString() const { return friendly_name_; }
 
         private:
             int socketFromSocketType(SocketType type) noexcept;
 
             sockaddr_in address_;
+            std::string friendly_name_;
         };
 
         using IpPtr = std::unique_ptr<Ip>;

@@ -9,8 +9,9 @@
 class EvWatcher {
 public:
     virtual int start() = 0;
-    virtual ~EvWatcher() = 0;
+    virtual ~EvWatcher() {};
 };
+
 using EvWatcherShdPtr = std::shared_ptr<EvWatcher>;
 
 class EvLoop {

@@ -13,6 +13,7 @@ namespace vega {
                 logger->error("Invalid addr or port {}:{}", addr, port);
                 abort();
             }
+            friendly_name_ = fmt::format("{}:{}", addr, port);
         }
 
         int Ip::bind(int fd) noexcept {

@@ -25,6 +25,7 @@ int EvLoop::start() noexcept {
     }
 
     loop_->run(0);
+
     return 0;
 }
 
@@ -47,6 +48,19 @@ void Server::attach(EvLoop& loop) noexcept {
 }
 
 int Server::start() {
+    logger->info("Start server, listening {}", socket_->toString());
+
+    if (socket_->doBind() == -1) {
+        logger->error("bind failed {}",  socket_->toString());
+        return -1;
+    }
+
+    // TODO: 10?
+    if (socket_->doListen(10) == -1) {
+        logger->error("listen failed {}",  socket_->toString());
+        return -1;
+    }
+
     if (ev_io_ == nullptr) {
         logger->error("ev_io_ is not initialized yet");
         return -1;

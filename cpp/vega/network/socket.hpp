@@ -25,6 +25,7 @@ namespace vega {
             int doBind() noexcept;
             // const int openSocket(SocketType type) noexcept;
             int openListenerSocket() noexcept;
+            const std::string& toString() const { return ip_->toString(); }
 
         private:
             const int fd_;
@@ -39,6 +40,9 @@ namespace vega {
 
             int fd() noexcept { return base_socket->fd(); }
             int doBind() noexcept { return base_socket->doBind(); }
+            int doListen(int backlog) noexcept;
+            const std::string& toString() const { return base_socket->toString(); }
+
         private:
             BaseSocketPtr base_socket;
         };
