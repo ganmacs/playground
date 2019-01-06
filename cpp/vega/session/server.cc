@@ -64,7 +64,11 @@ namespace vega {
 
         int Server::onBeginHeaderCallback(nghttp2_session*, const nghttp2_frame *frame) {
             SPDLOG_TRACE(logger, "BeginHeader fd={}, stream_id={}", session_->fd(), frame->hd.stream_id);
-            return session_->setNewStream(frame->hd.stream_id);
+            if (session_->getStreamData(frame->hd.stream_id) == nullptr) {
+                return session_->setNewStream(frame->hd.stream_id);
+            }
+
+            return 0;
         }
 
         // int Server::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* data, size_t len) {

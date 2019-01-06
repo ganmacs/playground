@@ -2,6 +2,14 @@
 
 namespace vega {
     namespace network {
+        // only support IPv4
+        Ip::Ip(const sockaddr_in* address) noexcept {
+            address_ = *address;
+            char str[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, &address->sin_addr, str, INET_ADDRSTRLEN);
+            friendly_name_ = fmt::format("{}:{}", str, ntohs(address->sin_port));
+        }
+
         Ip::Ip(const std::string& addr, const uint32_t port) noexcept {
             memset(&address_, 0, sizeof(address_));
 

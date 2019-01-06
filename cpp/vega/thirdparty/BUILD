@@ -15,5 +15,5 @@ cc_library(
     name = "nghttp2",
     srcs = ["thirdparty_build/lib/libnghttp2.a"],
     hdrs = glob(["thirdparty_build/include/nghttp2/*.h"]),
-    includes = ["thirdparty_build/include/nghttp2"],
+    includes = ["thirdparty_build/include"],
 )

@@ -229,9 +229,9 @@ int ServerConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* 
     auto encode_flag =  buf.readUINT8();
     auto plength =  buf.readUINT32();
     std::string s { buf.buffer(), plength };
-    // sendReply(session_, stream);
+    sendReply(session_, stream);
 
-    handleRouteGuideListFeatures(s, session_, stream, false);
+    // handleRouteGuideListFeatures(s, session_, stream, false);
     // handleRouteGuideRecordGuide(s);
 
     return 0;

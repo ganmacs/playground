@@ -35,8 +35,8 @@ namespace vega {
 
         class TcpListenSocket {
         public:
-            TcpListenSocket(IpPtr ip);
-            TcpListenSocket(const std::string host, const uint32_t port);
+            explicit TcpListenSocket(IpPtr ip);
+            explicit TcpListenSocket(const std::string host, const uint32_t port);
 
             int fd() noexcept { return base_socket->fd(); }
             int doBind() noexcept { return base_socket->doBind(); }
@@ -46,7 +46,20 @@ namespace vega {
         private:
             BaseSocketPtr base_socket;
         };
+
         using TcpListenSocketPtr = std::unique_ptr<TcpListenSocket>;
 
+        class AcceptedSocket {
+        public:
+            explicit AcceptedSocket(const int fd, IpPtr ip);
+
+            int fd() noexcept { return base_socket->fd(); }
+            const std::string& toString() const { return base_socket->toString(); }
+
+        private:
+            BaseSocketPtr base_socket;
+        };
+
+        using AcceptedSocketPtr = std::shared_ptr<AcceptedSocket>;
     }
 }

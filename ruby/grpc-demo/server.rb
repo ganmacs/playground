@@ -1,6 +1,9 @@
+$LOAD_PATH.unshift File.expand_path('.')
+
 require 'logger'
 require 'grpc'
-require 'grpc/health/v1/health_services_pb'
+require 'helloworld_services_pb'
+require 'pry'
 
 module RubyLogger
   def logger
@@ -9,26 +12,29 @@ module RubyLogger
 end
 GRPC.extend(RubyLogger)
 
-module Grpc
-  module Health
-    class Checker < V1::Health::Service
-      def check(req, _call)
-        V1::HealthCheckResponse.new(status: V1::HealthCheckResponse::ServingStatus::SERVING).tap do
-          # sleep(1)
-        end
-      end
-    end
+class I < GRPC::ServerInterceptor
+  def request_response(request: nil, call: nil, method: nil)
+
+    # call.metadata['a'] = '10'
+    # call.send_metadata['b'] = 11
+    call.output_metadata['c'] = '12'
+    call.metadata_to_send['d'] = '3'
+    p call.metadata
+    # binding.pry
+    yield
   end
 end
 
-s = GRPC::RpcServer.new
-s.add_http2_port('127.0.0.1:3000', :this_port_is_insecure)
-<<<<<<< Updated upstream
-s.handle(health_checker)
-=======
-s.handle(Grpc::Health::Checker.new)
->>>>>>> Stashed changes
+class GreeterServer < Helloworld::Greeter::Service
+  def say_hello(req, _call)
+    GRPC.logger.info(req)
+    Helloworld::HelloReply.new(message: "Hello #{req.name}")
+  end
+end
 
+s = GRPC::RpcServer.new(interceptors: [I.new])
+s.add_http2_port('127.0.0.1:50051', :this_port_is_insecure)
+s.handle(GreeterServer.new)
 finish = Queue.new
 
 stop_server_thread = Thread.new do

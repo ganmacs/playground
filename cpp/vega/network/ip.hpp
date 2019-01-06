@@ -10,7 +10,8 @@ namespace vega {
     namespace network {
         class Ip {
         public:
-            Ip(const std::string& addr, const uint32_t port) noexcept;
+            explicit Ip(const std::string& addr, const uint32_t port) noexcept;
+            explicit Ip(const sockaddr_in* address) noexcept;
             sockaddr_in* sockAddr() noexcept;
             int socket(SocketType type) noexcept;
             int bind(int fd) noexcept;

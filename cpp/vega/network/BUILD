@@ -1,6 +1,6 @@
 package(default_visibility = ["//visibility:public"])
 
-load("//thirdparty:vega_main.bzl", "vega_copts")
+load("//thirdparty:vega_main.bzl", "vega_copts", "vega_linkopts")
 
 cc_library(
     name = "network",
@@ -8,7 +8,8 @@ cc_library(
     deps = [
         "//:logger"
     ],
-    copts = vega_copts()
+    copts = vega_copts(),
+    linkopts = vega_linkopts()
 )
 
 cc_library(
@@ -21,7 +22,8 @@ cc_library(
         "//network:ip",
         "//network:network"
     ],
-    copts = vega_copts()
+    copts = vega_copts(),
+    linkopts = vega_linkopts()
 )
 
 cc_library(
@@ -33,5 +35,6 @@ cc_library(
     deps = [
         "//network:network"
     ],
-    copts = vega_copts()
+    copts = vega_copts(),
+    linkopts = vega_linkopts()
 )

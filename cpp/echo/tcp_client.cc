@@ -207,8 +207,9 @@ void handleHelloWorld(std::string buf) {
 
 void handleRecordRoute(std::string buf) {
     routeguide::RouteSummary rn {};
+
     if (!rn.ParseFromString(buf)) {
-        logger->error("parsing request protobuf failed");
+        logger->error("parsing request protobuf failed ");
         return;
     }
 
@@ -232,8 +233,8 @@ int ClientConnection::onDataChunkRecvCallback(int32_t stream_id, const uint8_t* 
 
     std::string s { buf.buffer(), plength };
 
-    // handleHelloWorld(std::move(s));
-    handleRecordRoute(std::move(s));
+    handleHelloWorld(std::move(s));
+    // handleRecordRoute(std::move(s));
 
     return 0;
 }

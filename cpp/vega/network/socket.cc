@@ -44,5 +44,8 @@ namespace vega {
         int TcpListenSocket::doListen(int backlog) noexcept {
             return ::listen(fd(), backlog);
         }
+
+        AcceptedSocket::AcceptedSocket(const int fd, IpPtr ip)
+            : base_socket(std::make_unique<BaseSocket>(fd, std::move(ip))) {}
     }
 }
