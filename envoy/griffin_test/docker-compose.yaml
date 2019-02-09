@@ -1,0 +1,13 @@
+version: '3'
+services:
+  envoy:
+    build: envoy
+    ports:
+      - "9901:9901"
+      - "50051:50051"
+    depends_on:
+      - app
+    image: front-envoy:0.1
+  app:
+    build: app
+    image: griffin:0.1
