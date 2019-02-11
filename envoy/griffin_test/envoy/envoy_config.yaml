@@ -11,10 +11,10 @@ static_resources:
         config:
           codec_type: auto
           stat_prefix: ingress_http
-          # access_log:
-          # - name: envoy.file_access_log
-          #   config:
-          #     path: "/dev/stdout"
+          access_log:
+          - name: envoy.file_access_log
+            config:
+              path: "/var/log/envoy_access.log"
           route_config:
             name: local_route
             virtual_hosts:
@@ -43,6 +43,11 @@ static_resources:
       endpoints:
       - lb_endpoints:
           endpoint:
+          endpoint:
+            address:
+              socket_address:
+                address: app2
+                port_value: 8080
             address:
               socket_address:
                 address: app

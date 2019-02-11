@@ -7,7 +7,11 @@ services:
       - "50051:50051"
     depends_on:
       - app
+      - app2
     image: front-envoy:0.1
   app:
     build: app
     image: griffin:0.1
+  app2:
+    build: app2
+    image: go-grpc:0.1
