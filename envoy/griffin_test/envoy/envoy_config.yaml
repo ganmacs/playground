@@ -43,11 +43,6 @@ static_resources:
       endpoints:
       - lb_endpoints:
           endpoint:
-          endpoint:
-            address:
-              socket_address:
-                address: app2
-                port_value: 8080
             address:
               socket_address:
                 address: app

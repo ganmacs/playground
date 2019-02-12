@@ -4,6 +4,6 @@ source "https://rubygems.org"
 
 git_source(:github) {|repo_name| "https://github.com/#{repo_name}" }
 
-gem 'griffin', github: 'ganmacs/griffin', branch: 'worker-can-identify-the-kind-of-signal'
-gem 'grpc_kit', github: 'ganmacs/grpc_kit'
+gem 'griffin'
+gem 'grpc_kit'
 gem 'griffin-interceptors', github: 'ganmacs/griffin-interceptors', branch: 'add-worker-killer-insterceptors'

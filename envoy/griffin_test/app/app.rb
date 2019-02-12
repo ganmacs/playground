@@ -50,7 +50,7 @@ Griffin::Server.configure do |c|
 
   c.services GreeterServer.new
 
-  c.interceptors [Griffin::Interceptors::Server::WorkerKillerInterceptor.new(memory_limit_min: 1024**3 * 0.01, memory_limit_max: 0.015*(1024**3), check_cycle: 16)]
+  c.interceptors [Griffin::Interceptors::Server::WorkerKillerInterceptor.new(memory_limit_min: 1024**3 * 0.02, memory_limit_max: 0.025*(1024**3), check_cycle: 16)]
 
   c.workers 2
 
