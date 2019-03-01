@@ -1,0 +1,12 @@
+require 'bundler/gem_tasks'
+require 'rspec/core/rake_task'
+require 'rake/extensiontask'
+
+RSpec::Core::RakeTask.new(:spec)
+
+Rake::ExtensionTask.new('foo') do |ext|
+  ext.source_pattern = '*.{c,h}'
+  ext.lib_dir = 'lib/foo'
+end
+
+task :default => :spec

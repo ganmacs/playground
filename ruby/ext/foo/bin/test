@@ -1,0 +1,15 @@
+#!/usr/bin/env ruby
+
+require 'bundler/setup'
+require 'objspace'
+require 'foo'
+
+100000.times do |i|
+  if (i % 100) == 0
+    GC.start
+    p "memsize_of_all: #{ObjectSpace.memsize_of_all / 1000} KB, rss: #{`ps -o rss= #{Process.pid}`.chomp} KB, no: #{i}"
+  end
+
+  # Foo::Server.new
+  Foo::Server2.new
+end
