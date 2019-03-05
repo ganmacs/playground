@@ -1,0 +1,15 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    ds9 (1.3.3)
+      mini_portile2 (>= 2.2.0)
+    mini_portile2 (2.4.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  ds9
+
+BUNDLED WITH
+   1.17.1
