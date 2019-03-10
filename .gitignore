@@ -1,0 +1,6 @@
+a.out
+*.log
+*.o
+
+/**/vendor/bundle
+**/a.out

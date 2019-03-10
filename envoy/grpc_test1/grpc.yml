@@ -1,0 +1,20 @@
+---
+dependencies:
+- circuit_breaker:
+    max_connections: 64
+    max_pending_requests: 128
+    max_retries: 3
+  cluster_name: grpc1
+  connect_timeout_ms: 4000
+  lb: localhost:80
+  name: grpc1
+  routes:
+  - method: POST
+    path: "/helloworld.Greeter/SayHello"
+    retry_policy:
+      num_retries: 3
+      per_try_timeout_ms: 1000
+      retry_on: 5xx,connect-failure,refused-stream,cancelled,deadline-exceeded,resource-exhausted
+    timeout_ms: 3000
+  tls: false
+version: 1

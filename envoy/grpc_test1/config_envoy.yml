@@ -1,0 +1,8 @@
+ver
+sion: 1
+listener:
+  address: tcp://0.0.0.0:8001
+  access_log_path: /dev/stdout
+admin:
+  address: tcp://0.0.0.0:9901
+  access_log_path: /dev/stdout

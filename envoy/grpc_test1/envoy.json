@@ -1,0 +1,79 @@
+{
+  "listeners": [
+    {
+      "address": "tcp://0.0.0.0:10000",
+      "filters": [
+        {
+          "name": "http_connection_manager",
+          "config": {
+            "codec_type": "auto",
+            "stat_prefix": "ingress_http",
+            "route_config": {
+              "validate_clusters": false,
+              "virtual_hosts": [
+                {
+                  "name": "grpc1",
+                  "domains": [
+                    "grpc1"
+                  ],
+                  "routes": [
+                    {
+                      "path": "/helloworld.Greeter/SayHello",
+                      "cluster": "grpc1",
+                      "timeout_ms": 3000,
+                      "auto_host_rewrite": true,
+                      "retry_policy": {
+                        "retry_on": "5xx,connect-failure,refused-stream,cancelled,deadline-exceeded,resource-exhausted",
+                        "num_retries": 3,
+                        "per_try_timeout_ms": 1000
+                      },
+                      "headers": [
+                        {
+                          "name": ":method",
+                          "value": "POST",
+                          "regex": false
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "filters": [
+              {
+                "name": "router",
+                "config": {}
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "admin": {
+    "access_log_path": "/tmp/admin_access.log",
+    "address": "tcp://0.0.0.0:9901"
+  },
+  "cluster_manager": {
+    "clusters": [
+      {
+        "name": "grpc1",
+        "connect_timeout_ms": 4000,
+        "type": "strict_dns",
+        "hosts": [
+          {
+            "url": "tcp://localhost:80"
+          }
+        ],
+        "lb_type": "round_robin",
+        "circuit_breakers": {
+          "default": {
+            "max_connections": 64,
+            "max_pending_requests": 128,
+            "max_retries": 3
+          }
+        }
+      }
+    ]
+  }
+}

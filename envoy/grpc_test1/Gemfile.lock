@@ -1,0 +1,25 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    addressable (2.5.2)
+      public_suffix (>= 2.0.2, < 4.0)
+    json-schema (2.8.0)
+      addressable (>= 2.4)
+    jsonnet (0.3.0)
+      mini_portile2 (>= 2.2.0)
+    kumonos (0.21.0)
+      json-schema
+      jsonnet
+      thor
+    mini_portile2 (2.3.0)
+    public_suffix (3.0.3)
+    thor (0.20.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  kumonos
+
+BUNDLED WITH
+   1.16.0

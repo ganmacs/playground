@@ -4,6 +4,4 @@ source "https://rubygems.org"
 
 git_source(:github) {|repo_name| "https://github.com/#{repo_name}" }
 
-gem 'griffin'
-gem 'grpc_kit'
-gem 'griffin-interceptors'
+ gem "grpc"

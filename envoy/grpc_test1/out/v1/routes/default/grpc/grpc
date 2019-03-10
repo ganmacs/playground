@@ -1,0 +1,31 @@
+{
+  "validate_clusters": false,
+  "virtual_hosts": [
+    {
+      "name": "grpc1",
+      "domains": [
+        "grpc1"
+      ],
+      "routes": [
+        {
+          "path": "/helloworld.Greeter/SayHello",
+          "cluster": "grpc1",
+          "timeout_ms": 3000,
+          "auto_host_rewrite": true,
+          "retry_policy": {
+            "retry_on": "5xx,connect-failure,refused-stream,cancelled,deadline-exceeded,resource-exhausted",
+            "num_retries": 3,
+            "per_try_timeout_ms": 1000
+          },
+          "headers": [
+            {
+              "name": ":method",
+              "value": "POST",
+              "regex": false
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
