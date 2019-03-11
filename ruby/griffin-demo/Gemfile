@@ -1,0 +1,7 @@
+# frozen_string_literal: true
+
+source "https://rubygems.org"
+
+git_source(:github) {|repo_name| "https://github.com/#{repo_name}" }
+
+gem "griffin-interceptors", path: '/Users/yuta-iwama/src/github.com/ganmacs/griffin-interceptors'

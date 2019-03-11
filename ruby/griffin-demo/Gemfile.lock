@@ -1,0 +1,36 @@
+PATH
+  remote: /Users/yuta-iwama/src/github.com/ganmacs/griffin-interceptors
+  specs:
+    griffin-interceptors (0.1.1)
+      griffin (>= 0.1.5)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    connection_pool (2.2.2)
+    ds9 (1.3.2)
+      mini_portile2 (>= 2.2.0)
+    google-protobuf (3.6.1)
+    googleapis-common-protos-types (1.0.2)
+      google-protobuf (~> 3.0)
+    griffin (0.1.5)
+      connection_pool (~> 2.2.2)
+      grpc_kit (>= 0.2.0)
+      serverengine (~> 2.0.7)
+    grpc_kit (0.2.0)
+      ds9 (>= 1.3.1)
+      google-protobuf (~> 3.6.1)
+      googleapis-common-protos-types (~> 1.0.2)
+    mini_portile2 (2.4.0)
+    serverengine (2.0.7)
+      sigdump (~> 0.2.2)
+    sigdump (0.2.4)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  griffin-interceptors!
+
+BUNDLED WITH
+   1.17.1

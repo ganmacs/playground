@@ -6,7 +6,11 @@ module Hoge
   module IOEvents
     def initialize(sock)
       @sock = sock
-      super()
+      opt = DS9::Option.new.tap do |o|
+        o.set_no_closed_streams
+      end
+
+      super(opt)
     end
 
     def send_event(string)
@@ -48,6 +52,7 @@ module Hoge
       @streams = {}
       super(sock)
 
+      # submit_settings([[DS9::Settings::MAX_CONCURRENT_STREAMS, 1000]])
       submit_settings([])
     end
 
@@ -90,7 +95,7 @@ module Hoge
       @i ||= 0
       if (@i % 50) == 0
         GC.start
-        puts("memsize_of_all: #{ObjectSpace.memsize_of_all / 1000} KB, rss: #{`ps -o rss= #{Process.pid}`.chomp} KB")
+        puts("memsize_of_all: #{ObjectSpace.memsize_of_all / 1000} KB, rss: #{`ps -o rss= #{Process.pid}`.chomp} KB, stream: #{@i}")
       end
       @i += 1
     end
