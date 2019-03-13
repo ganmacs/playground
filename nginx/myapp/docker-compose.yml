@@ -1,0 +1,13 @@
+web:
+  build: ./web
+  command: bundle exec ruby app.rb
+  ports:
+    - 4567:4567
+nginx:
+  build: ./nginx
+  ports:
+    - 80:80
+  links:
+    - web:web
+  volumes:
+    - ./public:/public
