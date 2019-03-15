@@ -1,0 +1,9 @@
+[package]
+name = "msg"
+version = "0.1.0"
+authors = ["ganmacs <ganmacs@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+
+bytes = "0.4.1"
