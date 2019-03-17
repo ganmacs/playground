@@ -4,7 +4,20 @@ use bytes;
 use bytes::BufMut;
 
 pub trait Codec {
-     fn encode_to(&self, buf: &mut bytes::BytesMut);
+    fn encode_to(&self, buf: &mut bytes::BytesMut);
+}
+
+impl Codec for &str {
+    fn encode_to(&self, buf: &mut bytes::BytesMut) {
+        buf.len();
+        // buf.
+
+        // let a=1+1;
+        // buf.put_u8(1);
+
+        // buf.put_u8(code::UINT64);
+        // buf.put_u64_be(*self)
+    }
 }
 
 impl Codec for u64 {
@@ -16,15 +29,15 @@ impl Codec for u64 {
 
 impl Codec for u32 {
     fn encode_to(&self, buf: &mut bytes::BytesMut) {
-            buf.put_u8(code::UINT32);
-            buf.put_u32_be(*self)
+        buf.put_u8(code::UINT32);
+        buf.put_u32_be(*self)
     }
 }
 
 impl Codec for u16 {
     fn encode_to(&self, buf: &mut bytes::BytesMut) {
-            buf.put_u8(code::UINT16);
-            buf.put_u16_be(*self)
+        buf.put_u8(code::UINT16);
+        buf.put_u16_be(*self)
     }
 }
 
@@ -44,15 +57,15 @@ impl Codec for i64 {
 
 impl Codec for i32 {
     fn encode_to(&self, buf: &mut bytes::BytesMut) {
-            buf.put_u8(code::INT32);
-            buf.put_i32_be(*self)
+        buf.put_u8(code::INT32);
+        buf.put_i32_be(*self)
     }
 }
 
 impl Codec for i16 {
     fn encode_to(&self, buf: &mut bytes::BytesMut) {
-            buf.put_u8(code::INT16);
-            buf.put_i16_be(*self)
+        buf.put_u8(code::INT16);
+        buf.put_i16_be(*self)
     }
 }
 
@@ -64,10 +77,6 @@ impl Codec for i8 {
 }
 impl Codec for bool {
     fn encode_to(&self, buf: &mut bytes::BytesMut) {
-        buf.put_u8(if *self {
-            code::TRUE
-        } else {
-            code::FALSE
-        })
+        buf.put_u8(if *self { code::TRUE } else { code::FALSE })
     }
 }
