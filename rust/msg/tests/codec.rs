@@ -49,3 +49,21 @@ fn decode_from_str() {
         &[0xaa, 0x6c, 0x65, 0x20, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65]
     );
 }
+
+#[test]
+fn decode_from_bin() {
+    let mut buf = vec![];
+    let msg1: &[u8] = "le message".as_bytes();
+    msg1.encode_to(&mut buf);
+    assert_eq!(
+        buf,
+        &[0xc4, 0x6c, 0x65, 0x20, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65]
+    );
+}
+
+#[test]
+fn decode_from_fixarray() {
+    let mut buf = vec![];
+    vec![9 as i32, 42, -9].encode_to(&mut buf);
+    assert_eq!(buf, &[0x93, 0x00, 0x2a, 0xf7]);
+}

@@ -29,6 +29,44 @@ impl<T: bytes::BufMut> Codec<T> for &str {
         }
     }
 }
+impl<T: bytes::BufMut, U: Codec<T>> Codec<T> for Vec<U> {
+    fn encode_to(&self, buf: &mut T) {
+        let len = self.len();
+        if len <= code::FIXARRAY_LIMIT {
+            buf.put_u8(code::FIXARRAY | len as u8);
+        } else if len <= code::ARRAY16_LIMIT {
+            buf.put_u8(code::ARRAY16);
+            buf.put_u16_be(len as u16);
+        } else if len <= code::ARRAY32_LIMIT {
+            buf.put_u8(code::ARRAY32);
+            buf.put_u32_be(len as u32);
+        } else {
+            unreachable!();
+        }
+
+        for item in self {
+            item.encode_to(buf);
+        }
+    }
+}
+
+impl<T: bytes::BufMut> Codec<T> for [u8] {
+    fn encode_to(&self, buf: &mut T) {
+        let len = self.len();
+        if len <= code::BIN8_LIMIT {
+            buf.put_u8(code::BIN8);
+            buf.put(self)
+        } else if len <= code::BIN16_LIMIT {
+            buf.put_u8(code::BIN16);
+            buf.put(self)
+        } else if len <= code::BIN32_LIMIT {
+            buf.put_u8(code::BIN32);
+            buf.put(self)
+        } else {
+            unreachable!(); // should it return Err?
+        }
+    }
+}
 
 impl<T: bytes::BufMut> Codec<T> for u64 {
     fn encode_to(&self, buf: &mut T) {
