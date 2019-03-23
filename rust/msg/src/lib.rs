@@ -1,8 +1,13 @@
+pub mod code;
 pub mod codec;
+pub mod pack;
+pub mod packer;
+pub mod unpacker;
+pub mod value;
 
 use bytes;
 
-pub struct Msg<T: bytes::BufMut> {
+pub struct Msg<T> {
     inner: T,
 }
 
@@ -24,7 +29,7 @@ where
     where
         C: codec::Codec<T>,
     {
-        a.encode_to(&mut self.inner);
+        a.pack_to(&mut self.inner);
         return Ok("ok".to_owned());
     }
 }
