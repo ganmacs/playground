@@ -5,7 +5,9 @@ pub mod packer;
 pub mod unpacker;
 pub mod value;
 
+use byteorder;
 use bytes;
+// use serde;
 
 pub struct Msg<T> {
     inner: T,

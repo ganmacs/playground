@@ -7,3 +7,5 @@ edition = "2018"
 [dependencies]
 
 bytes = "0.4.1"
+byteorder = "1"
+serde = "1"

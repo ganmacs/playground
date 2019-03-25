@@ -21,3 +21,7 @@ pub const FIXARRAY: u8 = 0x90;
 pub const ARRAY16: u8 = 0xdc;
 pub const ARRAY32: u8 = 0xdd;
 pub const NEGINT: u8 = 0xe0;
+
+pub const FIXMAP: u8 = 0x80;
+pub const MAP16: u8 = 0xde;
+pub const MAP23: u8 = 0xdf;

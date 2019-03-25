@@ -16,22 +16,25 @@ string S;
 int len;
 long long ans = 0;
 
-long long dfs(int p, long long a, long long b) {
-  if (len <= p) {
-    ans += (a + b);
-    return 0;
-  }
-
-
-  dfs(p + 1, (S[p]-'0')+10*a, b);
-  dfs(p + 1, S[p]-'0', a+b);
-}
-
 int main(int argc, char *argv[])
 {
   cin >> S;
   len = S.size();
-  dfs(1, S[0]-'0', 0);
-  printf("%lld\n", ans);
+
+  for (int i = 0; i < (1 << (len-1)); i++) {
+    long long num = S[0]-'0';
+
+    for (int j = 0; j < len-1; j++) {
+      if (i & (1 << j)) {
+        ans += num;
+        num = 0;
+      }
+      num = num*10 + (S[j + 1]-'0');
+    }
+
+    ans += num;
+  }
+
+  cout << ans << endl;
   return 0;
 }

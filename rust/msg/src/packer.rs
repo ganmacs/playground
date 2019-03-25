@@ -11,6 +11,6 @@ pub use self::bin::write_bin;
 pub use self::bool::write_bool;
 pub use self::nil::write_nil;
 pub use self::str::write_str;
-pub use self::uint::write_opt_u64;
+pub use self::uint::{write_opt_u64, write_u16, write_u32, write_u8};
 // use crate::codec::code;
 // use bytes;

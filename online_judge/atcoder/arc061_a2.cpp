@@ -16,22 +16,23 @@ string S;
 int len;
 long long ans = 0;
 
-long long dfs(int p, long long a, long long b) {
-  if (len <= p) {
-    ans += (a + b);
-    return 0;
+long long solv(int p, long long sum) {
+  if (p >= len) return sum;
+
+  int c = 0;
+  for (int i = p; i < len; i++) {
+    c = c*10 + S[p];
+    ans += solv(p + 1, c + sum);
   }
 
-
-  dfs(p + 1, (S[p]-'0')+10*a, b);
-  dfs(p + 1, S[p]-'0', a+b);
+  return ans;
 }
 
 int main(int argc, char *argv[])
 {
   cin >> S;
   len = S.size();
-  dfs(1, S[0]-'0', 0);
-  printf("%lld\n", ans);
+
+  printf("%lld\n", solv(0, 0));
   return 0;
 }

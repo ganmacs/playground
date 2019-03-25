@@ -31,6 +31,7 @@ pub enum Value {
 
     // represents a tuple of type information and a byte array where type information is an integer whose meaning is defined by applications or MessagePack specification
     Extension,
+
     // represents an instantaneous point on the time-line in the world that is independent from time zones or calendars. Maximum precision is nanoseconds.
     Timestamp,
 }
