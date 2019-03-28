@@ -14,21 +14,22 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
+  int N, a[123456];
 
-  int N, a[2][123];
   cin >> N;
-
-  a[1][0] = a[0][0] = 0;
-
-  for (int i = 1; i <= N; i++) {
-    cin >> a[0][i];
-    a[0][i] += a[0][i-1];
+  for (int i = 0; i < N; i++) {
+    cin >> a[i];
   }
 
-  for (int i = 1; i <= N; i++) {
-    cin >> a[1][i];
-    a[1][i] += max(a[0][i], a[1][i-1]);
+  int n = 0, inc = 0, ans = -1;
+  for (int i = 0; i < 10000000; i++) {
+    n = a[n]-1;
+    inc++;
+    if (n == 1){
+      ans = inc;
+      break;
+    }
   }
 
-  printf("%d\n", a[1][N]);
+  cout << ans << endl;
 }
