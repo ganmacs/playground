@@ -14,16 +14,24 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-  int N, a, b;
-  pair<int, int> l[1000];
-  string S;
-  cin >> S;
+  int N, c[32322], maxv = 0, dp[32232];
   cin >> N;
+
   for (int i = 0; i < N; i++) {
-    cin >> a >>  b;
-    reverse(S.begin() + a-1, S.begin() + b);
+    cin >> c[i];
   }
 
-  cout << S.c_str() << endl;
+  for (int i = 0; i < N; i++) {
+    dp[i] = 1;
+    for (int j = 0; j < i; j++) {
+      if (c[i] > c[j]) {
+        dp[i] = max(dp[j] + 1, dp[i]);
+      }
+    }
+
+    maxv = max(maxv, dp[i]);
+  }
+
+  printf("%d\n", N-maxv);
   return 0;
 }
