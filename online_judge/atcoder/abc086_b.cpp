@@ -14,18 +14,23 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-  long long X, Y;
-  cin >> X >> Y;
-
-  long long ans = 1;
-  long long aa = X;
-
-  while (true) {
-    aa *= 2;
-    if (aa > Y) break;
-    ans++;
+  int a, b;
+  cin >> a >> b;
+  if (b / 100 > 0) {
+    a *= 1000;
+  } else if (b / 10 > 0) {
+    a *= 100;
+  } else {
+    a *= 10;
   }
 
-  cout << ans << endl;
+  int v = a + b;
+  int k = sqrt(v);
+  if (k*k == v) {
+    cout << "Yes" << endl;
+  } else {
+    cout << "No" << endl;
+  }
+
   return 0;
 }
