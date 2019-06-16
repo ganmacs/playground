@@ -2,8 +2,10 @@
 name = "awrite"
 version = "0.1.0"
 authors = ["ganmacs <ganmacs@gmail.com>"]
+edition = "2018"
 
 [dependencies]
 
 bytes = "0.4.8"
 byteorder = "1.0.0"
+parking_lot = "0.8"
