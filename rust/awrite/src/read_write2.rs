@@ -71,17 +71,20 @@ impl<T> Decode<T> {
     }
 }
 
-impl<T: io::Read> Decode<T> {
-    pub fn feed(&self, buf: &mut [u8]) -> io::Result<usize> {
-        self.inner.lock().unwrap().read(buf)
+impl<T: io::Write> Decode<T> {
+    pub fn feed(&self, buf: &[u8]) -> io::Result<usize> {
+        self.inner.lock().unwrap().write(buf)
     }
 
-    pub fn feed_each<'a, F>(&self, buf: &'a mut [u8], f: F) -> io::Result<()>
+    pub fn feed_each<'a, F>(&self, buf: &'a [u8], f: F) -> io::Result<()>
     where
-        F: FnOnce(&'a [u8]) -> (),
+        F: Fn(&'a u8) -> (),
     {
-        let s = self.inner.lock().unwrap().read(buf);
-        Ok(f(buf))
+        let s = self.inner.lock().unwrap().write(buf);
+        for item in buf {
+            f(item)
+        }
+        Ok(())
     }
 }
 
@@ -112,10 +115,24 @@ impl<'a, R: BufferedRead<'a>> BufferedRead<'a> for Decode<R> {
 }
 
 pub fn run() {
+    // let mut v: Vec<u8> = vec![];
+    // let c = io::Cursor::new(v.as_mut_slice());
+    // let d = Decode::new(c);
+    // let body = "asdfghjkl";
+    // d.feed_each(body.as_bytes(), |v| println!("{:?}", v))
+    // .unwrap();
+
     // let decode = Decode::new
     // println!("run");
-    // let mut v: Vec<u8> = vec![1, 3, 3, 3, 1, 1];
+    let mut v: Vec<u8> = vec![1; 10];
     // let mut vv: &mut [u8] = v.as_mut();
+    let mut v = io::Cursor::new(v);
+    v.write(b"test");
+    println!("{:?}", v);
+    let mut buf = vec![0; 10];
+    v.read(&mut buf);
+    println!("{:?}", buf);
+    println!("{:?}", v);
 
     // let mut k = "abcd";
     // vv.write(k.as_bytes());

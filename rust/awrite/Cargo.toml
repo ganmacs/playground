@@ -6,6 +6,6 @@ edition = "2018"
 
 [dependencies]
 
-bytes = "0.4.8"
+bytes = { git = "https://github.com/tokio-rs/bytes" }
 byteorder = "1.0.0"
 parking_lot = "0.8"
