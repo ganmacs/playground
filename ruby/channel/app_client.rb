@@ -9,8 +9,6 @@ client = BidiChannel::Client.new(logger: $logger)
 client.setup_connection('worker_1')
 
 Thread.new do
-
 end
-
 
 client.send("hihihihihhi")

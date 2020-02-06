@@ -1,0 +1,8 @@
+- source:
+    '@type': 'dummy'
+    'tag': 'hi'
+- match:
+    '@tag': hi
+    '@type': stdout
+    buffer:
+      '@type': memory

@@ -1,0 +1,35 @@
+system:
+  rpc_endpoint: 0.0.0.0:24444
+
+config:
+  - worker:
+      '@num': '0'
+      config:
+        !include test2.yaml
+  - source:
+      '@type': 'dummy'
+      '@label': '@test'
+      tag: test.copy
+      dummy: {"message":"yaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaay"}
+      auto_increment_key: id
+  - filter:
+      '@tag': '**'
+      '@type': stdout
+  - label:
+      '@name': '@test'
+      config:
+        - match:
+            '@type': 'copy'
+            store:
+              - '@type': stdout
+                'output_type': json
+              - '@type': stdout
+                'output_type': json
+  - match:
+      '@tag': '**'
+      '@type': forward
+      buffer:
+        '@type': memory
+      server:
+        - host: 0.0.0.0
+          port: 24422

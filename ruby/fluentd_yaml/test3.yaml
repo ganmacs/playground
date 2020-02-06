@@ -1,0 +1,98 @@
+---
+system:
+  log_level: error
+  log:
+  - format: json
+    time_format: "%FT%T.%L%z"
+config:
+- source:
+    "@type": tail
+    path: "/var/log/httpd/access_log"
+    format: apache2
+    time_format: "%d/%b/%Y:%H:%M:%S %z"
+    tag: td.apache.access
+    pos_file: "/var/log/td-agent/apache_access.pos"
+- filter:
+    "@tag": myapp.access
+    "@type": record_transformer
+    record:
+    - host_param: TD-0283
+- match:
+    "@tag": td.apache.access
+    "@type": rewrite_tag_filter
+    capitalize_regex_backreference: 'yes'
+    rule:
+    - key: path
+      pattern: "/\\.(gif|jpe?g|png|pdf|zip)$/"
+      tag: clear
+    - key: status
+      pattern: "/^200$/"
+      tag: clear
+      invert: 'true'
+    - key: domain
+      pattern: "/^.+\\.com$/"
+      tag: clear
+      invert: 'true'
+    - key: domain
+      pattern: "/^maps\\.example\\.com$/"
+      tag: site.ExampleMaps
+    - key: domain
+      pattern: "/^news\\.example\\.com$/"
+      tag: site.ExampleNews
+    - key: domain
+      pattern: "/^(mail)\\.(example)\\.com$/"
+      tag: site.$2$1
+    - key: domain
+      pattern: "/.+/"
+      tag: site.unmatched
+- match:
+    "@tag": site.*
+    "@type": mongo
+    host: localhost
+    database: apache_access
+    remove_tag_prefix: site
+    tag_mapped: ''
+    capped: ''
+    capped_size: 100m
+    buffer:
+    - "@type": memory
+- match:
+    "@tag": clear
+    "@type": 'null'
+- source:
+    "@type": forward
+- source:
+    "@type": tail
+    "@label": "@SYSTEM"
+- filter:
+    "@tag": access.**
+    "@type": record_transformer
+- match:
+    "@tag": "**"
+    "@type": elasticsearch
+- label:
+    "@name": "@SYSTEM"
+    config:
+    - filter:
+        "@tag": var.log.middleware.**
+        "@type": grep
+    - match:
+        "@tag": "**"
+        "@type": s3
+- worker:
+    "@num": '0'
+    config:
+    - source:
+        "@type": tail
+        format: none
+        path: "/var/log/fluentd_test.log"
+        pos_file: "/var/log/fluentd_test.pos"
+        tag: tail
+        rotate_wait: '5'
+        read_from_head: 'true'
+        refresh_interval: '60'
+    - match:
+        "@tag": tail
+        "@type": stdout
+        inject:
+        - worker_id_key: worker_id
