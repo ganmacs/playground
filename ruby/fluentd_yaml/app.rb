@@ -8,23 +8,25 @@ require 'fluent/config/element'
 v = YamlLoader.new.load(Pathname.new('./test.yaml'))
 $logger = Logger.new(STDOUT)
 
-class Builder
-  def initialize(config)
+class Converter
+  def self.build_from_yaml(path)
+    s = Fluent::Config::Converter::YamlLoader.new.load(Pathname.new(path))
+    Fluent::Config::Converter.new(s).build
+  end
+
+  def initialize(config, indent: 2)
+    @base_indent = indent
     @config = config
   end
 
   def build_and_eval
-    evaluate(build)
+    build.to_element
   end
 
   def build
-    s = system_config_build(@config['system'])
-    c = config_build(@config['config'], root: true)
-    [s, c]
-  end
-
-  def evaluate(configs)
-    RootBuilder.new(*configs).to_element
+    s = @config['system'] && system_config_build(@config['system'])
+    c = @config['config'] && config_build(@config['config'], root: true)
+    RootBuilder.new(s, c)
   end
 
   private
@@ -64,14 +66,14 @@ class Builder
     config = config.dup
     name = config.delete('@name')
     c = config.delete('config')
-    SectionStringBuilder.new('label', config_build(c, indent: indent + 2), indent, name)
+    SectionBuilder.new('label', config_build(c, indent: indent + @base_indent), indent, name)
   end
 
   def worker_build(config, indent: 0)
     config = config.dup
-    num = config.delete('@num')
+    num = config.delete('@arg')
     c = config.delete('config')
-    SectionStringBuilder.new('worker', config_build(c, indent: indent + 2), indent, num)
+    SectionBuilder.new('worker', config_build(c, indent: indent + @base_indent), indent, num)
   end
 
   def source_build(config, indent: 0)
@@ -79,6 +81,7 @@ class Builder
   end
 
   def filter_build(config, indent: 0)
+    config = config.dup
     tag = config.delete('@tag')
     section_build('filter', config, indent: indent, arg: tag)
   end
@@ -90,22 +93,23 @@ class Builder
   end
 
   def section_build(name, config, indent: 0, arg: nil)
-    sb = SectionBodyBuilder.new(indent + 2)
+    sb = SectionBodyBuilder.new(indent + @base_indent)
     config.each do |key, val|
       if val.is_a?(Array)
         val.each do |v|
-          sb.add_section(section_build(key, v, indent: indent + 2))
+          sb.add_section(section_build(key, v, indent: indent + @base_indent))
         end
       elsif val.is_a?(Hash)
-        arg = val.dup.delete('@arg')
-        sb.add_section(section_build(key, val, indent: indent + 2, arg: arg))
+        arg = val.delete('@arg')
+        sb.add_section(section_build(key, val, indent: indent + @base_indent, arg: arg))
       else
         sb.add_line(key, val)
       end
     end
 
-    SectionStringBuilder.new(name, sb, indent, arg)
+    SectionBuilder.new(name, sb, indent, arg)
   end
 end
 
-puts Builder.new(v).build_and_eval
+# puts Converter.new(v).build.to_s
+puts Converter.new(v).build_and_eval
