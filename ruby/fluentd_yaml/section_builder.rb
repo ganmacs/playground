@@ -27,6 +27,8 @@ class RootBuilder
     @conf = conf
   end
 
+  attr_reader :system, :conf
+
   def to_element
     Fluent::Config::Element.new('ROOT', '', {}, [@system, @conf].compact.map(&:to_element).flatten)
   end
@@ -69,7 +71,8 @@ class SectionBodyBuilder
     not_section, section = @bodies.partition { |e| e.is_a?(Row) }
     r = {}
     not_section.each do |e|
-      r[e.key] = e.value
+      v = e.value
+      r[e.key] = v.respond_to?(:to_element) ? v.to_element : v
     end
 
     if @root

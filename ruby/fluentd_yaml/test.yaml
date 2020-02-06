@@ -10,10 +10,10 @@ config:
       $type: 'dummy'
       $label: '@test'
       tag: test.copy
-      dummy: {"message":"yaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaay"}
+      dummy: !fluent/json { "hi": "hi" }
       auto_increment_key: id
-      memo: "#{ENV['RUBYOPT'] || use_nil}"
-      memo2: "\\#{ENV['RUBYOPT']}"
+      memo: !fluent/s "#{ENV['RUB2YOPT'] || use_default}"
+      memo2: "#{ENV['RUBYOPT']}"
   - filter:
       $tag: '**'
       $type: stdout

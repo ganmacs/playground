@@ -10,9 +10,6 @@ r = File.open(path) { |io|
 }
 
 class ToHash
-  def initialize
-  end
-
   def build(r)
     config = {
       'system' => {},

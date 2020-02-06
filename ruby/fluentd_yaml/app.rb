@@ -4,8 +4,24 @@ require 'pathname'
 require 'logger'
 require 'fluent/config'
 require 'fluent/config/element'
+require 'yaml'
+require 'fluent/config/error'
 
-v = YamlLoader.new.load(Pathname.new('./test.yaml'))
+context = Kernel.binding
+
+unless context.respond_to?(:use_nil)
+  context.define_singleton_method(:use_nil) do
+    raise Fluent::SetNil
+  end
+end
+
+unless context.respond_to?(:use_default)
+  context.define_singleton_method(:use_default) do
+    raise Fluent::SetDefault
+  end
+end
+
+v = YamlLoader.new(context).load(Pathname.new('./test.yaml'))
 $logger = Logger.new(STDOUT)
 
 class Converter
@@ -118,14 +134,3 @@ end
 
 # puts Converter.new(v).build.to_s
 puts Converter.new(v).build_and_eval
-
-class Evaluator
-  def initialize(builder)
-    @builder = builder
-  end
-
-  def evaluate
-    [@builder.system, @builder.conf].compact.each do |config|
-    end
-  end
-end
