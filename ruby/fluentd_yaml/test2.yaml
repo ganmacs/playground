@@ -1,8 +1,8 @@
 - source:
-    '@type': 'dummy'
-    'tag': 'hi'
+    $type: 'dummy'
+    tag: 'hi'
 - match:
-    '@tag': hi
-    '@type': stdout
+    $tag: hi
+    $type: stdout
     buffer:
-      '@type': memory
+      $type: memory

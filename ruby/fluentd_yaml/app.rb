@@ -64,14 +64,14 @@ class Converter
 
   def label_build(config, indent: 0)
     config = config.dup
-    name = config.delete('@name')
+    name = config.delete('$name')
     c = config.delete('config')
     SectionBuilder.new('label', config_build(c, indent: indent + @base_indent), indent, name)
   end
 
   def worker_build(config, indent: 0)
     config = config.dup
-    num = config.delete('@arg')
+    num = config.delete('$arg')
     c = config.delete('config')
     SectionBuilder.new('worker', config_build(c, indent: indent + @base_indent), indent, num)
   end
@@ -82,26 +82,31 @@ class Converter
 
   def filter_build(config, indent: 0)
     config = config.dup
-    tag = config.delete('@tag')
+    tag = config.delete('$tag')
     section_build('filter', config, indent: indent, arg: tag)
   end
 
   def match_build(config, indent: 0)
     config = config.dup
-    tag = config.delete('@tag')
+    tag = config.delete('$tag')
     section_build('match', config, indent: indent, arg: tag)
   end
 
   def section_build(name, config, indent: 0, arg: nil)
     sb = SectionBodyBuilder.new(indent + @base_indent)
+
+    if (v = config.delete('$type'))
+      sb.add_line('@type', v)
+    end
+
     config.each do |key, val|
       if val.is_a?(Array)
         val.each do |v|
           sb.add_section(section_build(key, v, indent: indent + @base_indent))
         end
       elsif val.is_a?(Hash)
-        arg = val.delete('@arg')
-        sb.add_section(section_build(key, val, indent: indent + @base_indent, arg: arg))
+        harg = val.delete('$arg')
+        sb.add_section(section_build(key, val, indent: indent + @base_indent, arg: harg))
       else
         sb.add_line(key, val)
       end
@@ -113,3 +118,14 @@ end
 
 # puts Converter.new(v).build.to_s
 puts Converter.new(v).build_and_eval
+
+class Evaluator
+  def initialize(builder)
+    @builder = builder
+  end
+
+  def evaluate
+    [@builder.system, @builder.conf].compact.each do |config|
+    end
+  end
+end
