@@ -97,6 +97,7 @@ class Builder
           sb.add_section(section_build(key, v, indent: indent + 2))
         end
       elsif val.is_a?(Hash)
+        arg = val.dup.delete('@arg')
         sb.add_section(section_build(key, val, indent: indent + 2, arg: arg))
       else
         sb.add_line(key, val)
