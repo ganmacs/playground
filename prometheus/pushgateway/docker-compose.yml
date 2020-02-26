@@ -1,0 +1,14 @@
+fluentd:
+  build: ./fluentd
+  links:
+    - nginx
+
+nginx:
+  build: ./nginx
+  links:
+    - pushgateway
+
+pushgateway:
+  image: prom/pushgateway
+  ports:
+    - 9091:9091
