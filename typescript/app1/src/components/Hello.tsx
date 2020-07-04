@@ -1,9 +1,35 @@
 import * as React from "react";
 
-export interface HelloProps { compiler: string; framework: string; }
+interface HelloProps {
+  compiler: string;
+  framework: string;
+}
 
-export class Hello extends React.Component<HelloProps, {}> {
-    render() {
-        return <h1>Hello from {this.props.compiler} and {this.props.framework}!</h1>;
-    }
+interface HelloState {
+  val: string;
+  n: number;
+}
+
+export class Hello extends React.Component<HelloProps, HelloState> {
+  constructor(props: HelloProps) {
+    super(props);
+    this.state = {
+      val: props.compiler,
+      n: 0,
+    };
+  }
+
+  render() {
+    return (
+      <div>
+        <button
+          className="square"
+          onClick={() => this.setState({ n: this.state.n + 1 })}
+        >
+          {this.state.val}a
+        </button>
+        <div>{this.state.n.toString()}</div>
+      </div>
+    );
+  }
 }
