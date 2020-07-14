@@ -26,7 +26,7 @@ export class Hello extends React.Component<HelloProps, HelloState> {
           className="square"
           onClick={() => this.setState({ n: this.state.n + 1 })}
         >
-          {this.state.val}a
+          {this.state.val}
         </button>
         <div>{this.state.n.toString()}</div>
       </div>

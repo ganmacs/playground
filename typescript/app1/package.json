@@ -30,6 +30,7 @@
     "webpack-cli": "^3.3.12"
   },
   "dependencies": {
+    "admin-lte": "^3.0.5",
     "react": "^16.13.1",
     "react-dom": "^16.13.1"
   }

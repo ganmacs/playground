@@ -40,8 +40,3 @@ Style/AndOr:
 
 Style/FormatString:
   Enabled: false
-
-Style/PredicateName:
-  NamePrefixBlacklist:
-    - is_
-    - have_
