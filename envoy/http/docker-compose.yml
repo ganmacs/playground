@@ -1,0 +1,15 @@
+version: '2.4'
+services:
+  front-envoy:
+    image: envoyproxy/envoy:v1.15.0
+    container_name: proxy
+    volumes:
+      - ./envoy.yaml:/etc/envoy/envoy.yaml
+    ports:
+      - "80:8080"
+      - "9901:9901"
+  app:
+    build: ./app
+    container_name: app
+    ports:
+      - 8080:8080
