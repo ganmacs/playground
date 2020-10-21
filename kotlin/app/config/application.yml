@@ -1,0 +1,12 @@
+server:
+  type: simple
+  applicationContextPath: /
+  adminContextPath: /admin
+  connector:
+    type: http
+    port: 8080
+template: "hi"
+database:
+   url: jdbc:postgresql://localhost:5432/test_a
+   max_pool_size: 1
+   min_pool_size: 1
