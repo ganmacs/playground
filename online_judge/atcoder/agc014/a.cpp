@@ -13,17 +13,35 @@ using namespace std;
 int
 main()
 {
-  long unsigned long int A, B;
-  cin >> A >> B;
+  long long int A, B, C;
+  int r = 0;
 
-  if (A == 1 || B == 1) {
-    cout << 1 << endl;
+  cin >> A >> B >> C;
+
+
+  if (A%2 == 0 && A == B && B == C) {
+    cout << -1 << endl;
     return 0;
-  } else if ((A % 2 == 1) && (B % 2 == 1)) {
-    cout << A*B/2+1 << endl;
-  } else {
-    cout << (A*B/2) << endl;
   }
+
+
+  while (A%2 == 0 && B%2 == 0 && C%2 == 0) {
+    r++;
+    auto a = A/2;
+    auto b = B/2;
+    auto c = C/2;
+
+    A = b + c;
+    B = c + a;
+    C = a + b;
+
+    if (A%2 == 0 && A == B && B == C) {
+      cout << -1 << endl;
+      return 0;
+    }
+  }
+
+  cout << r << endl;
 
   return 0;
 }

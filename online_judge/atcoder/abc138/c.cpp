@@ -17,24 +17,22 @@ main()
 {
   int N;
   int A[NN];
-  int B[NN];
+  priority_queue<double, vector<double>, greater<double> > q;
 
   cin >> N;
 
-  for (int i = 1; i < N + 1; i++) {
+  for (int i = 0; i < N; i++) {
     cin >> A[i];
-
-    B[A[i]] = i;
+    q.push(A[i]);
   }
 
-
-  cout << B[1];
-
-  for (int i = 2; i < N + 1; i++) {
-    cout << " " << B[i];
+  while (q.size() >= 2) {
+    auto a = q.top();q.pop();
+    auto b = q.top();q.pop();
+    q.push((a + b) / 2);
   }
 
-  cout << endl;
+  cout << q.top() << endl;
 
   return 0;
 }
