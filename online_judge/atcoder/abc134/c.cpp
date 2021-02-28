@@ -12,54 +12,31 @@
 
 using namespace std;
 
-string S, T;
-int len;
-bool finish;
 
-void dfs(int v) {
-  if (len == v) {
-    cout << S << endl;
-    finish = true;
-    return;
-  }
-
-  if (S[v] == '?') {
-    for (int i = 0; i < 26; i++) {
-      S[v] = 'a' + i;
-      dfs(v + 1);
-      S[v] = '?';
-      if (finish) return;
-    }
-  } else {
-    dfs(v + 1);
-  }
-}
+int A[200001];
+int B[200001];
 
 int main(int argc, char *argv[])
 {
-  cin >> S;
-  cin >> T;
-  len = S.size();
 
-  for (int i = len-T.size(); i >= 0 ;i--) {
-    bool ok = false;
-    for (int j = 0; j < T.size(); j++) {
-      if (S[i + j] == T[j] || S[i + j] == '?') {
-        ok = true;
-      } else {
-        ok = false;
-        break;
-      }
-    }
+  int N;
 
-    if (ok == true) {
-      for (int j = 0; j < T.size() ; j++) {
-        swap(S[i + j], T[j]);
-      }
-      dfs(0);
-      return 0;
+  cin >> N;
+
+  for (int i = 0; i < N; i++) {
+    cin >> A[i];
+    B[i] = A[i];
+  }
+
+  sort(A, N + A, greater<int>());
+
+  for (int i = 0; i < N; i++) {
+    if (B[i] == A[0]) {
+      cout << A[1] << endl;
+    } else {
+      cout << A[0] << endl;
     }
   }
 
-  cout << "UNRESTORABLE" << endl;
+  return 0;
 }
