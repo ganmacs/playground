@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -14,39 +13,48 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
+  int N;
+  string s;
+  cin >> s;
+  N = s.length();
+  vector<long long> V;
 
-  string S;
-  // long long int ll[543210], lr[543210];
-   int ll[543210], lr[543210];
-  cin >> S;
-
-  ll[0] = 0;
-  lr[S.length()] = 0;
-
-  auto len = S.length();
-
-  for (int i = 0; i < len; i++) {
-    if (S[i] == '<') {
-      ll[i + 1] = ll[i] + 1;
-    } else {
-      ll[i + 1] = 0;
+  for (int i = 0; i < N;) {
+    int j = i;
+    while (j < N && s[i] == s[j]) {
+      j++;
     }
 
-    if (S[len - i - 1] == '>') {
-      lr[len - i - 1] = lr[len - i] + 1;
-    } else {
-      lr[len - i - 1] = 0;
+    V.push_back(j-i);
+    i = j;
+  }
+  long long ans = 0;
+
+  if (V.size() == 1) {
+    ans = (V[0] + 1)*V[0]/2;
+  } else if (s[0] == '<') {
+    for (int i = 0; i < V.size()-1; i += 2) {
+      ans += max(V[i], V[i+1]);
+      ans += V[i]*(V[i]-1)/2;
+      ans += V[i+1]*(V[i+1]-1)/2;
+    }
+
+    if (V.size() % 2 == 1) {
+      ans += V[V.size()-1]*(V[V.size()-1] + 1)/2;
+    }
+  } else {                      // ><><
+    ans += V[0]*(V[0]+1)/2;
+    for (int i = 1; i < V.size()-1; i += 2) {
+      ans += max(V[i], V[i + 1]);
+      ans += V[i]*(V[i]-1)/2;
+      ans += V[i+1]*(V[i+1]-1)/2;
+    }
+
+    if (V.size() % 2 == 0) {
+      ans += V[V.size()-1]*(V[V.size()-1] + 1)/2;
     }
   }
 
-
-  auto j = 0;
-  for (int i = 0; i <= len; i++) {
-    auto v = max(ll[i], lr[i]);
-    j += v;
-  }
-
-  cout << j << endl;
-
+  cout << ans << endl;
   return 0;
 }
