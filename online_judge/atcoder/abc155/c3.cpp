@@ -15,33 +15,28 @@ using namespace std;
 int main()
 {
   int N;
-  string s;
   cin >> N;
-
-  map<string, int> m;
+  string s;
+  map<string, int> V;
 
   for (int i = 0; i < N; i++) {
     cin >> s;
-    m[s]++;
+    V[s]++;
   }
 
-  vector<pair<int, string> > ve;
-  for (auto& vi: m) {
-    ve.push_back(make_pair(-vi.second, vi.first));
-  };
-  sort(ve.begin(), ve.end());
+  vector<pair<int, string>> V2;
+  for (auto& vi: V) {
+    V2.push_back(make_pair(-vi.second, vi.first));
+  }
+  sort(V2.begin(), V2.end());
 
-
-  int k = 1e9;
-  for (auto& vi: ve) {
-    if (k == 1e9) {
-      k = vi.first;
-    } else if (k != vi.first) {
+  int k = -1;
+  for (auto& vi: V2) {
+    if (k != -1 && vi.first != k) {
       break;
     }
-
+    k = vi.first;
     cout << vi.second << endl;
   };
-
   return 0;
 }

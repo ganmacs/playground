@@ -12,76 +12,76 @@
 
 using namespace std;
 
-bool f(string x, long long unsigned int m, int base) {
-  long long unsigned int b = 1;
-  long long unsigned int g = 0;
-  for (int i = x.length()-1; i >= 0; i--) {
-    g += (x[i]-'0') * b;
-    b *= base;
-  }
-
-  return m >= g;
-}
-
 string X;
-int MV[70];
+long long M;
+int N;
 
-bool f2(long long unsigned int x, int base) {
-  auto N = 0;
-  while (x > 0) {
-    MV[N] = x % base;
-    x = (x - MV[N]) / base;
-    N++;
+bool check(long long base) {
+  vector<long long> Y;
+  long long m = M;
+
+  while (m > 0) {
+    Y.push_back(m % base);
+    m /= base;
   }
 
-  // for (int i = N-1; i >= 0; i--) {
-  //   printf("%d ", MV[i]);
-  // }
-  // printf("\n");
+  reverse(Y.begin(), Y.end());
 
-  if (X.length() > N) {
-    return false;
-  } else if (X.length() < N) {
+  if (Y.size() > N) {
     return true;
+  } else if (Y.size() < N) {
+    return false;
   }
 
-  for (int i = 0;i < N; i++) {
-    if (X[i]-'0' == MV[N-(i+1)]) {
-      continue;
-    }
+  for (int i = 0; i < N; i++) {
+    long long x = X[i] - '0';
 
-    return (X[i]-'0' < MV[N-(i+1)]);
+    if (x < Y[i]) {
+      return true;
+    } else if (x > Y[i]) {
+      return false;
+    }
   }
 
   return true;
 }
 
-
-int main(int argc, char *argv[])
+int main()
 {
-  long long unsigned int M;
   cin >> X >> M;
-
-  int r = 0;
-  for (int i = 0; i < X.length(); i++) {
-    r = max(r, X[i] - '0');
+  N = X.size();
+  if (N == 1) {
+    if (M >= (X[0]- '0')) {
+      cout << 1 << endl;
+    } else {
+      cout << 0 << endl;
+    }
+    return 0;
   }
 
-  long long int l = r + 1;
-  long long int rr = 987654000;
+  long long maxi = 0;
+  for (auto& vi: X) {
+    maxi = max(maxi, (long long)vi-'0');
+  };
 
-  while (rr -l > 1) {
-    long long int p = (l + rr) / 2;
+  long long ok = maxi + 1;
+  long long ng = M + 1;
 
-    bool ok = f2(M, p);
-    if (ok) {
-      l = p;
+  if (!check(ok)) {
+    cout << 0 << endl;
+    return 0;
+  }
+
+  while (abs(ok - ng) > 1) {
+    long long p = (ok + ng)/2;
+    if (check(p)) {
+      ok = p;
     } else {
-      r = p;
+      ng = p;
     }
   }
 
-  cout << (p - r) << endl;
 
+  cout << (ok-maxi) << endl;
   return 0;
 }

@@ -15,27 +15,27 @@ using namespace std;
 
 int main()
 {
-  unsigned long long N, K, ans = 0;;
-  cin >> N >> K;
-  vector<unsigned long long> V(N);
+  long long N, K;
+  cin >> N >>  K;
+  vector<int> V(N);
+  for (auto& vi: V) {
+    cin >> vi;
+  };
 
-  for (int i = 0; i < N; i++) {
-    cin >> V[i];
-  }
+  unsigned long long t = 0;
+  long long ans = 0;
 
-  unsigned long long sum = 0;
-  int p = 0;
+  int j = 0;
   for (int i = 0; i < N; i++) {
-    while (sum < K && p < N) {
-      sum += V[p];
-      p++;
+    while (t < K && j < N) {
+      t += V[j];
+      j++;
     }
-    if (sum < K) break;
-    ans += (N-p+1);
-    sum -= V[i];
+    if (t < K) break;
+    ans += (N-j+1);
+    t -= V[i];
   }
 
   cout << ans << endl;
-
   return 0;
 }

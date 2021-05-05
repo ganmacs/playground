@@ -14,17 +14,15 @@ using namespace std;
 
 int main()
 {
-  int X;
-  cin >> X;
+  int N;
+  cin >> N;
+  int v = N/100;
 
-  int v1 = X/100;
-
-  if (v1*100 <= X && X <= v1*105) {
+  if (v*100 <= N && v*105 >= N) {
     cout << 1 << endl;
   } else {
     cout << 0 << endl;
   }
 
-  cout << 0 << endl;
   return 0;
 }

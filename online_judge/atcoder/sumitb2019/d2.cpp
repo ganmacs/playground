@@ -14,33 +14,33 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-  int N;
+  int N, ans = 0;
   string S;
-  set<string> s3, s2, s1;
   cin >> N >> S;
-  string aaa = "xxx";
-  for (int i = 0; i < N-2; i++) {
-    aaa[0] = S[i];
-    if (s1.find(aaa) != s1.end()) {
-      continue;
-    }
-    s1.insert(aaa);
 
-    for (int j = i + 1; j < N-1; j++) {
-      aaa[1] = S[j];
-      if (s2.find(aaa) != s2.end()) {
-        continue;
-      }
-      s2.insert(aaa);
+  for (int i = 0; i <= 9; i++) {
+    for (int j = 0; j <= 9; j++) {
+      for (int k = 0; k <= 9; k++) {
+        vector<int> vv = {i, j, k};
+        int l = 0;
+        bool ok = false;
 
-      for (int k = j + 1; k < N; k++) {
-        aaa[2] = S[k];
-        s3.insert(aaa);
+        for (auto& vi: vv) {
+          ok = false;
+          for (; l < N; l++) {
+            if ((S[l]- '0') == vi) {
+              ok = true;
+              l++;
+              break;
+            }
+          }
+          if (!ok) break;
+        };
+        if (ok) ans++;
       }
     }
   }
 
-  cout << s3.size() << endl;
-
+  cout << ans << endl;
   return 0;
 }

@@ -13,40 +13,32 @@ using namespace std;
 
 const long long INF = 1e18;
 
-long long dp[102][112345];
+long long dp[112345], w[112345], v[112345];
 
 int main()
 {
-  int N, v;
-  long long W, w;
+  int N, W;
+  long long va = 0;
   cin >> N >> W;
 
-  vector<pair<long long, int> > b(N);
-  for (auto& vi: b) {
-    cin >> w >> v;
-    vi = make_pair(w, v);
-  };
-
-  fill(dp[0], dp[0] + 100002, INF);
-  dp[0][0] = 0;
-
   for (int i = 0; i < N; i++) {
-    auto w = b[i].first;
-    auto v = b[i].second;
+    cin >> w[i] >> v[i];
+    va += v[i];
+  }
 
-    for (int j = 0; j <= 100001; j++) {
-      if (j >= v && (w + dp[i][j-v]) <= W) {
-        dp[i + 1][j] = min(w + dp[i][j-v], dp[i][j]);
-      } else {
-        dp[i + 1][j] = dp[i][j];
-      }
+  fill(dp, dp + va + 1, INF);
+  dp[0] = 0;
+  for (int i = 0; i < N; i++) {
+    for (long long j = va; (j - v[i]) >= 0; j--) {
+      dp[j] = min(dp[j], dp[j-v[i]] + w[i]);
     }
   }
 
-  for (int i = 100001; i >= 0; i--) {
-    if (dp[N][i] == INF) continue;
-    cout << i << endl;
-    break;
+  for (long long i = va; (i-v[i] >= 0); i--) {
+    if (dp[i] <= W) {
+      cout << i << endl;
+      return 0;
+    }
   }
 
   return 0;

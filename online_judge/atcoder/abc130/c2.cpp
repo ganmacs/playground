@@ -15,11 +15,9 @@ using namespace std;
 
 int main()
 {
-  int W, H, x, y;
+  double W, H, x, y;
   cin >> W >> H >> x >> y;
 
-  double a1 = min(W-x, x)*H*1.0;
-  double a2 = min(H-y, y)*W*1.0;
-  printf("%.9f %d\n", double(H)*double(W)/2, x*2 == W && y*2 == H);
+  cout << (W*H/2.0) << " " << (W == x*2 && H == y*2) << endl;
   return 0;
 }

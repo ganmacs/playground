@@ -45,3 +45,5 @@ int main()
   cout << ans << endl;
   return 0;
 }
+// aaa/aa
+// aaa/ab

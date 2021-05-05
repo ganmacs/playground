@@ -14,27 +14,24 @@ using namespace std;
 
 int main()
 {
-  int d[11];
   string S;
   cin >> S;
+  int N = S.length(), ans = 0;;
 
-  fill(d, d + 11, 0);
-  for (int i = 0; i < S.length(); i++) {
-    d[i] = (S[i] == 'A'||S[i] == 'C'||S[i] == 'G'||S[i] == 'T');
-  };
-
-  int ans = 0;
-  int tmp = 0;
-  for (int i = 0; i < S.length(); i++) {
-    if (d[i]) {
-      tmp++;
-    } else {
-      ans = max(ans, tmp);
-      tmp = 0;
+  for (int i = 0; i < N; i++) {
+    int a = 0;
+    for (int j = 0; j + i < N; j++) {
+      if (S[j + i] == 'A' || S[j + i] == 'C' || S[j + i] == 'G' || S[j + i] == 'T') {
+        a++;
+      } else {
+        break;
+      }
     }
+
+    ans = max(a, ans);
   }
 
-  ans = max(ans, tmp);
   cout << ans << endl;
+
   return 0;
 }

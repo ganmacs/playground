@@ -17,18 +17,23 @@ int main()
 {
   unsigned long long A, B;
   cin >> A >> B;
-  unsigned long long g = gcd(A, B);
-  unsigned long long ans = 1;
+  unsigned long long a = gcd(A, B);
 
-  for (unsigned long long i = 2; i*i <= g; i++) {
-    if (g % i != 0) continue;
-    while (g % i == 0) g /= i;
+  long long ans = 1;
+
+  for (unsigned long long i = 2; i*i <= a && a > 1; i++) {
+    if (a % i != 0) continue;
+
+    while (a % i == 0) {
+      a /= i;
+    }
     ans++;
   }
 
-  if (g != 1) ans++;
+  if (a > 1) {
+    ans++;
+  }
 
   cout << ans << endl;
-
   return 0;
 }

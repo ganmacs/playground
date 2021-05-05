@@ -1,4 +1,4 @@
-#sumitb2019_cinclude <algorithm>
+#include <algorithm>
 #include <iostream>
 #include <sstream>
 #include <string>

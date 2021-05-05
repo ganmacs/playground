@@ -14,23 +14,29 @@ using namespace std;
 
 int main()
 {
-  map<string, int> ss;
+  map<string, int> MA, M2;
   int N;
   string S;
   cin >> N >> S;
 
-  for (int i = 0; i < N-2; i++) {
-    string ts = "xxx";
-    ts[0] = S[i];
-    for (int j = i + 1; j < N-1; j++) {
-      ts[1] = S[j];
+  for (int i = 0; i < (N-2); i++) {
+    string sss = "xxx";
+    sss[0] = S[i];
+    if (M2[sss] != 0) continue;
+    M2[sss]++;
+
+    for (int j = i + 1; j < (N-1); j++) {
+      sss[1] = S[j];
+      if (M2[sss] != 0) continue;
+      M2[sss]++;
+
       for (int k = j + 1; k < N; k++) {
-        ts[2] = S[k];
-        ss[ts]++;
+        sss[2] = S[k];
+        MA[sss]++;
       }
     }
   }
 
-  cout << ss.size() << endl;
+  cout << MA.size() << endl;
   return 0;
 }
