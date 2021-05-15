@@ -16,56 +16,39 @@ int lcs[3005][3005];
 
 int main()
 {
-  string s, t;
-  cin >> s >> t;
+  string S, T;
+  cin >> S >> T;
 
-  for (int i = 0; i < 3005; i++) {
-    lcs[i][0] = 0;
-    lcs[0][i] = 0;
+  for (int i = 0; i < S.size(); i++) {
+    fill(lcs[i], lcs[i] + T.size(), 0);
   }
 
-  for (int i = 0; i < s.length(); i++) {
-    for (int j = 0; j < t.length(); j++) {
-      if (s[i] == t[j]) {
-        lcs[i + 1][j + 1] = max(lcs[i + 1][j], max(lcs[i][j + 1], lcs[i][j] + 1));
+  for (int i = 0; i < S.size(); i++) {
+    for (int j = 0; j < T.size(); j++) {
+      if (S[i] == T[j]) {
+        lcs[i + 1][j + 1] = max(lcs[i][j] + 1, lcs[i + 1][j + 1]);
       } else {
-        lcs[i + 1][j + 1] = max(lcs[i + 1][j], lcs[i][j + 1]);
+        lcs[i + 1][j + 1] = max(lcs[i+1][j], lcs[i][j+1]);
       }
     }
   }
 
-  // for (int i = 0; i < s.length(); i++) {
-  //   for (int j = 0; j < t.length(); j++) {
-  //     cout << lcs[i + 1][j + 1] << " ";
-  //   }
-  //   puts("");
-  // }
-
-  // for (int i = 0; i < t.length(); i++) {
-  //     cout << t[i] << " ";
-  // }
-  // puts("");
-
-  vector<char> v;
-  int i = s.length();
-  int j = t.length();
-  while (i >= 1 && j >= 1) {
-    if (s[i-1] == t[j-1]) {
-      v.push_back(t[j-1]);
+  string ss;
+  int i = S.size()-1;
+  int j = T.size()-1;
+  while (i >= 0 && j >= 0) {
+    if (S[i] == T[j]) {
+      ss += S[i];
       i--;
       j--;
-    } else if (lcs[i][j-1] > lcs[i-1][j]) {
-      j--;
+    } else if (lcs[i][j + 1] > lcs[i + 1][j]) {
+      i--;
     } else {
-      i--;
+      j--;
     }
   }
 
-  reverse(v.begin(), v.end());
-  for (auto vi: v) {
-    cout << vi;
-  }
-  puts("");
-
+  reverse(ss.begin(), ss.end());
+  cout << ss << endl;
   return 0;
 }

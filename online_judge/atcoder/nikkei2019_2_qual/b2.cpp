@@ -10,42 +10,35 @@
 
 using namespace std;
 
-unsigned long long int M = 998244353;
+unsigned long long int INF = 998244353;
 
 int
 main()
 {
-  int N, a, ma = 0;
+  int N, d;
   cin >> N;
-  map<int, int> V;
-  for (int i = 0; i < N; i++) {
-    cin >> a;
-    if (i == 0 &&  a != 0) {
-      cout << 0 << endl;
-      return 0;
-    }
+  vector<int> V;
+  map<int, int> M;
 
-    ma = max(ma, a);
-    V[a]++;
+  for (int i = 0; i < N; i++) {
+    cin >> d;
+    V.push_back(d);
+    M[d]++;
   }
 
-  if (V[0] != 1) {
+  if (V[0] != 0 || M[0] != 1) {
     cout << 0 << endl;
     return 0;
   }
 
   unsigned long long int ans = 1;
-  for (int i = 1; i <= ma; i++) {
-    if (V[i] == 0) {
-      cout << 0 << endl;
-      return 0;
-    }
-
-    for (int j = 0; j < V[i]; j++) {
-      ans = (ans * V[i-1]) % M;
+  for (int i = 1; i < N; i++) {
+    for (int j = 0; j < M[i]; j++) {
+      ans = (ans * M[i-1]) % INF;
     }
   }
 
   cout << ans << endl;
+
   return 0;
 }

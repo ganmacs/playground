@@ -16,22 +16,18 @@ const int L = 1e9 + 7;
 
 int main()
 {
-
   int N;
   string S;
-  map<char, int> M;
+  map<int, int> M;
   cin >> N >> S;
+  for (auto& vi: S) M[vi - 'a']++;
 
-  for (int i = 0; i < N; i++) {
-    M[S[i]- '0']++;
-  }
-
-  long long ans = 1;
+  unsigned long long int ans = 1;
   for (auto& vi: M) {
     ans *= (vi.second + 1);
     ans %= L;
   };
 
-  cout << ans -1 << endl;
+  cout << ans - 1 << endl;
   return 0;
 }

@@ -15,29 +15,30 @@ int main()
 {
   string S;
   unsigned long long K;
+  vector<pair<char, long long>> V;
+  unsigned long long ans = 0;
   cin >> S >> K;
-  int N = S.length();
-  vector<pair<char, unsigned long long>> V;
+  int N;
+  N = S.size();
 
   for (int i = 0; i < N;) {
     int j = i;
-    while (j < N && S[i] && S[j] == S[i]) j++;
+    while (j < N && S[i] == S[j]) j++;
+
     V.push_back(make_pair(S[i], j-i));
+    ans += ((j-i)/2)*K;
     i = j;
   }
 
-  unsigned long long ans = 0;
-  for (auto& vi: V) {
-    ans += (vi.second/2);
-  };
-  ans *= K;
-
   if (V.size() == 1) {
-    ans = (K*V[0].second)/2;
-  } else if (S.length() >= 2 && V[0].first == V[V.size()-1].first) {
-    ans += ((V[0].second + V[V.size()-1].second)/2)*(K-1);
-    ans -= (V[0].second/2)*(K-1);
-    ans -= (V[V.size()-1].second/2)*(K-1);
+    cout << (K*V[0].second)/2 << endl;
+    return 0;
+  }
+
+  if (V.front().first == V.back().first) {
+    if ((V.back().second % 2) == 1 && (V.front().second) % 2 == 1) {
+      ans += (K-1);
+    }
   }
 
   cout << ans << endl;

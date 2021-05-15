@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdio>
 #include <cmath>
+#include <array>
 #include <queue>
 #include <stack>
 #include <map>
@@ -14,20 +15,17 @@ using namespace std;
 
 int main()
 {
-  string S;
-  cin >> S;
+  unsigned long long N, K, aa = 0;
+  cin >> N >> K;
 
-  while (S.size() >= 0) {
-    S.pop_back();
-    if (S.size() % 2 == 1) {
-      S.pop_back();
-    }
-
-    if (S.substr(0, S.size()/2) == S.substr(S.size()/2, S.size()/2)) {
-      cout << S.size() << endl;
-      return 0;
+  for (int i = 0; i < K; i++) {
+    if (N % 200 == 0) {
+      N /= 200;
+    } else {
+      N = stoull(to_string(N) + "200");
     }
   }
 
+  cout << N << endl;
   return 0;
 }

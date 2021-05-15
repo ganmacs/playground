@@ -14,27 +14,24 @@ using namespace std;
 
 int main()
 {
-  int N, a, ans = 0;
+  int N;
   cin >> N;
   vector<int> V(N);
-
   for (auto& vi: V) {
     cin >> vi;
     vi--;
   };
 
-  for (int i = 0; i < N;) {
-    if (V[i] == i) {
-      int j = i;
-      while (j < N && V[j] == j) j++;
+  long long ans = 0;
 
-      int v = j-i;
-      if (v > 0) {
-        ans += v/2 + (v % 2);
+  for (int i = 0; i < N; i++) {
+    if (V[i] == i) {
+      if ((i - 1) >= 0) {
+        swap(V[i],  V[i-1]);
+      } else {
+        swap(V[i], V[i + 1]);
       }
-      i = j;
-    } else {
-      i++;
+      ans++;
     }
   }
 

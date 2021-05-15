@@ -14,33 +14,33 @@ using namespace std;
 
 int main()
 {
+  map<int, unsigned long long> M;
   int N;
-  string s;
   cin >> N;
-  map<string, int> M;
-  vector<string> V;
-
-  for (int i = 0; i < N; i++) {
-    cin >> s;
-    V.push_back(s);
-    M[s]++;
-  }
-
-  long long int ans = 0;
-  for (auto& vi: M) {
-    if (vi.second < 2) continue;
-    for (int i = 1; i < vi.second; i++) {
-      ans += i;
-    }
-  };
+  vector<int> V(N);
 
   for (auto& vi: V) {
-    if (M[vi] < 2) {
-      cout << ans << endl;
-    } else {
-      cout << (ans - (M[vi]-1)) << endl;
+    cin >> vi;
+    M[vi]++;
+  };
+
+  unsigned long long ans = 0;
+  for (auto& vi: M) {
+    if (vi.second >= 2) {
+      ans += vi.second * (vi.second - 1) / 2;
     }
   };
+
+  for (int i = 0; i < N; i++) {
+    unsigned long long tans = ans;
+    unsigned long long t = M[V[i]];
+    if (t >= 2) {
+      tans -= t * (t-1) / 2;
+      tans += (t-2) * (t-1) /2;
+    }
+
+    cout << tans << endl;
+  }
 
   return 0;
 }

@@ -14,46 +14,47 @@
 
 using namespace std;
 vector<array<int, 5>> V;
-int N;
 
-bool check(int an) {
-  set<int> s;
+bool check(long long t) {
+  set<int> A;
 
   for (auto& vi: V) {
-    int bit = 0;
+    int v = 0;
+    for (int i = 0; i < 5; i++) {
+      if (t <= vi[i]) {
+        v |= (1 << i);
+      }
+    }
+    A.insert(v);
+  }
 
-    for (auto& vii: vi) {
-      bit <<= 1;
-      bit |= (vii >= an);
-    };
-    s.insert(bit);
-  };
-
-  for (auto& v1: s) {
-    for (auto& v2: s) {
-      for (auto& v3: s) {
-        if ((v1|v2|v3) == 31) return true;
-      };
-    };
-  };
+  for (auto& v1: A) {
+    for (auto& v2: A) {
+      for (auto& v3: A) {
+        if ((v1|v2|v3) == 31) {
+          return true;
+        }
+      }
+    }
+  }
 
   return false;
 }
 
 int main()
 {
-  int a, b, c, d, e;
+  int N, a, b, c, d, e;
   cin >> N;
+
   for (int i = 0; i < N; i++) {
     cin >> a >> b >> c >> d >> e;
     V.push_back({a, b, c, d, e});
   }
 
-  int ok = 1, ng = 1e9 + 1;
+  long long ok = 1, ng = 1e9 + 1;
 
-  while (abs(ok-ng) > 1) {
-    int p = (ok + ng)/2;
-
+  while (abs(ok-ng)>1) {
+    long long p = (ok + ng)/2;
     if (check(p)) {
       ok = p;
     } else {

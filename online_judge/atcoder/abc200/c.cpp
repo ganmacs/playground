@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdio>
 #include <cmath>
+#include <array>
 #include <queue>
 #include <stack>
 #include <map>
@@ -12,22 +13,22 @@
 
 using namespace std;
 
-int main(int argc, char *argv[])
+int main()
 {
-  int N, K;
-  cin >> N >> K;
-  vector<unsigned long long> V(N);
+  int N;
   unsigned long long ans = 0;
+  cin >> N;
 
-  for (int i = 0; i < N; i++) {
-    cin >> V[i];
+  map<int, unsigned long long> M;
+  vector<long long> V(N);
+  for (auto& vi: V) {
+    cin >> vi;
+    M[vi % 200]++;
   };
 
-  for (int i = 0; i < (N - K + 1); i++) {
-    for (int j = 0; j < K; j++) {
-      ans += V[i + j];
-    }
-  }
+  for (auto& mi: M) {
+    ans += mi.second * (mi.second-1) / 2;
+  };
 
   cout << ans << endl;
   return 0;

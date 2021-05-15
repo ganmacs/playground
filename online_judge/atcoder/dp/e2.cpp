@@ -13,28 +13,31 @@ using namespace std;
 
 const long long INF = 1e18;
 
-long long dp[112345], w[112345], v[112345];
+
+long long dp[112345];
 
 int main()
 {
   int N, W;
-  long long va = 0;
+  long long w, v, va = 0;
+  vector<pair<long long,  long long>> V;
   cin >> N >> W;
 
   for (int i = 0; i < N; i++) {
-    cin >> w[i] >> v[i];
-    va += v[i];
+    cin >> w >> v;
+    V.push_back(make_pair(w, v));
+    va += v;
   }
+  fill(dp, dp + va + 10, INF);
 
-  fill(dp, dp + va + 1, INF);
   dp[0] = 0;
   for (int i = 0; i < N; i++) {
-    for (long long j = va; (j - v[i]) >= 0; j--) {
-      dp[j] = min(dp[j], dp[j-v[i]] + w[i]);
+    for (int j = va; (j - V[i].second) >= 0; j--) {
+      dp[j] = min(dp[j], dp[j-V[i].second] + V[i].first);
     }
   }
 
-  for (long long i = va; (i-v[i] >= 0); i--) {
+  for (int i = va; i >= 0; i--) {
     if (dp[i] <= W) {
       cout << i << endl;
       return 0;

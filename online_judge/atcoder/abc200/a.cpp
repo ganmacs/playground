@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdio>
 #include <cmath>
+#include <array>
 #include <queue>
 #include <stack>
 #include <map>
@@ -14,19 +15,14 @@ using namespace std;
 
 int main()
 {
-  string S;
-  cin >> S;
+  int N;
+  cin >> N;
 
-  while (S.size() >= 0) {
-    S.pop_back();
-    if (S.size() % 2 == 1) {
-      S.pop_back();
-    }
+  if (N % 100 == 0) {
 
-    if (S.substr(0, S.size()/2) == S.substr(S.size()/2, S.size()/2)) {
-      cout << S.size() << endl;
-      return 0;
-    }
+    cout << (N/100) << endl;
+  } else {
+    cout << (N/100) + 1 << endl;
   }
 
   return 0;

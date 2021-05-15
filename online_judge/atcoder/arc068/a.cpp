@@ -14,20 +14,20 @@ using namespace std;
 
 int main()
 {
-  string S;
-  cin >> S;
+  unsigned long long x;
+  cin >> x;
 
-  while (S.size() >= 0) {
-    S.pop_back();
-    if (S.size() % 2 == 1) {
-      S.pop_back();
-    }
+  unsigned long long v = x/11;
+  unsigned long long ans = v*2;
 
-    if (S.substr(0, S.size()/2) == S.substr(S.size()/2, S.size()/2)) {
-      cout << S.size() << endl;
-      return 0;
+  if (x % 11 != 0) {
+    if ((x % 11) > 6) {
+      ans += 2;
+    } else {
+      ans += 1;
     }
   }
 
+  cout << ans << endl;
   return 0;
 }

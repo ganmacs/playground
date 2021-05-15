@@ -11,22 +11,33 @@
 #include <set>
 
 using namespace std;
-string S;
-int len;
 
-long long int dfs(int i, long long s1,  long long s) {
-  if (i == len) {
-    return s1 + s;
+int
+main()
+{
+  string S;
+  cin >> S;
+  int N = S.size();
+
+  unsigned long long ans = 0;
+
+  for (int i = 0; i < pow(2, N); i++) {
+    unsigned long long v = 0;
+
+    for (int j = 0; j < N; j++) {
+      if (i & (1 << j)) {
+        ans += v;
+        v = 0;
+      } else {
+        v *= 10;
+        v += (int)(S[j]-'0');
+      }
+    }
+
+    ans += v;
   }
 
-  return dfs(i + 1, s1, s*10 + (S[i]-'0')) + dfs(i + 1, s1 + s, (S[i]-'0'));
-}
+  cout << ans << endl;
 
-int main(int argc, char *argv[])
-{
-  cin >> S;
-  len = S.length();
-  long long ans = 0;
-  cout << dfs(1, 0, S[0]-'0') << endl;
   return 0;
 }

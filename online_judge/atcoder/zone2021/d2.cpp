@@ -17,45 +17,41 @@ using namespace std;
 
 int main()
 {
-  deque<char> D;
+  deque<char> Q;
+  bool r = false;
   string S;
   cin >> S;
-  int N = S.size();
 
-  int r = false;
-  for (int i = 0; i < N; i++) {
-    if (S[i] == 'R') {
+  for (auto& vi: S) {
+    if (vi == 'R') {
       r = !r;
     } else {
       if (r) {
-        D.push_front(S[i]);
+        Q.push_front(vi);
       } else {
-        D.push_back(S[i]);
+        Q.push_back(vi);
       }
     }
-  }
+  };
 
   if (r) {
-    reverse(D.begin(), D.end());
+    reverse(Q.begin(), Q.end());
   }
 
-  vector<char> V;
-  for (auto& vi: D) {
-    if (V.size() >= 1) {
-      if (V[V.size()-1] == vi) {
-        V.pop_back();
-        continue;
-      }
+  string ans = "";
+  for (auto& vi: Q) {
+    if (ans.size() == 0) {
+      ans += vi;
+      continue;
     }
 
-    V.push_back(vi);
+    if (ans.back() == vi) {
+      ans.pop_back();
+    } else {
+      ans += vi;
+    }
   };
 
-  for (auto& vi: V) {
-    cout << vi;
-  };
-  cout << endl;
-
-
+  cout << ans << endl;
   return 0;
 }

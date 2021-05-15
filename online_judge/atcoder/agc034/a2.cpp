@@ -14,13 +14,13 @@ using namespace std;
 
 string S;
 
-
-bool a1(int l, int r) {
+bool c(int l, int r) {
   for (int i = l; i < r; i++) {
-    if (S[i] == '#' &&  S[i + 1] == '#') {
+    if (S[i] == '#' && S[i + 1] == '#') {
       return false;
     }
   }
+
   return true;
 }
 
@@ -28,30 +28,25 @@ int main()
 {
   int N, A, B, C, D;
   cin >> N >> A >> B >> C >> D;
+  A--; B--; C--; D--;
   cin >> S;
 
-  if (!a1(B, D) || !a1(A, C)) {
+  if (!c(A, C) || !c(B, D)) {
     cout << "No" << endl;
     return 0;
   }
 
-  if (D > C) {
-    cout << "Yes" << endl;
-    return 0;
-  }
-
-  bool ok = false;
-  for (int i = max(A-1, B-2); i < (D-1); i++) {
-    if (S[i] == '.' &&  S[i + 1] == '.' && S[i + 2] == '.') {
-      ok = true;
-      break;
+  if (D < C) {
+    for (int i = B; i <= D; i++) {
+      if (S[i-1] == '.' && S[i] == '.' && S[i + 1] == '.') {
+        cout << "Yes" << endl;
+        return 0;
+      }
     }
-  }
 
-  if (ok) {
-    cout << "Yes" << endl;
-  } else {
     cout << "No" << endl;
+  } else {
+    cout << "Yes" << endl;
   }
 
   return 0;

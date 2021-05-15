@@ -15,32 +15,27 @@ using namespace std;
 
 int main()
 {
-  int N;
+  int N, a;
   cin >> N;
-  vector<int> V(N);
+  map<long long, long long> V;
+  for (int i = 0; i < N; i++) {
+    cin >> a;
+    V[-a]++;
+  }
+
+  vector<unsigned long long> VV;
   for (auto& vi: V) {
-    cin >> vi;
-    vi = -vi;
-  };
-  sort(V.begin(), V.end());
+    while (vi.second >= 2) {
+      VV.push_back(-vi.first);
+      vi.second -= 2;
+    }
 
-  vector<unsigned long long int> K;
-
-  for (int i = 0; i < (N-1);) {
-    if (V[i] == V[i + 1]) {
-      K.push_back(V[i]);
-      if (K.size() == 2) break;
-      i += 2;
-    } else {
-      i++;
+    if (VV.size() >= 2) {
+      cout << (VV[0]*VV[1]) << endl;
+      return 0;
     }
   }
 
-  if (K.size() == 2) {
-    cout << K[0]*K[1] << endl;
-  } else {
-    cout << 0 << endl;
-  }
-
+  cout << 0 << endl;
   return 0;
 }
