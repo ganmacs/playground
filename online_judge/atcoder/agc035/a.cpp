@@ -27,7 +27,6 @@ bool solve() {
 
   if (M.size() == 3) {
     if ((V[0] ^ V[1] ^ V[2]) != 0) return false;
-
     return (M[V[0]] == M[V[1]] && M[V[1]] == M[V[2]]);
   } else if (M.size() == 2) {
     return (M[0] == N/3);

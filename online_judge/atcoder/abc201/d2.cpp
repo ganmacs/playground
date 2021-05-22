@@ -13,18 +13,19 @@
 
 using namespace std;
 int H, W;
-char A[2001][2001];
 
-vector<vector<int >> visited(2001, vector<int>(2001, false));
-vector<vector<int >> dp(2001, vector<int>(2001, -1));
+int dp[2001][2001];
+vector<vector<bool>> visited(2001, vector<bool>(2001, false));
+char A[2001][2001];
 
 int dfs(int i, int j)
 {
   if (visited[i][j]) {
     return dp[i][j];
   }
+  visited[i][j] = true;
 
-  int ret = 0;
+  int ret;
   if ((i + j) % 2 == 0) {
     ret = -1e9;
     if (i + 1 < H) ret = max(ret, dfs(i + 1, j) + (A[i + 1][j] == '+' ? 1 : -1));
@@ -35,7 +36,6 @@ int dfs(int i, int j)
     if (j + 1 < W) ret = min(ret, dfs(i, j + 1) - (A[i][j + 1] == '+' ? 1 : -1));
   }
 
-  visited[i][j] = true;
   return dp[i][j] = ret;
 }
 
@@ -51,16 +51,16 @@ int main()
     }
   }
 
-  dp[H-1][W-1] = 0;
   visited[H-1][W-1] = true;
+  dp[H-1][W-1] = 0;
 
-  auto v = dfs(0, 0);
-  if (v == 0) {
-    cout << "Draw\n";
-  } else if (v > 0) {
-    cout << "Takahashi\n";
+  auto r = dfs(0, 0);
+  if (r == 0) {
+    cout << "Draw" << endl;
+  } else if (r > 0) {
+    cout << "Takahashi" << endl;
   } else {
-    cout << "Aoki\n";
+    cout << "Aoki" << endl;
   }
 
   return 0;

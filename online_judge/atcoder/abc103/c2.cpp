@@ -15,15 +15,13 @@ using namespace std;
 
 int main()
 {
-  int N, a;
+  long long sum = 0, N, a;
   cin >> N;
-
-  long long ans = 0;
   for (int i = 0; i < N; i++) {
     cin >> a;
-    ans += (a-1);
+    sum += (a-1);
   }
 
-  cout << ans << endl;
+  cout << sum << endl;
   return 0;
 }

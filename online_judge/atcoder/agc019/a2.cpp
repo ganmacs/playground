@@ -14,17 +14,16 @@ using namespace std;
 
 int main()
 {
-  long long int Q, H, S, D, N, ans = 1e18;
+  long long int Q, H, S, D, N;
   cin >> Q >> H >> S >> D >> N;
   Q *= 4;
   H *= 2;
+  long long v = min(Q, min(H, S));
 
-  if (N%2 == 0) {
-    auto v = min(min(Q*2, H*2), min(S*2, D));
-    cout << (v * (N/2)) << endl;
+  if (v*2 <= D) {
+    cout << v*N << endl;
   } else {
-    auto v = min(min(Q, H), S);
-    cout << min(v + D*(N/2), v*N) << endl;
+    cout << (D*(N/2) + (N % 2)*v) << endl;
   }
 
   return 0;

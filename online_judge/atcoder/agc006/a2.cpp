@@ -15,27 +15,27 @@ using namespace std;
 int main()
 {
   int N;
-  cin >> N;
   string s, t;
-  cin >> s >> t;
+  cin >> N >> s >> t;
 
-  // int ans = s.length() + t.length();
-  for (int i = 0; i < N; i++) {
-    bool ok = true;
-    for (int j = 0; (j + i) < N; j++) {
+  int ans = (s + t).size();
+
+  for (int i = 0; i < s.size(); i++) {
+      bool f = true;
+
+    for (int j = 0; (j + i) < s.size() && j < t.size(); j++) {
       if (s[i + j] != t[j]) {
-        ok = false;
+        f = false;
         break;
       }
     }
 
-    if (ok) {
-      auto k = N-i;
-      cout << 2*N-k << endl;
-      return 0;
+    if (f) {
+      int ns = (s.substr(0, i) + t).size();
+      ans = min(ns, ans);
     }
   }
 
-  cout << (N*2) << endl;
+  cout << ans << endl;
   return 0;
 }
