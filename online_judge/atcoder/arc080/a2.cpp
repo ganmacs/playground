@@ -15,25 +15,37 @@ using namespace std;
 
 int main()
 {
-
-  int N, a = 0, a2 = 0, a4 = 0, b;
+  int N, a0 = 0, a2 = 0, a4 = 0;
   cin >> N;
-
-  for (int i = 0; i < N; i++) {
-    cin >> b;
-    if (b % 4 == 0) {
+  vector<int> V(N);
+  for (auto& vi: V) {
+    cin >> vi;
+    if (vi % 4 == 0) {
       a4++;
-    } else if (b % 2 == 0) {
+    } else if (vi % 2 == 0) {
       a2++;
     } else {
-      a++;
+      a0++;
     }
   }
 
-  if ((a2 == 0 || a2 % 2 == 0) && a <= a4+1) {
-    cout << "Yes" << endl;
+  if ((a4 + a2) == 0) {
+    cout << "No" << endl;
+    return 0;
+  }
+
+  if (a2 > 0) {
+    if (a0 > a4) {
+      cout << "No" << endl;
+    } else {
+      cout << "Yes" << endl;
+    }
   } else {
-    cout << ((a <= a4) ? "Yes" : "No") << endl;
+    if (a0 - 1 > a4) {
+      cout << "No" << endl;
+    } else {
+      cout << "Yes" << endl;
+    }
   }
 
   return 0;

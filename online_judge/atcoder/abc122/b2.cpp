@@ -12,25 +12,20 @@
 
 using namespace std;
 
-int main(int argc, char *argv[])
+int main()
 {
   string S;
   cin >> S;
-
-  int ans = 0;
-  for (int i = 0; i < S.length(); i++) {
-    auto aaa = 0;
-    for (int j = i; j < S.length(); j++) {
-      if (S[j] == 'A' || S[j] == 'G' || S[j] == 'C' || S[j] == 'T') {
-        aaa++;
-      } else {
-        break;
-      }
+  int n = 0, ans = 0;;
+  for (auto& vi: S) {
+    if (vi == 'A'|| vi ==  'C'||vi ==  'G'||vi == 'T') {
+      n++;
+    } else {
+      ans = max(ans, n);
+      n = 0;
     }
-
-    ans = max(ans, aaa);
   }
 
-  cout << ans << endl;
+  cout << max(n, ans) << endl;
   return 0;
 }

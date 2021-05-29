@@ -18,9 +18,8 @@ int main()
   int N, K;
   cin >> N >> K;
   vector<int> V(N);
-  for (int i = 0; i < N; i++) {
-    cin >> V[i];
-  }
-  cout << ceil((double)(N-1)/(double)(K-1)) << endl;
+  for (auto& vi: V) cin >> vi;
+  K--;
+  cout << ceil((double)(N-1)*1.0/K) << endl;
   return 0;
 }

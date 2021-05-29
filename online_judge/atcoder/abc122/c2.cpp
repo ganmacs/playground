@@ -12,37 +12,33 @@
 
 using namespace std;
 
-int d[112345], d2[112345];
-
 int main()
 {
   int N, Q, l, r;
   string S;
-  cin >> N >> Q;
-  cin >> S;
+  cin >> N >> Q >> S;
+  vector<int> V(N, 0);
 
-  fill(d, d + S.length() + 1, 0);
-  for (int i = 1; i < S.length(); i++) {
-    d[i] = (S[i-1] == 'A' && S[i] == 'C');
+  for (int i = 0; i < N - 1; i++) {
+    if (S[i] == 'A' && S[i + 1] == 'C') {
+      V[i + 1] = V[i] + 1;
+    } else {
+      V[i + 1] = V[i];
+    }
   }
-
-  d2[0] = 0;
-  for (int i = 0; i < S.length(); i++) {
-    d2[i + 1] = d2[i] + d[i];
-  }
-
-  // for (int i = 0; i < S.length(); i++) {
-  //   cout << d[i] << " ";
-  // }
-  // puts("");
-  // for (int i = 0; i <= S.length(); i++) {
-  //   cout << d2[i] << " ";
-  // }
-  // puts("");
 
   for (int i = 0; i < Q; i++) {
     cin >> l >> r;
-    cout << (d2[r] - d2[l]) << endl;
+    l--;r--;
+    if (l-1 >= 0) {
+      if (S[l-1] == 'A' && S[l] == 'C') {
+        cout << (V[r]-V[l-1]-1) << endl;;
+      } else {
+        cout << (V[r]-V[l-1]) << endl;;
+      }
+    } else {
+      cout << (V[r]-V[l]) << endl;;
+    }
   }
 
   return 0;

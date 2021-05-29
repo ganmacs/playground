@@ -12,47 +12,48 @@
 
 using namespace std;
 
-long long int MA[2000];
+const long long L = 1e18;
 
 int main()
 {
-  int N, M, a, b;
-  long long c;
+  int N, M;
   cin >> N >> M;
-  vector<pair<int, pair<int, long long> > > E(M);
-
-  for (int i = 0; i < M; i++) {
-    cin >> a >> b >> c;
-    E[i] = make_pair(a-1, make_pair(b-1, -c));
+  vector<pair<long long, pair<long long, long long >>> V(M);
+  vector<long long> MA(N, L);
+  for (auto& vi: V) {
+    cin >> vi.first >> vi.second.first >> vi.second.second;
+    vi.first--;
+    vi.second.first--;
+    vi.second.second = -vi.second.second;
   }
 
-  fill(MA, MA + N, 1e18);
   MA[0] = 0;
-  for (int i = 0; i < N; i++) {
-    for (auto& vi: E) {
-      auto t = vi.first;
-      auto next = vi.second.first;
-      auto cost = vi.second.second;
-      if (MA[t] != 1e18 && MA[t] + cost < MA[next]) {
-        MA[next] = MA[t] + cost;
+  for (int k = 0; k < N; k++) {
+    for (auto& vi: V) {
+      auto s = vi.first;
+      auto t = vi.second.first;
+      auto c = vi.second.second;
+
+      if (MA[s] != L && MA[s] + c < MA[t]) {
+        MA[t] = MA[s] + c;
       }
-    };
+    }
   }
 
-  for (int i = 0; i < N; i++) {
-    for (auto& vi: E) {
-      auto t = vi.first;
-      auto next = vi.second.first;
-      auto cost = vi.second.second;
+  for (int k = 0; k < N; k++) {
+    for (auto& vi: V) {
+      auto s = vi.first;
+      auto t = vi.second.first;
+      auto c = vi.second.second;
 
-      if (MA[t] + cost < MA[next]) {
-        MA[next] = MA[t] + cost;
-        if (i == N-1 && next == N-1) {
-          cout << "inf" << endl;
+      if (MA[s] != L && MA[s] + c < MA[t]) {
+        if (t == (N-1)) {
+          puts("inf");
           return 0;
         }
+        MA[t] = MA[s] + c;
       }
-    };
+    }
   }
 
   cout << -MA[N-1] << endl;

@@ -11,21 +11,24 @@
 #include <set>
 
 using namespace std;
+
 static const double PI = 3.141592653589793;
 
 int main()
 {
-  int N, x0, y0, xn2, yn2;
-  cin >> N;
-  cin >> x0 >> y0 >> xn2 >> yn2;
+  long long N, x0, y0, x1, y1;
+  cin >> N >> x0 >> y0 >> x1 >> y1;
+  double t = (360/N)*(PI/180);
 
-  double xx = (x0 + xn2)/2.0;
-  double yy = (y0 + yn2)/2.0;
-  double r = 2*PI/N;
+  double xx = ((double)(x0 + x1))/2.0;
+  double yy = ((double)(y0 + y1))/2.0;
 
-  double xxx = (x0-xx)*cos(r) - (y0-yy)*sin(r) + xx;
-  double yyy = (x0-xx)*sin(r) + (y0-yy)*cos(r) + yy;
+  double xp = (x0-xx);
+  double yp = (y0-yy);
 
-  printf("%08f %08f\n", xxx, yyy);
+  double x = xp*(double)cos(t) - yp*(double)sin(t) + xx;
+  double y = xp*(double)sin(t) + yp*(double)cos(t) + yy;
+
+  cout << x*1.0 << " " << y*1.0 << endl;
   return 0;
 }

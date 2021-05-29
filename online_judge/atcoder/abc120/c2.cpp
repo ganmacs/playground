@@ -15,19 +15,18 @@ using namespace std;
 
 int main()
 {
-  list<char> L;
-  int c0 = 0, c1 = 0;
   string S;
   cin >> S;
-  for (int i = 0; i < S.length(); i++) {
-    if (S[i] == '0') {
-      c0++;
+  int a = 0, b = 0;
+
+  for (auto& vi: S) {
+    if (vi == '0') {
+      a++;
     } else {
-      c1++;
+      b++;
     }
   }
 
-  cout << 2*min(c0, c1) << endl;
-
+  cout << (S.size() - abs(a-b)) << endl;
   return 0;
 }

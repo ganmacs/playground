@@ -17,25 +17,22 @@ int main()
 {
   int N;
   cin >> N;
-  unsigned long long ans = 1e19;
-  vector<unsigned long long> V(N);
-  for (auto& vi: V) {
-    cin >> vi;
-  };
+  long long ans = 1e18;
+  vector<int> V(N);
+  for (auto& vi: V) cin >> vi;
 
-  unsigned long long k, l;
-  for (int i = 0; i < pow(2, N); i++) {
-    k = 0, l = 0;;
-
+  for (int i = 1; i < pow(2, N); i++) {
+    long long ta = 0, t2 = 0;
     for (int j = 0; j < N; j++) {
-      if (i & (1 << j)) {
-        l ^= k;
-        k = V[j];
+      if ((1 << j) & i) {
+        ta ^= t2;
+        t2 = V[j];
       } else {
-        k |= V[j];
+        t2 |= V[j];
       }
     }
-    ans = min(ans, l ^ k);
+
+    ans = min(ans, t2 ^ ta);
   }
 
   cout << ans << endl;
