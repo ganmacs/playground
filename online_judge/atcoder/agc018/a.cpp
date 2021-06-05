@@ -9,22 +9,27 @@
 #include <stack>
 #include <map>
 #include <set>
+#include <numeric>
 
 using namespace std;
 
 int main()
 {
-  string O, E;
-  cin >> O >> E;
+  int N, K, a, m;
+  cin >> N >> K;
+  int ans = 0;
+  for (int i = 0; i < N; i++) {
+    cin >> a;
+    m = max(m, a);
 
-  for (int i = 0; i < E.size(); i++) {
-    cout << O[i] << E[i];
+    ans = gcd(ans, a);
   }
 
-  if (O.size() != E.size()) {
-    cout << O[O.size()-1];
+  if (K % ans == 0 && m >= K) {
+    puts("POSSIBLE");
+  } else {
+    puts("IMPOSSIBLE");
   }
-  puts("");
 
   return 0;
 }

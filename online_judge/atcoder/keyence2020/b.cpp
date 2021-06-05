@@ -15,21 +15,24 @@ using namespace std;
 
 int main()
 {
-  string S;
-  cin >> S;
-  vector<int> V(3, 0);
-  for (auto& vi: S) {
-    V[vi-'a']++;
+  long long N, a, b;
+  cin >> N;
+  vector<pair<long long, long long>> V(N);
+  for (auto& vi: V) {
+    cin >> a >> b;
+    vi = { a+b, a-b };
   }
   sort(V.begin(), V.end());
-  V[2] -= V[0];
-  V[1] -= V[0];
 
-  if (V[2] >= 2 || V[1] >= 2)  {
-    cout << "NO" << endl;
-  } else {
-    cout << "YES" << endl;
+  long long ans = N, p = -1e18;
+  for (auto& vi: V) {
+    if (p <= vi.second) {
+      p = vi.first;
+    } else {
+      ans--;
+    }
   }
 
+  cout << ans << endl;
   return 0;
 }

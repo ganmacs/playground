@@ -18,12 +18,12 @@ int main()
   long long N, A, B;
   cin >> N >> A >> B;
 
-  if (A > B || (N == 1 && B != A)) {
+  if (B < A || (N == 1 && A != B)) {
     cout << 0 << endl;
-  } else if (A == B) {
+  } else if (N == 1 && A == B) {
     cout << 1 << endl;
   } else {
-    cout << (B-A)*(N-2) + 1 << endl;
+    cout << (A+(B*(N-1))) - (A*(N-1)+B) + 1 << endl;
   }
 
   return 0;

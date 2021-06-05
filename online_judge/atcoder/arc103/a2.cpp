@@ -12,37 +12,42 @@
 
 using namespace std;
 
-int main()
-{
-  map<int, int> M1, M2;
-  vector<pair<int, int>> V1, V2;
+int main() {
   int N, a;
   cin >> N;
+  map<int, int> M1, M2;
+  vector<pair<long long, long long>> VV1, VV2;
+
   for (int i = 0; i < N; i++) {
     cin >> a;
-    if (i % 2 == 0) {
+    if (i % 2) {
       M1[a]++;
     } else {
       M2[a]++;
     }
   }
 
-  for (auto& vi: M1) V1.push_back({ -vi.second, vi.first });
-  for (auto& vi: M2) V2.push_back({ -vi.second, vi.first });
-  sort(V1.begin(), V1.end());
-  sort(V2.begin(), V2.end());
+  for (auto& vi: M1) VV1.push_back({ -vi.second, vi.first });
+  for (auto& vi: M2) VV2.push_back({ -vi.second, vi.first });
+  sort(VV1.begin(), VV1.end());
+  sort(VV2.begin(), VV2.end());
 
-  if (V1[0].second != V2[0].second) {
-    cout << N + V1[0].first + V2[0].first << endl;
-    return 0;
-  } else if (M1.size() == 1 && M1.size() == M2.size()) {
-    cout << N/2 << endl;
+  if (VV1.size() == 1 && VV2.size() == 1) {
+    if (VV1[0].second == VV2[0].second) {
+      cout << N + VV1[0].first << endl;
+    } else {
+      cout << 0 << endl;
+    }
     return 0;
   }
-  int ans = 1e9;
-  if (V1.size() >= 2) ans = min(ans, N + V1[1].first + V2[0].first);
-  if (V2.size() >= 2) ans = min(ans, N + V2[1].first + V1[0].first);
 
+  long long ans = 1e18;
+  if (VV1[0].second == VV2[0].second) {
+    if (VV1.size() > 1) ans = min(ans, N + VV1[1].first + VV2[0].first);
+    if (VV2.size() > 1) ans = min(ans, N + VV2[1].first + VV1[0].first);
+  } else {
+    ans = N + VV1[0].first + VV2[0].first;
+  }
   cout << ans << endl;
   return 0;
 }

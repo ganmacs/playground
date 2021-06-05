@@ -15,11 +15,11 @@ using namespace std;
 
 int main()
 {
-  unsigned long long int A, B, C, D;
+  unsigned long long A, B, C, D;
   cin >> A >> B >> C >> D;
 
-  unsigned long long l = lcm(C, D);
-  unsigned long long ans = B - (A-1) - (B/C-(A-1)/C) - (B/D-(A-1)/D) + (B/l-(A-1)/l);
-
-  cout << ans << endl;
+  A--;
+  unsigned long long a = A - (A / C) - (A / D) + (A / lcm(C, D));
+  unsigned long long b = B - (B / C) - (B / D) + (B / lcm(C, D));
+  cout << b-a << endl;
 }

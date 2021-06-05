@@ -17,11 +17,12 @@ int main()
   unsigned long long int N, A, B;
   cin >> N >> A >> B;
 
-  if ((B - A) % 2 == 0) {
+  if ((B-A) % 2 == 0) {
     cout << (B-A)/2 << endl;
   } else {
-    cout << (min(A-1, N-B) + 1 + (B-A-1)/2)<< endl;;
+    unsigned long long t = (A-1) + 1 + (B-A-1)/2;
+    unsigned long long t2 = (N-B) + 1 + (B-A-1)/2;
+    cout << min(t, t2) << endl;
   }
-
   return 0;
 }

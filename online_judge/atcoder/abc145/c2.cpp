@@ -14,33 +14,25 @@ using namespace std;
 
 int main()
 {
-  int N, a, b;
-  vector<int> V;
-  vector<pair<int, int>> P;
-
+  int N;
+  vector<int> V2;
   cin >> N;
+  vector<pair<long long, long long >> V(N);
+
   for (int i = 0; i < N; i++) {
-    V.push_back(i);
-    cin >> a >> b;
-    P.push_back(make_pair(a, b));
+    cin >> V[i].first >> V[i].second;
+    V2.push_back(i);
   }
 
-  int nn = 0;
-  double sum = 0.0;
-  bool f = true;
+  int n = 0;
+  double total = 0.0;
   do {
-    int x = P[V[0]].first, y = P[V[0]].second;
-    for (int i = 1; i < V.size(); i++) {
-      int xx = P[V[i]].first;
-      int yy = P[V[i]].second;
-      sum += sqrt(pow(x - xx, 2) + pow(y - yy, 2));
-      x = xx;
-      y = yy;
-    };
-    nn++;
-  } while (std::next_permutation(V.begin(), V.end()));
+    n++;
+    for (int i = 1; i < N; i++) {
+      total += sqrt((double)pow(V[V2[i]].first-V[V2[i-1]].first, 2) + (double)pow(V[V2[i]].second-V[V2[i-1]].second, 2));
+    }
+  } while (next_permutation(V2.begin(), V2.end()));
 
-  printf("%08f\n", sum/nn);
-
+  printf("%.8f\n", total/n);
   return 0;
 }

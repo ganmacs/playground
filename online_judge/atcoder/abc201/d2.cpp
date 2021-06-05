@@ -13,55 +13,47 @@
 
 using namespace std;
 int H, W;
+vector<string> V;
+int M[2001][2001];
+bool used[2001][2001];
 
-int dp[2001][2001];
-vector<vector<bool>> visited(2001, vector<bool>(2001, false));
-char A[2001][2001];
+int dfs(int i, int j) {
+  if (used[i][j]) return M[i][j];
 
-int dfs(int i, int j)
-{
-  if (visited[i][j]) {
-    return dp[i][j];
-  }
-  visited[i][j] = true;
-
-  int ret;
+  int ta;
   if ((i + j) % 2 == 0) {
-    ret = -1e9;
-    if (i + 1 < H) ret = max(ret, dfs(i + 1, j) + (A[i + 1][j] == '+' ? 1 : -1));
-    if (j + 1 < W) ret = max(ret, dfs(i, j + 1) + (A[i][j + 1] == '+' ? 1 : -1));
+    ta = -1e9;
+    if (i + 1 < H) ta = max(ta, dfs(i + 1, j) + (V[i + 1][j] == '+' ? 1 : -1));
+    if (j + 1 < W) ta = max(ta, dfs(i, j + 1) + (V[i][j + 1] == '+' ? 1 : -1));
   } else {
-    ret = 1e9;
-    if (i + 1 < H) ret = min(ret, dfs(i + 1, j) - (A[i + 1][j] == '+' ? 1 : -1));
-    if (j + 1 < W) ret = min(ret, dfs(i, j + 1) - (A[i][j + 1] == '+' ? 1 : -1));
+    ta = 1e9;
+    if (i + 1 < H) ta = min(ta, dfs(i + 1, j) + (V[i + 1][j] == '+' ? -1 : 1));
+    if (j + 1 < W) ta = min(ta, dfs(i, j + 1) + (V[i][j + 1] == '+' ? -1 : 1));
   }
 
-  return dp[i][j] = ret;
+  used[i][j] = true;
+  return (M[i][j] = ta);
 }
 
 int main()
 {
   cin >> H >> W;
-
+  string s;
   for (int i = 0; i < H; i++) {
-    string s;
     cin >> s;
-    for (int j = 0; j < W; j++) {
-      A[i][j] = s[j];
-    }
+    V.push_back(s);
+    fill(used[i], used[i] + W, false);
+    fill(M[i], M[i] + W, 0);
   }
+  used[H-1][W-1] = true;
 
-  visited[H-1][W-1] = true;
-  dp[H-1][W-1] = 0;
-
-  auto r = dfs(0, 0);
-  if (r == 0) {
-    cout << "Draw" << endl;
-  } else if (r > 0) {
-    cout << "Takahashi" << endl;
+  auto v = dfs(0, 0);
+  if (v > 0) {
+    cout << "Takahashi\n";
+  } else if (v < 0){
+    cout << "Aoki\n";
   } else {
-    cout << "Aoki" << endl;
+    cout << "Draw\n";
   }
-
   return 0;
 }

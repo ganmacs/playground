@@ -14,33 +14,41 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-  int N, ans = 0;
+  int N;
+  set<string> SS;
   string S;
   cin >> N >> S;
 
-  for (int i = 0; i <= 9; i++) {
-    for (int j = 0; j <= 9; j++) {
-      for (int k = 0; k <= 9; k++) {
-        vector<int> vv = {i, j, k};
-        int l = 0;
-        bool ok = false;
+  string t = "000";
+  for (char i = '0'; i <= '9'; i++) {
+    t[0] = i;
+    for (int j = '0'; j <= '9'; j++) {
+      t[1] = j;
+      for (int k = '0'; k <= '9'; k++) {
+        t[2] = k;
 
-        for (auto& vi: vv) {
-          ok = false;
-          for (; l < N; l++) {
-            if ((S[l]- '0') == vi) {
-              ok = true;
+        int l = 0;
+        bool found = false;
+        for (auto& vi: t) {
+          found = false;
+          while (l < N) {
+            if (vi == S[l]) {
+              found = true;
               l++;
               break;
             }
+            l++;
           }
-          if (!ok) break;
-        };
-        if (ok) ans++;
+          if (!found) break;
+        }
+
+        if (found) {
+          SS.insert(t);
+        }
       }
     }
   }
 
-  cout << ans << endl;
+  cout << SS.size() << endl;
   return 0;
 }
