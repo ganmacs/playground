@@ -9,26 +9,31 @@
 #include <stack>
 #include <map>
 #include <set>
-#include <numeric>
 
 using namespace std;
 
 int main()
 {
-  long long N, M;
-  cin >> N >> M;
-  long long L = lcm(N, M);
-  long long g = gcd(N, M);
-  string S, T;
-  cin >> S >> T;
+  string S;
+  cin >> S;
+  int ans = 0;
 
-  for (int i = 0; i < g ; i++) {
-    if (S[(N*i)/g] != T[(M*i)/g]) {
+  int i = 0, j = S.size()-1;
+  while (i < j) {
+    if (S[i] == S[j]) {
+      i++; j--;
+    } else if (S[i] == 'x') {
+      i++;
+      ans++;
+    } else if (S[j] == 'x') {
+      j--;
+      ans++;
+    } else {
       printf("%d\n", -1);
       return 0;
     }
   }
 
-  printf("%lld\n", L);
+  printf("%d\n", ans);
   return 0;
 }

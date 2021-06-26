@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdio>
 #include <cmath>
+#include <array>
 #include <queue>
 #include <stack>
 #include <map>
@@ -12,25 +13,32 @@
 
 using namespace std;
 
-const int L = 1e9 + 7;
+const int L = 1000000007;
+
+map<int, int> M;
+
+void pri(int v) {
+  int i = 2;
+  while (v > 1) {
+    while (v % i == 0) {
+      M[i]++;
+      v /= i;
+    }
+    i++;
+  }
+}
 
 int main()
 {
   int N;
-  string S;
-  map<char, long long> M;
-  cin >> N >> S;
-
-  for (auto& vi: S) {
-    M[vi]++;
-  }
+  cin >> N;
+  for (int i = 1; i <= N; i++) pri(i);
 
   long long ans = 1;
   for (auto& vi: M) {
-    ans *= (vi.second + 1);
-    ans %= L;
+    ans = ans * (vi.second + 1) % L;
   }
 
-  cout << max((long long)1, (ans-1) % L) << endl;
+  cout << ans << endl;
   return 0;
 }

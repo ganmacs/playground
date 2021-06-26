@@ -11,34 +11,28 @@
 
 using namespace std;
 
-const long long INF = 1e18;
-
-
-long long dp[112345];
-
 int main()
 {
-  int N, W;
-  long long w, v, va = 0;
-  vector<pair<long long,  long long>> V;
+  int N, W, m;
   cin >> N >> W;
-
+  vector<int> w(N), v(N);
   for (int i = 0; i < N; i++) {
-    cin >> w >> v;
-    V.push_back(make_pair(w, v));
-    va += v;
+    cin >> w[i] >> v[i];
   }
-  fill(dp, dp + va + 10, INF);
 
-  dp[0] = 0;
+  vector<long long> DP(N*1000 + 1, 1e18);
+  DP[0] = 0;
+
   for (int i = 0; i < N; i++) {
-    for (int j = va; (j - V[i].second) >= 0; j--) {
-      dp[j] = min(dp[j], dp[j-V[i].second] + V[i].first);
+    for (int j = N*1000; j - v[i] >= 0; j--) {
+      if (DP[j] > DP[j-v[i]] + w[i]) {
+        DP[j] = DP[j-v[i]] + w[i];
+      }
     }
   }
 
-  for (int i = va; i >= 0; i--) {
-    if (dp[i] <= W) {
+  for (int i = N*1000; i >= 0; i--) {
+    if (DP[i] <= W) {
       cout << i << endl;
       return 0;
     }

@@ -5,30 +5,28 @@
 #include <vector>
 #include <cstdio>
 #include <cmath>
+#include <array>
 #include <queue>
 #include <stack>
 #include <map>
 #include <set>
-#include <numeric>
 
 using namespace std;
 
 int main()
 {
-  long long N, M;
-  cin >> N >> M;
-  long long L = lcm(N, M);
-  long long g = gcd(N, M);
-  string S, T;
-  cin >> S >> T;
+  int N;
+  cin >> N;
 
-  for (int i = 0; i < g ; i++) {
-    if (S[(N*i)/g] != T[(M*i)/g]) {
-      printf("%d\n", -1);
+  long long t = 0;
+
+  for (int i = 1; i < max(N, 100); i++) {
+    t += i;
+
+    if (t >= N) {
+      cout << i << endl;
       return 0;
     }
   }
-
-  printf("%lld\n", L);
   return 0;
 }

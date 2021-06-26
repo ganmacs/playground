@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdio>
 #include <cmath>
+#include <array>
 #include <queue>
 #include <stack>
 #include <map>
@@ -14,19 +15,27 @@ using namespace std;
 
 int main()
 {
-  long long N;
+  int N;
   cin >> N;
-
-  if (N % 2 == 1) {
-    cout << 0 << endl;
-    return 0;
+  vector<int> A(N);
+  map<int, long long> M, M2;
+  for (int i = 0; i < N; i++) {
+    cin >> A[i];
+    M[A[i]]++;
   }
+
+  int n = N;
+  for (auto& vi: M) {
+    M2[vi.first] = (n - vi.second)*vi.second;
+    n -= vi.second;
+  }
+
   long long ans = 0;
-  while (N) {
-    ans += N / 5 / 2;
-    N /= 5;
+  for (auto& vi: M2) {
+    ans += vi.second;
   }
 
   cout << ans << endl;
+
   return 0;
 }

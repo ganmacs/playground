@@ -11,44 +11,41 @@
 #include <set>
 
 using namespace std;
+map<int, vector<int>> V;
+map<int, long long> M;
+long long d[212345];
 
-map<int, vector<int>>  V;
-int M[212345];
-
-void dfs(int i, int prev, long s) {
-  M[i] += s;
-
+void dfs(int i, long long aa, int p)
+{
+  d[i] += aa;
   for (auto& vi: V[i]) {
-    if (prev != vi) {
-      dfs(vi, i,  M[i]);
-    }
+    if (p == vi) continue;
+    dfs(vi, aa + M[vi], i);
   }
 }
 
 int main()
 {
-  int N, Q, a, b;;
+  int N, Q, aa, bb;
   cin >> N >> Q;
 
   for (int i = 0; i < (N-1); i++) {
-    cin >> a >> b;
-    a--;b--;
-
-    V[a].push_back(b);
-    V[b].push_back(a);
+    cin >> aa >> bb;
+    V[aa].push_back(bb);
+    V[bb].push_back(aa);
   }
+  fill(d, d + N + 2, 0);
 
-  fill(M, M + Q, 0);
   for (int i = 0; i < Q; i++) {
-    cin >> a >> b;
-    M[a-1] += b;
+    cin >> aa >> bb;
+    M[aa] += bb;
+  }
+  dfs(1, M[1], -1);
+
+  for (int i = 1; i <= N; i++) {
+    cout << d[i] << " ";
   }
 
-  dfs(0, -1, 0);
-
-  for (int i = 0; i < N; i++) {
-    cout << M[i] << " ";
-  }
   puts("");
   return 0;
 }

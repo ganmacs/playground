@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdio>
 #include <cmath>
+#include <array>
 #include <queue>
 #include <stack>
 #include <map>
@@ -14,21 +15,14 @@ using namespace std;
 
 int main()
 {
-  int N, ans = 1;
-  cin >> N;
-  vector<long long> V(N);
-  for (auto& vi: V) cin >> vi;
-  sort(V.begin(), V.end());
+  long long N, A, B;
+  long long ans = 0;
+  cin >> N >> A >> B;
+  vector<long long> X(N);
+  for (auto& vi: X) cin >> vi;
 
-  vector<long long> VV(N);
-  VV[0] = V[0];
   for (int i = 1; i < N; i++) {
-    VV[i] = VV[i-1] + V[i];
-  }
-
-  for (int i = V.size()-2; i >= 0; i--) {
-    if (VV[i]*2 < V[i + 1]) break;
-    ans++;
+    ans += min((X[i] - X[i-1])*A, B);
   }
 
   cout << ans << endl;

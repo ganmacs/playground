@@ -9,30 +9,31 @@
 #include <stack>
 #include <map>
 #include <set>
+#include <numeric>
 
 using namespace std;
-
-string SSS[10] = { "MAR", "MAC", "MAH", "MRC", "MRH", "MCH", "ARC", "ARH", "ACH", "RCH" };
 
 int main()
 {
   int N;
   cin >> N;
-  map<char, int> M;
-  string S;
+  vector<long long> X(N), L(N);
+  vector<pair<long long, long long>> K(N);
   for (int i = 0; i < N; i++) {
-    cin >> S;
-    M[S[0]]++;
+    cin >> X[i] >> L[i];
+    K[i] = {X[i] + L[i],  X[i] - L[i]};
   }
+  sort(K.begin(), K.end());
 
-  long long ans = 0;
-  for (auto& vii: SSS) {
-    long long t = 1;
-    for (auto& vi: vii) {
-      t *= M[vi];
+  long long t = -1e18;
+  int ans = N;
+
+  for (auto& ki: K) {
+    if (ki.second < t) {
+      ans--;
+    } else {
+      t = ki.first;
     }
-
-    ans += t;
   }
   cout << ans << endl;
   return 0;

@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdio>
 #include <cmath>
+#include <array>
 #include <queue>
 #include <stack>
 #include <map>
@@ -14,19 +15,17 @@ using namespace std;
 
 int main()
 {
-  long long N;
-  cin >> N;
+  int x, y;
+  cin >> x >> y;
 
-  if (N % 2 == 1) {
-    cout << 0 << endl;
+  if (x == y) {
+    cout << x << endl;
     return 0;
   }
-  long long ans = 0;
-  while (N) {
-    ans += N / 5 / 2;
-    N /= 5;
-  }
 
-  cout << ans << endl;
+
+
+  cout << (3 - x -y) << endl;
+
   return 0;
 }

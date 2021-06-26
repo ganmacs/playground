@@ -14,19 +14,13 @@ using namespace std;
 
 int main()
 {
-  long long N;
-  cin >> N;
+  unsigned long long S;
+  cin >> S;
 
-  if (N % 2 == 1) {
-    cout << 0 << endl;
-    return 0;
-  }
-  long long ans = 0;
-  while (N) {
-    ans += N / 5 / 2;
-    N /= 5;
-  }
-
-  cout << ans << endl;
+  long long d = 1e9;
+  long long c = 1;
+  long long a = (S + d - 1) / d;
+  long long b = a * d - S;
+  cout << "0 0 " << a << " " << b << " " << c << " " << d << endl;
   return 0;
 }

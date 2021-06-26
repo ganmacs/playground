@@ -12,25 +12,29 @@
 
 using namespace std;
 
-const int L = 1e9 + 7;
-
 int main()
 {
   int N;
   string S;
-  map<char, long long> M;
   cin >> N >> S;
 
+  string l;
+
+  int t = 0;
   for (auto& vi: S) {
-    M[vi]++;
+    if (vi == '(') {
+      t++;
+    } else {
+      if (t == 0) {
+        l += "(";
+      } else {
+        t--;
+      }
+    }
   }
 
-  long long ans = 1;
-  for (auto& vi: M) {
-    ans *= (vi.second + 1);
-    ans %= L;
-  }
+  for (int i = 0; i < t; i++) S += ")";
 
-  cout << max((long long)1, (ans-1) % L) << endl;
+  cout << l + S << endl;
   return 0;
 }

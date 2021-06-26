@@ -14,17 +14,21 @@ using namespace std;
 
 int main()
 {
-  long long N;
-  cin >> N;
+  int K;
+  cin >> K;
 
-  if (N % 2 == 1) {
-    cout << 0 << endl;
-    return 0;
-  }
+  queue<long long> que;
+  for (int i = 1; i <= 9; i++) que.push(i);
+
   long long ans = 0;
-  while (N) {
-    ans += N / 5 / 2;
-    N /= 5;
+  for (int i = 0; i < K; i++) {
+    ans = que.front();
+    que.pop();
+
+    for (int i = -1; i <= 1; i++) {
+      int j = (ans % 10) + i;
+      if (j <= 9 && j >= 0) que.push(ans*10 + j);
+    }
   }
 
   cout << ans << endl;

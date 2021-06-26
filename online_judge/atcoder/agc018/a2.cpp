@@ -9,28 +9,29 @@
 #include <stack>
 #include <map>
 #include <set>
+#include <numeric>
 
 using namespace std;
 
 int main()
 {
-  int N, ans = 1;
-  cin >> N;
+  int N, K;
+  cin >> N >> K;
   vector<long long> V(N);
   for (auto& vi: V) cin >> vi;
-  sort(V.begin(), V.end());
 
-  vector<long long> VV(N);
-  VV[0] = V[0];
-  for (int i = 1; i < N; i++) {
-    VV[i] = VV[i-1] + V[i];
+  long long g = 0;
+  long long m = 0;
+  for (auto& vi: V) {
+    m = max(m, vi);
+    g = gcd(vi, g);
   }
 
-  for (int i = V.size()-2; i >= 0; i--) {
-    if (VV[i]*2 < V[i + 1]) break;
-    ans++;
+  if (K % g != 0 || K > m) {
+    puts("IMPOSSIBLE");
+  } else {
+    puts("POSSIBLE");
   }
 
-  cout << ans << endl;
   return 0;
 }

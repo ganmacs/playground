@@ -9,28 +9,26 @@
 #include <stack>
 #include <map>
 #include <set>
+#include <deque>
 
 using namespace std;
 
-const int L = 1e9 + 7;
-
 int main()
 {
-  int N;
+  std::deque<int> deq;
   string S;
-  map<char, long long> M;
-  cin >> N >> S;
+  cin >> S;
 
   for (auto& vi: S) {
-    M[vi]++;
+    if (deq.empty()) {
+      deq.push_back(vi);
+    } else if (deq.back() == 'S' && vi == 'T') {
+      deq.pop_back();
+    } else {
+      deq.push_back(vi);
+    }
   }
 
-  long long ans = 1;
-  for (auto& vi: M) {
-    ans *= (vi.second + 1);
-    ans %= L;
-  }
-
-  cout << max((long long)1, (ans-1) % L) << endl;
+  printf("%ld\n", deq.size());
   return 0;
 }

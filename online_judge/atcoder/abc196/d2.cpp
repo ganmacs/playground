@@ -14,29 +14,31 @@ using namespace std;
 
 int H, W, A, B, ans = 0;
 
-void dfs(int i, int bit, int a, int b) {
+void dfs(int i, long long bit, int a, int b) {
   if (i == H*W) {
     ans++;
     return;
   }
 
-  if (bit & 1 << i) {
+  if (bit & (1 << i)) {
     dfs(i + 1, bit, a, b);
+    return;
   }
 
+  bit |= (1 << i);
+
   if (a) {
-    // right(i+1) exists?
-    if ((i%W != W-1) && ~bit & 1 << (i + 1)) {
-      dfs(i + 1, bit | 1 << (i + 1) | 1 << i, a-1, b);
+    if ((i + 1) <= H*W && ((i + 1) % W) != 0 && (~bit & 1 << (i + 1))) {
+      dfs(i + 1, bit | (1 << (i + 1)), a-1, b);
     }
 
-    if (H*W > i+W) {
-      dfs(i + 1, bit | 1 << (i + W) | 1 << i, a-1, b);
+    if ((i + W) <= (W*H)) {
+      dfs(i + 1, bit | (1 << (i + W)), a-1, b);
     }
   }
 
   if (b) {
-    dfs(i + 1, bit | 1 << i, a, b-1);
+    dfs(i + 1, bit, a, b-1);
   }
 }
 

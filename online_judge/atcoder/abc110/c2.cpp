@@ -16,14 +16,13 @@ int main()
 {
   string S, T;
   cin >> S >> T;
-  int N = S.size();
-  map<char, map<char,int>> S1, T1;
+  map<char, map<char, int>> ss, tt;
 
-  for (int i = 0; i < N; i++) {
-    S1[S[i]][T[i]]++;
-    T1[T[i]][S[i]]++;
+  for (int i = 0; i < S.size(); i++) {
+    ss[S[i]][T[i]]++;
+    tt[T[i]][S[i]]++;
 
-    if (T1[T[i]].size() > 1 || S1[S[i]].size() > 1) {
+    if (ss[S[i]].size() == 2 || tt[T[i]].size() == 2) {
       cout << "No" << endl;
       return 0;
     }

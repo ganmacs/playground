@@ -18,6 +18,7 @@ int main()
   double W, H, x, y;
   cin >> W >> H >> x >> y;
 
-  cout << (W*H/2.0) << " " << (W == x*2 && H == y*2) << endl;
+  int k = (W/2 == x) && (H/2 == y);
+  cout << W*H/2.0 << " " << k << endl;
   return 0;
 }
