@@ -14,34 +14,36 @@ int main()
 {
   int X, Y, A, B, C;
   cin >> X >> Y >> A >> B >> C;
-  vector<int> p(A), q(B), r(C);
-  vector<long long> pq, spq(X + Y + 1), sr(C + 1);
-  for (auto& vi: p) cin >> vi;
-  for (auto& vi: q) cin >> vi;
-  for (auto& vi: r) cin >> vi;
-  sort(p.begin(), p.end(), greater<int>());
-  sort(q.begin(), q.end(), greater<int>());
-  sort(r.begin(), r.end(), greater<int>());
+  vector<long long> P(A), Q(B), R(C);
+  for (auto& vi: P) cin >> vi;
+  for (auto& vi: Q) cin >> vi;
+  for (auto& vi: R) cin >> vi;
+  sort(P.begin(), P.end(), greater<long long>());
+  sort(Q.begin(), Q.end(), greater<long long>());
+  sort(R.begin(), R.end(), greater<long long>());
 
-  for (int i = 0; i < X; i++) pq.push_back(p[i]);
-  for (int i = 0; i < Y; i++) pq.push_back(q[i]);
-  sort(pq.begin(), pq.end(), greater<int>());
+  vector<long long> PQ;
+  for (int i = 0; i < X; i++) PQ.push_back(P[i]);
+  for (int i = 0; i < Y; i++) PQ.push_back(Q[i]);
+  sort(PQ.begin(), PQ.end(), greater<long long>());
 
-  spq[0] = 0;
+  vector<long long> PQS(X + Y + 2);
+  PQS[0] = 0;
   for (int i = 0; i < X + Y; i++) {
-    spq[i + 1] = pq[i] + spq[i];
+    PQS[i + 1] = PQ[i] + PQS[i];
   }
 
-  sr[0] = 0;
+  vector<long long> RS(C + 2);
+  RS[0] = 0;
   for (int i = 0; i < C; i++) {
-    sr[i + 1] = r[i] + sr[i];
+    RS[i + 1] = R[i] + RS[i];
   }
 
   long long ans = 0;
   for (int i = 0; i <= min(C, X + Y); i++) {
-    ans = max(ans, sr[i] + spq[X + Y - i]);
+    ans = max(ans, PQS[X + Y - i] + RS[i]);
   }
 
-  printf("%lld\n", ans);
+  cout << ans << endl;
   return 0;
 }

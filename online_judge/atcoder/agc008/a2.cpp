@@ -14,29 +14,17 @@ using namespace std;
 
 int main()
 {
-  long long x, y, ans = 1e18;
+  long long x, y;
   cin >> x >> y;
 
-  if (x == -y) {
-    ans = min(ans, (long long)1);
-  }
+  long long ans = 1e18;
 
-  if (y > x) {
-    ans = min(ans, y-x);
-  }
-
-  if (y > -x) {
-    ans = min(ans, 1 + y + x);
-  }
-
-  if (y < -x) {
-    ans = min(ans, -x - y + 1);
-  }
-
-  if (x > y) {
-    ans = min(ans, x - y + 2);
-  }
+  if (y >= x) ans = min(ans, y-x);
+  if (y >= -x) ans = min(ans, y + x + 1);
+  if (y <= -x) ans = min(ans, - x - y + 1);
+  if (y <= x) ans = min(ans,  x - y + 2);
 
   cout << ans << endl;
+
   return 0;
 }

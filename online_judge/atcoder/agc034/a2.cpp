@@ -27,27 +27,26 @@ bool c(int l, int r) {
 int main()
 {
   int N, A, B, C, D;
-  cin >> N >> A >> B >> C >> D;
-  A--; B--; C--; D--;
-  cin >> S;
+  cin >> N >> A >> B >> C >> D >> S;
+  A--;B--;C--;D--;
 
   if (!c(A, C) || !c(B, D)) {
-    cout << "No" << endl;
+    puts("No");
     return 0;
   }
 
   if (D < C) {
     for (int i = B; i <= D; i++) {
       if (S[i-1] == '.' && S[i] == '.' && S[i + 1] == '.') {
-        cout << "Yes" << endl;
+        puts("Yes");
         return 0;
       }
     }
-
-    cout << "No" << endl;
   } else {
-    cout << "Yes" << endl;
+    puts("Yes");
+    return 0;
   }
 
+  puts("No");
   return 0;
 }

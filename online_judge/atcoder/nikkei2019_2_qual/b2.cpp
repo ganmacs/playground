@@ -10,31 +10,27 @@
 
 using namespace std;
 
-unsigned long long int INF = 998244353;
+const long long L = 998244353;
 
-int
-main()
-{
-  int N, d;
+int main() {
+  int N;
   cin >> N;
-  vector<int> V;
+  vector<int> D(N);
   map<int, int> M;
-
-  for (int i = 0; i < N; i++) {
-    cin >> d;
-    V.push_back(d);
-    M[d]++;
+  for (auto& vi: D) {
+    cin >> vi;
+    M[vi]++;
   }
 
-  if (V[0] != 0 || M[0] != 1) {
+  if (D[0] != 0 || M[0] != 1) {
     cout << 0 << endl;
     return 0;
   }
 
-  unsigned long long int ans = 1;
+  unsigned long long ans = 1;
   for (int i = 1; i < N; i++) {
     for (int j = 0; j < M[i]; j++) {
-      ans = (ans * M[i-1]) % INF;
+      ans = (ans * M[i-1]) % L;
     }
   }
 

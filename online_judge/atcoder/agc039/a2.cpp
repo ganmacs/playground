@@ -14,31 +14,30 @@ using namespace std;
 int main()
 {
   string S;
-  unsigned long long K;
-  vector<pair<char, long long>> V;
-  unsigned long long ans = 0;
+  long long K;
   cin >> S >> K;
-  int N;
-  N = S.size();
+  long long N = S.size();
+  long long ans = 0;
+  vector<pair<char, long long>> V;
 
-  for (int i = 0; i < N;) {
-    int j = i;
-    while (j < N && S[i] == S[j]) j++;
-
-    V.push_back(make_pair(S[i], j-i));
+  for (long long i = 0; i < N;) {
+    long long j = i;
+    while (j<N && S[i] == S[j]) j++;
+    V.push_back({S[i], j-i});
     ans += ((j-i)/2)*K;
     i = j;
   }
 
+
   if (V.size() == 1) {
-    cout << (K*V[0].second)/2 << endl;
+    cout << (V[0].second*K)/2 << endl;
     return 0;
   }
 
-  if (V.front().first == V.back().first) {
-    if ((V.back().second % 2) == 1 && (V.front().second) % 2 == 1) {
-      ans += (K-1);
-    }
+  if (S[0] == S.back()) {
+    ans -= (V[0].second/2)*K;
+    ans -= (V.back().second/2)*K;
+    ans += (V[0].second/2) + ((V.back().second + V[0].second)/2)*(K-1) + (V.back().second/2);
   }
 
   cout << ans << endl;

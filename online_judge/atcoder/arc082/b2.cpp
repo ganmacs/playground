@@ -16,25 +16,23 @@ int main()
 {
   int N;
   cin >> N;
-  vector<int> V(N);
-  for (auto& vi: V) {
-    cin >> vi;
-    vi--;
-  };
+  int ans = 0;
+  vector<int> p(N);
+  for (auto& vi: p) cin >> vi;
 
-  long long ans = 0;
 
   for (int i = 0; i < N; i++) {
-    if (V[i] == i) {
-      if ((i - 1) >= 0) {
-        swap(V[i],  V[i-1]);
-      } else {
-        swap(V[i], V[i + 1]);
-      }
+    if (p[i] == (i + 1)) {
       ans++;
+      if (i + 1 < N) {
+        swap(p[i], p[i + 1]);
+      } else {
+        swap(p[i], p[i - 1]);
+      }
     }
   }
 
   cout << ans << endl;
+
   return 0;
 }
