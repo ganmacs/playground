@@ -9,6 +9,7 @@
 #include <stack>
 #include <map>
 #include <set>
+#include <numeric>
 
 using namespace std;
 

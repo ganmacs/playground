@@ -19,26 +19,25 @@ int main()
   string S;
   cin >> S;
   int N = S.size();
-
-  long long int ans = 0;
+  vector<pair<char, long long>>  V;
+  long long ans = 0;
 
   for (int i = 0; i < N;) {
     int j = i;
-    if (S[j] == '<') {
-      while (S[i] == S[j] && j < N) j++;
-    }
+    while (j < N && S[i] == S[j]) j++;
+    long long t = j-i;
+    ans += (t+1)*t/2;
+    V.push_back({S[i], j-i});
+    i = j;
+  }
 
-    int t = j;
-    if (S[t] == '>') {
-      while (S[j] == S[t] && t < N) t++;
+  for (int i = 0; i + 1 < V.size(); i++) {
+    if (V[i].first == '<') {
+      ans -= min(V[i].second,  V[i + 1].second);
     }
-
-    ans += max((j-i), (t-j));
-    for (int k = 1; k < (j-i); k++) ans += k;
-    for (int k = 1; k < (t-j); k++) ans += k;
-    i = t;
   }
 
   cout << ans << endl;
+
   return 0;
 }

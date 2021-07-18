@@ -16,22 +16,20 @@ using namespace std;
 vector<array<int, 5>> V;
 
 bool check(long long t) {
-  set<int> A;
-
+  set<int> S;
   for (auto& vi: V) {
-    int v = 0;
+    int ii = 0;
     for (int i = 0; i < 5; i++) {
-      if (t <= vi[i]) {
-        v |= (1 << i);
-      }
+      if (vi[i] >= t) ii |= (1 << i);
     }
-    A.insert(v);
+
+    S.insert(ii);
   }
 
-  for (auto& v1: A) {
-    for (auto& v2: A) {
-      for (auto& v3: A) {
-        if ((v1|v2|v3) == 31) {
+  for (auto& s1: S) {
+    for (auto& s2: S) {
+      for (auto& s3: S) {
+        if ((s1|s2|s3) == 31) {
           return true;
         }
       }
@@ -48,17 +46,18 @@ int main()
 
   for (int i = 0; i < N; i++) {
     cin >> a >> b >> c >> d >> e;
-    V.push_back({a, b, c, d, e});
+    V.push_back({ a, b, c, d, e });
   }
 
   long long ok = 1, ng = 1e9 + 1;
 
-  while (abs(ok-ng)>1) {
-    long long p = (ok + ng)/2;
-    if (check(p)) {
-      ok = p;
+  while (abs(ok - ng) > 1) {
+    long long m = (ok + ng)/2;
+
+    if (check(m)) {
+      ok = m;
     } else {
-      ng = p;
+      ng = m;
     }
   }
 

@@ -5,7 +5,6 @@
 #include <vector>
 #include <cstdio>
 #include <cmath>
-#include <array>
 #include <queue>
 #include <stack>
 #include <map>
@@ -15,15 +14,22 @@ using namespace std;
 
 int main()
 {
-  long long N, A, B, ans = 0;
-  cin >> N >> A >> B;
-  vector<long long> V(N);
-  for (auto& vi: V) cin >> vi;
+  long long ans = 0;
+  long long N, K;
+  cin >> N >> K;
 
-  for (int i = 1; i < N; i++) {
-    ans += min(A*(V[i]-V[i-1]), B);
+  if (K == 0) {
+    printf("%lld\n", N*N);
+    return 0;
+  }
+
+  for (long long b = K + 1; b <= N; b++) {
+    long long n = (N + 1)/b;
+    ans += n*(b-K);
+    ans += max(0LL,  N-n*b-K + 1);
   }
 
   printf("%lld\n", ans);
+
   return 0;
 }

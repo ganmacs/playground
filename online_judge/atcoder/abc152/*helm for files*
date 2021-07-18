@@ -1,0 +1,21 @@
+Buffers
+0717-161715.txt               53           Text  (in `~/Documents/Junk/2021/')
+0717-155056.txt              119           Text  (in `~/Documents/Junk/2021/')
+0716-151048.txt            39.5k           Text  (in `~/Documents/Junk/2021/')
+0715-140548.txt             2.6k           Text  (in `~/Documents/Junk/2021/')
+
+Recentf
+~/Documents/Junk/2021/0717-161715.txt
+~/Documents/Junk/2021/0717-155056.txt
+~/Documents/Junk/2021/0716-151048.txt
+~/Documents/Junk/2021/0715-140548.txt
+~/Documents/Junk/2021/0715-125734.txt
+~/Documents/Junk/2021/0614-170556.txt
+~/Documents/Junk/2021/0601-170350.txt
+
+Locate
+WARNING: The locate database (/var/db/locate.database) does not exist.
+To create the database, run the following command:
+  sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.locate.plist
+Please be aware that the database can take some time to generate; once
+the database has been created, this message will no longer appear.

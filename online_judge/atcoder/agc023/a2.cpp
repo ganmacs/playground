@@ -5,7 +5,6 @@
 #include <vector>
 #include <cstdio>
 #include <cmath>
-#include <array>
 #include <queue>
 #include <stack>
 #include <map>
@@ -15,13 +14,18 @@ using namespace std;
 
 int main()
 {
-  long long N, A, B, ans = 0;
-  cin >> N >> A >> B;
-  vector<long long> V(N);
+  int N;
+  long long ans = 0;
+  cin >> N;
+  vector<long long> V(N), D(N + 1, 0);
   for (auto& vi: V) cin >> vi;
-
-  for (int i = 1; i < N; i++) {
-    ans += min(A*(V[i]-V[i-1]), B);
+  for (int i = 0; i < N; i++) {
+    D[i + 1] = D[i] + V[i];
+  }
+  map<long long, long long> M;
+  for (auto& vi: D) M[vi]++;
+  for (auto& vi: M) {
+    ans += vi.second*(vi.second-1)/2;
   }
 
   printf("%lld\n", ans);

@@ -12,31 +12,33 @@
 
 using namespace std;
 
-char fff(string s, char start) {
-  for (char i = start; i <= 'z'; i++) {
-    bool t = false;
-    for (auto& vi: s) {
+
+char next(string str, char s)
+{
+  for (char i = s; i <= 'z'; i++) {
+    bool ff = false;
+    for (auto& vi: str) {
       if (vi == i) {
-        t = true;
+        ff = true;
         break;
       }
     }
 
-    if (!t) {
-      return i;
-    }
+    if (!ff) return i;
   }
 
-  return '0';
+  return '?';
 }
+
 
 int main()
 {
   string S;
+
   cin >> S;
   int N = S.length();
   if (N < 26) {
-    cout << S << fff(S, 'a') << endl;
+    cout << S << next(S, 'a') << endl;
     return 0;
   }
 
@@ -46,20 +48,21 @@ int main()
   }
 
   string t(26, 'z');
+
   for (int i = 0; i < N; i++) {
     if (S[i] == 'z') continue;
 
-    string ss = S.substr(0, i + 1);
-    char v = fff(ss, (char)(S[i] + 1));
-    if (v == '0') {
-      continue;
-    }
+    string ttt = S.substr(0, i + 1);
 
-    ss[i] = v;
-    if (t > ss) {
-      t = ss;
+    char n = next(ttt, (char)(ttt[i] + 1));
+    if (n == '?') continue;
+    ttt[i] = n;
+
+    if (t > ttt) {
+      t = ttt;
     }
   }
+
   cout << t << endl;
   return 0;
 }

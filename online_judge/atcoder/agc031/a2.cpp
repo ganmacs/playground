@@ -18,8 +18,8 @@ int main()
 {
   int N;
   string S;
-  map<char, long long> M;
   cin >> N >> S;
+  map<char, int> M;
 
   for (auto& vi: S) {
     M[vi]++;
@@ -27,10 +27,8 @@ int main()
 
   long long ans = 1;
   for (auto& vi: M) {
-    ans *= (vi.second + 1);
-    ans %= L;
+    ans = ans * (vi.second + 1) % L;
   }
 
-  cout << max((long long)1, (ans-1) % L) << endl;
-  return 0;
+  cout << ans-1 << endl;
 }
