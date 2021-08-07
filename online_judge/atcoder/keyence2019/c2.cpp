@@ -16,40 +16,50 @@ int main()
 {
   int N;
   cin >> N;
-  vector<int> A(N), B(N), VV;
-  for (auto& vi: A) cin >> vi;
-  for (auto& vi: B) cin >> vi;
+  vector<long long> A(N), B(N);
+  long long ab = 0, aa = 0,  bbb = 0;;
 
+  for (auto& vi: A) {
+    cin >> vi;
+    aa += vi;
+  }
+  for (auto& vi: B) {
+    cin >> vi;
+    ab += vi;
+  }
+
+  if (aa < ab) {
+    printf("%d\n", -1);
+    return 0;
+  }
+
+  vector<long long> AA;
   long long ans = 0;
-  long long rest = 0, targ = 0;
+
   for (int i = 0; i < N; i++) {
-    if (A[i] > B[i]) {
-      rest += (A[i] - B[i]);
-      VV.push_back(-(A[i] - B[i]));
-    } else if (A[i] == B[i]) {
-      continue;
-    } else {
-      targ += (B[i] - A[i]);
+    if (A[i] <= B[i]) {
+      bbb += (B[i]-A[i]);
       ans++;
+    } else {
+      AA.push_back(A[i]-B[i]);
     }
   }
 
-  if (targ == 0) {
-    cout << 0 << endl;
-    return 0;
-  } else if (targ > rest) {
-    cout << -1 << endl;
+  if (bbb == 0) {
+    printf("%d\n", 0);
     return 0;
   }
-  sort(VV.begin(), VV.end());
 
-  for (auto& vi: VV) {
-    ans++;
-    if (targ <= -vi) break;
+  sort(AA.begin(), AA.end(), greater<long long>());
+  for (auto& vi: AA) {
+    bbb -= vi;
+    ans += 1;
 
-    targ += vi;
+    if (bbb <= 0) {
+      break;
+    }
   }
 
-  cout << ans << endl;
+  printf("%lld\n", ans);
   return 0;
 }
