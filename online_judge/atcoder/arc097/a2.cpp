@@ -14,25 +14,25 @@ using namespace std;
 
 int main()
 {
-  long long K;
   string S;
+  int K;
   cin >> S >> K;
-  int N = S.size();
   set<string> ss;
+  int N = S.size();
 
-  for (int i = 0; i < N; i++) {
-    for (int j = 1; j <= K; j++) {
+  for (int j = 1; j <= 5; j++) {
+    for (int i = 0; i + j <= N; i++) {
       ss.insert(S.substr(i, j));
     }
   }
 
-  int c = 0;
+  int i = 1;
   for (auto& vi: ss) {
-    c++;
-    if (K == c) {
+    if (i == K) {
       cout << vi << endl;
       return 0;
     }
+    i++;
   }
 
   return 0;

@@ -12,19 +12,17 @@ using namespace std;
 
 int main()
 {
-  long long  N, K, ans = 0;
+  int N, K;
   cin >> N >> K;
-
-  if (K == 0) {
-    printf("%lld\n", N*N);
-    return 0;
-  }
-
+  long long ans = 0;
   for (int b = K + 1; b <= N; b++) {
+    long long t = b-K;
     long long n = N/b;
-    ans += n*(b-K) + max((N - n*b - K + 1), 0LL);
+    long long rest = N%b;
+    long long tt = rest - K;
+    if (K != 0) tt++;
+    ans += n*t + max(0LL, tt);
   }
-
   printf("%lld\n", ans);
   return 0;
 }

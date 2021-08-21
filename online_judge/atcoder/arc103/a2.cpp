@@ -12,42 +12,43 @@
 
 using namespace std;
 
-int main() {
-  int N, a;
+int main()
+{
+  map<int, long long> A, B, C;
+  long long N, a;
   cin >> N;
-  map<int, int> M1, M2;
-  vector<pair<long long, long long>> VV1, VV2;
 
   for (int i = 0; i < N; i++) {
     cin >> a;
-    if (i % 2) {
-      M1[a]++;
+    if (i % 2 == 0) {
+      A[a]--;
     } else {
-      M2[a]++;
+      B[a]--;
     }
+
+    C[a]++;
   }
 
-  for (auto& vi: M1) VV1.push_back({ -vi.second, vi.first });
-  for (auto& vi: M2) VV2.push_back({ -vi.second, vi.first });
-  sort(VV1.begin(), VV1.end());
-  sort(VV2.begin(), VV2.end());
-
-  if (VV1.size() == 1 && VV2.size() == 1) {
-    if (VV1[0].second == VV2[0].second) {
-      cout << N + VV1[0].first << endl;
-    } else {
-      cout << 0 << endl;
-    }
+  if (C.size() == 1) {
+    printf("%lld\n", C[a]/2);
     return 0;
   }
 
-  long long ans = 1e18;
-  if (VV1[0].second == VV2[0].second) {
-    if (VV1.size() > 1) ans = min(ans, N + VV1[1].first + VV2[0].first);
-    if (VV2.size() > 1) ans = min(ans, N + VV2[1].first + VV1[0].first);
+  vector<pair<long long, int>> A2, B2;
+
+  for (auto& vi: A) A2.push_back({ vi.second, vi.first });
+  for (auto& vi: B) B2.push_back({ vi.second, vi.first });
+  sort(A2.begin(), A2.end());
+  sort(B2.begin(), B2.end());
+
+  if (A2[0].second != B2[0].second) {
+    printf("%lld\n", N + A2[0].first + B2[0].first);
   } else {
-    ans = N + VV1[0].first + VV2[0].first;
+    long long t = 1e18;
+    if (A2.size() > 1) t = min(t, A2[1].first + B2[0].first);
+    if (B2.size() > 1) t = min(t, B2[1].first + A2[0].first);
+    printf("%lld\n", N + t);
   }
-  cout << ans << endl;
+
   return 0;
 }

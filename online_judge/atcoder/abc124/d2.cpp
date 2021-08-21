@@ -16,28 +16,29 @@ int main()
 {
   int N, K;
   string S;
-  vector<pair<char, int>> V;
   cin >> N >> K >> S;
 
+  vector<pair<char, int>> V;
   for (int i = 0; i < N;) {
     int j = i;
     while (j < N && S[i] == S[j]) j++;
-    V.push_back({ S[i], j-i });
+    V.push_back({ S[i], j-i});
     i = j;
   }
 
-  long long l = 0, ans = 0, tmp = 0, zeroc = 0;
+  long long ans = 0, t = 0;
+  int l = 0, z = 0;
   for (int i = 0; i < V.size(); i++) {
-    tmp += V[i].second;
-    if (V[i].first == '0') zeroc++;
+    t += V[i].second;
+    if (V[i].first == '0') z++;
 
-    while (zeroc > K) {
-      tmp -= V[l].second;
-      if (V[l].first == '0') zeroc--;
+    while (z > K) {
+      t -= V[l].second;
+      if (V[l].first == '0') z--;
       l++;
     }
 
-    ans = max(tmp, ans);
+    ans = max(ans, t);
   }
 
   printf("%lld\n", ans);

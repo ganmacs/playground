@@ -17,15 +17,15 @@ int main()
   long long N;
   cin >> N;
 
-  for (long long i = 1; i <= 3500; i++) {
-    for (long long j = 1; j <= 3500; j++) {
-      auto v1 = i*j;
-      auto v2 = i + j;
-      auto tt = (4*v1)-(N*v2);
-      auto tt2 = N*v1;
-      if (tt <= 0) continue;
-      if (tt2%tt == 0) {
-        printf("%lld %lld %lld\n", i, j, tt2/tt);
+  for (long long n = 1; n <= 3500; n++) {
+    for (long long h = 1; h <= 3500; h++) {
+      long long t = N*h*n;
+      long long t2 = 4*h*n - N*(h + n);
+
+      if (t2 <= 0) continue;
+
+      if (t % t2 == 0) {
+        printf("%lld %lld %lld\n", n, h, t/t2);
         return 0;
       }
     }

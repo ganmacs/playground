@@ -15,9 +15,8 @@ using namespace std;
 int main()
 {
   int N;
-  long long ans = 0;
-  map<int, map<int, long long>> M;
   cin >> N;
+  vector<vector<int> > V(10, vector(10, 0));
 
   for (int i = 1; i <= N; i++) {
     int j = i;
@@ -26,16 +25,21 @@ int main()
       v.push_back(j%10);
       j /= 10;
     }
-    int l = v.front(), r = v.back();
-    if (l == 0 || r == 0) continue;
-    M[l][r]++;
+
+    int l = v[0], r = v.back();
+    if (l == 0||r == 0) continue;
+
+    V[l][r]++;
   }
 
-  for (int i = 0; i < 10; i++) {
-    for (int j = 0; j < 10; j++) {
-      ans += (M[i][j]*M[j][i]);
+  long long ans = 0;
+
+  for (int i = 1; i < 10; i++) {
+    for (int j = 1; j < 10; j++) {
+      ans += V[i][j]*V[j][i];
     }
   }
-
   printf("%lld\n", ans);
+
+  return 0;
 }
