@@ -13,37 +13,32 @@
 
 using namespace std;
 
-int d[212345];
-
 int main()
 {
   int N;
   cin >> N;
-  vector<int> A(N + 1);
-  for (int i = 1; i <= N; i++) cin >> A[i];
-  fill(d, d + N + 1, 0);
+  vector<long long> V(N), B(N, 0), ans;
+  for (auto& vi: V) cin >> vi;
 
-  int ans = 0;
+  for (int i = N-1; i >= 0; i--) {
+    int a = 0;
+    int j = i;
 
-  for (int i = N; i >= 1; i--) {
-    int t = 0;
-    for (int j = 1; j * i <= N; j++) {
-      t += d[j*i];
+    while (j <= N-1) {
+      a += B[j];
+      j += (i + 1);
     }
 
-    if ((t % 2) != A[i]) {
-      ans++;
-      d[i] = 1;
-    }
-  }
-
-  printf("%d\n", ans);
-  for (int i = 1; i <= N; i++) {
-    if (d[i] == 1) {
-      printf("%d\n", i);
+    if (a % 2 != V[i]) {
+      B[i] = 1;
+      ans.push_back(i + 1);
     }
   }
 
+  printf("%ld\n", ans.size());
+  for (auto& vi: ans) {
+    printf("%lld\n", vi);
+  }
 
   return 0;
 }

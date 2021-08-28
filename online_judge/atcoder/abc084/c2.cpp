@@ -16,30 +16,30 @@ int main()
 {
   int N;
   cin >> N;
+  vector<long long> C(N), S(N), F(N);
   N--;
-  vector<int> C(N), F(N), S(N), ans;
   for (int i = 0; i < N; i++) {
     cin >> C[i] >> S[i] >> F[i];
   }
 
-  for (int k = 0; k < N; k++) {
-    int t = 0;
-
-    for (int i = k; i < N; i++) {
-      t = max(t, S[i]);
-      int tt = t - S[i];
-      if ((tt % F[i]) != 0) {
-        t += (F[i] - (tt % F[i]));
+  for (int j = 0; j < N; j++) {
+    long long t = 0;
+    for (int i = j; i < N; i++) {
+      auto tt = t - S[i];
+      if (tt <= 0) {
+        t = S[i];
+      } else {
+        auto rest = tt % F[i];
+        if (rest != 0) {
+          t += (F[i]-rest);
+        }
       }
+
       t += C[i];
     }
-
-    ans.push_back(t);
+    printf("%lld\n", t);
   }
-  ans.push_back(0);
 
-  for (auto& vi: ans) {
-    cout << vi << endl;
-  }
+  printf("%d\n", 0);
   return 0;
 }

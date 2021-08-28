@@ -15,26 +15,25 @@ using namespace std;
 
 int main()
 {
-  int N;
+  int N, ans = 0;
+  long long X, L;
+  vector<pair<long long, long long>> V;
   cin >> N;
-  vector<long long> X(N), L(N);
-  vector<pair<long long, long long>> K(N);
   for (int i = 0; i < N; i++) {
-    cin >> X[i] >> L[i];
-    K[i] = {X[i] + L[i],  X[i] - L[i]};
+    cin >> X >> L;
+    V.push_back({X + L, X - L});
   }
-  sort(K.begin(), K.end());
-
+  sort(V.begin(), V.end());
   long long t = -1e18;
-  int ans = N;
-
-  for (auto& ki: K) {
-    if (ki.second < t) {
-      ans--;
+  for (auto& vi: V) {
+    auto r = vi.first, l = vi.second;
+    if (l < t) {
+      ans++;
     } else {
-      t = ki.first;
+      t = r;
     }
   }
-  cout << ans << endl;
+
+  printf("%d\n", N-ans);
   return 0;
 }

@@ -15,14 +15,14 @@ using namespace std;
 
 const int L = 1000000007;
 
-map<int, int> M;
+map<long long, long long> M;
 
-void pri(int v) {
+void prim(long long t) {
   int i = 2;
-  while (v > 1) {
-    while (v % i == 0) {
+  while (t > 1) {
+    while (t % i == 0) {
       M[i]++;
-      v /= i;
+      t /= i;
     }
     i++;
   }
@@ -32,13 +32,16 @@ int main()
 {
   int N;
   cin >> N;
-  for (int i = 1; i <= N; i++) pri(i);
+
+  for (int i = 1; i <= N; i++) {
+    prim(i);
+  }
 
   long long ans = 1;
   for (auto& vi: M) {
-    ans = ans * (vi.second + 1) % L;
+    ans = (ans * (vi.second + 1)) % L;
   }
 
-  cout << ans << endl;
+  printf("%lld\n", ans);
   return 0;
 }

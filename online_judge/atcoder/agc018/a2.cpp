@@ -17,21 +17,37 @@ int main()
 {
   int N, K;
   cin >> N >> K;
-  vector<long long> V(N);
-  for (auto& vi: V) cin >> vi;
+  vector<long long> A(N), A2;
+  for (auto& vi: A) cin >> vi;
 
-  long long g = 0;
-  long long m = 0;
-  for (auto& vi: V) {
-    m = max(m, vi);
-    g = gcd(vi, g);
+  long long a = 0;
+  bool t = true;
+  for (auto& vi: A) {
+    if (vi == K) {
+      puts("POSSIBLE");
+      return 0;
+    }
+
+    if (vi > K) {
+      A2.push_back(vi-K);
+      t = false;
+    }
+    a = gcd(a, vi);
   }
 
-  if (K % g != 0 || K > m) {
+  if (t) {
     puts("IMPOSSIBLE");
-  } else {
-    puts("POSSIBLE");
+    return 0;
   }
+
+  for (auto& vi: A2) {
+    if (vi % a == 0) {
+      puts("POSSIBLE");
+      return 0;
+    }
+  }
+
+  puts("IMPOSSIBLE");
 
   return 0;
 }

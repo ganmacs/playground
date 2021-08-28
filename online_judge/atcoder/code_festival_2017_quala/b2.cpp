@@ -14,18 +14,18 @@ using namespace std;
 
 int main()
 {
-  int N, M, K;
+  long long N, M, K;
   cin >> N >> M >> K;
 
-  for (int i = 0; i <= N; i++) {
-    for (int j = 0; j <= M; j++) {
-      if (j*(N-i) + i*(M-j) == K) {
-        cout << "Yes" << endl;
+  for (int n = 0; n <= N; n++) {
+    for (int m = 0; m <= M; m++) {
+      if (K == (n*M + m*N - 2*m*n)) {
+        puts("Yes");
         return 0;
       }
     }
   }
 
-  cout << "No" << endl;
+  puts("No");
   return 0;
 }

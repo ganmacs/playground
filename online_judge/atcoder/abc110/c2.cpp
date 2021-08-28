@@ -16,18 +16,16 @@ int main()
 {
   string S, T;
   cin >> S >> T;
-  map<char, map<char, int>> ss, tt;
-
-  for (int i = 0; i < S.size(); i++) {
-    ss[S[i]][T[i]]++;
-    tt[T[i]][S[i]]++;
-
-    if (ss[S[i]].size() == 2 || tt[T[i]].size() == 2) {
-      cout << "No" << endl;
+  map<char, map<char, int>> M, M2;
+  for (int i = 0; i < T.size(); i++) {
+    M[T[i]][S[i]]++;
+    M2[S[i]][T[i]]++;
+    if (M[T[i]].size() >= 2 || M2[S[i]].size() >= 2) {
+      puts("No");
       return 0;
     }
   }
 
-  cout << "Yes" << endl;
+  puts("Yes");
   return 0;
 }
