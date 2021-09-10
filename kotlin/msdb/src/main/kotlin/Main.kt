@@ -31,7 +31,7 @@ class Table(var rowNum: Int = 0): Iterable<Row> {
         val rowOffset = rowNum % ROWS_PER_PAGE
         val byteOffset = rowOffset * ROW_SIZE
         //logger.info { "ReadPage: pageId = $pageId, rowOffset = $rowOffset byteOffset = $byteOffset"}
-        println("ReadPage: pageId = $pageId, rowOffset = $rowOffset byteOffset = $byteOffset")
+        //println("ReadPage: pageId = $pageId, rowOffset = $rowOffset byteOffset = $byteOffset")
         return ByteBuffer.wrap(page, byteOffset, ROW_SIZE)
     }
 
@@ -45,31 +45,27 @@ sealed class Statement {
     class SelectStatement(): Statement()
 }
 
-fun handleMetaCommand(buf: String): Result<String> {
+fun handleMetaCommand(buf: String): Result<Unit> {
     if (buf == ".exit") {
         exitProcess(0)
     } else {
-        try {
-            throw Error("unrecognized command $buf")
-        } catch (e: Throwable) {
-            return Result.failure(e)
-        }
+        return Result.failure(Error("unrecognized command $buf"))
     }
 }
 
-fun parseInput(input :String): Statement {
+fun parseInput(input :String): Result<Statement> {
     val exprs = input.split(" ").map { it.trim() }.filter { it !== "" }
     logger.debug { exprs }
     return when (exprs.firstOrNull()) {
         "insert" -> {
             if (exprs.size != 4) {
-                throw Error("Syntax error: insert [ID] [USERNAME] [EMAIL]")
+                return Result.failure(Error("Syntax error: insert [ID] [USERNAME] [EMAIL]"))
             }
             val r = Row(exprs[1].toInt(), exprs[2].toByteArray(), exprs[3].toByteArray())
-            Statement.InsertStatement(r)
+            Result.success(Statement.InsertStatement(r))
         }
-        "select" -> Statement.SelectStatement()
-        else -> throw Error("invalid statement: ${exprs.joinToString { it }}")
+        "select" -> Result.success(Statement.SelectStatement())
+        else -> Result.failure(Error("invalid statement: ${exprs.joinToString { it }}"))
     }
 }
 
@@ -81,33 +77,30 @@ fun printByte(b: ByteArray) {
     println()
 }
 
-fun executeInsertStatement(insertStmnt: Statement.InsertStatement, table: Table) {
+fun executeInsertStatement(insertStmnt: Statement.InsertStatement, table: Table): Result<Unit> {
     if (table.rowNum > TABLE_MAX_PAGES) {
-        throw Error("table is full")
+        return Result.failure(Error("Error: Table full."))
     }
-    insertStmnt.row.serialize(table.rowSlot(table.rowNum))
-    table.rowNum += 1
-
-    // TODO: return something
+    return insertStmnt.row.serialize(table.rowSlot(table.rowNum)).onSuccess {
+        table.rowNum += 1
+        return Result.success(Unit)
+    }.onFailure {
+        return Result.failure(it)
+    }
 }
 
-fun executeSelectStatement(selectStmnt: Statement.SelectStatement, table: Table) {
+fun executeSelectStatement(selectStmnt: Statement.SelectStatement, table: Table): Result<Unit> {
     val iter = table.iterator()
     while (iter.hasNext()) {
         println(iter.next())
     }
+    return Result.success(Unit)
 }
 
-fun executeStatement(stmnt: Statement, table: Table) {
-     when (stmnt){
-      is Statement.InsertStatement -> {
-          executeInsertStatement(stmnt, table)
-          println("insert statement here")
-      }
-      is Statement.SelectStatement -> {
-          executeSelectStatement(stmnt, table)
-          println("insert statement here")
-       }
+fun executeStatement(stmnt: Statement, table: Table): Result<Unit> {
+     return when (stmnt){
+      is Statement.InsertStatement -> executeInsertStatement(stmnt, table)
+      is Statement.SelectStatement -> executeSelectStatement(stmnt, table)
     }
 }
 
@@ -124,8 +117,13 @@ fun main(args: Array<String>) {
             }
             continue
         }
-
-        val stmnt = parseInput(input)
-        executeStatement(stmnt, table)
+        Result.runCatching {
+            val stmnt = parseInput(input).getOrThrow()
+            executeStatement(stmnt, table).getOrThrow()
+        }.onFailure {
+            println(it.message)
+        }.onSuccess {
+            println("Executed.")
+        }
     }
 }

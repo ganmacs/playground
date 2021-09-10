@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
+    application
     kotlin("jvm") version "1.5.21"
 }
 
@@ -25,4 +26,12 @@ tasks.test {
 
 tasks.withType<KotlinCompile>() {
     kotlinOptions.jvmTarget = "1.8"
+}
+// build.gradle.kts (Kotlin syntax)
+tasks.named<JavaExec>("run") {
+    standardInput = System.`in`
+}
+
+application {
+    mainClass.set("MainKt")
 }

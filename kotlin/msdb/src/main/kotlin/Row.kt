@@ -33,14 +33,16 @@ class Row(val id: Int, val userName: ByteArray, val email: ByteArray) {
     }
 
     override fun toString(): String {
-        return "Row(id = $id, userName = ${userName.toString(Charset.defaultCharset())}, email = ${email.toString(
-            Charset.defaultCharset())})"
+        return "($id, ${userName.toString(Charset.defaultCharset())}, ${email.toString(Charset.defaultCharset())})"
     }
 
-    fun serialize(dst: ByteBuffer){
+    fun serialize(dst: ByteBuffer): Result<Unit> {
+        if (id < 0) {
+            return Result.failure(Error("ID must be positive."))
+        }
         dst.putInt(id)
         if (userName.size > (USERNAME_SIZE - INT_SIZE)) {
-            throw Error("invalid size for userName. username should be less than $USERNAME_SIZE")
+            return Result.failure(Error("invalid size for userName. username should be less than $USERNAME_SIZE"))
         }
         ByteBuffer.allocate(USERNAME_SIZE - INT_SIZE).also {
             dst.putInt(userName.size)
@@ -49,12 +51,14 @@ class Row(val id: Int, val userName: ByteArray, val email: ByteArray) {
         }
 
         if (email.size > (EMAIL_SIZE - INT_SIZE)) {
-            throw Error("invalid size for userName. email should be less than $EMAIL_SIZE")
+            return Result.failure(Error( "invalid size for email. email should be less than $EMAIL_SIZE"))
         }
         ByteBuffer.allocate(EMAIL_SIZE - INT_SIZE).also {
             dst.putInt(email.size)
             it.put(email)
             dst.put(it.array())
         }
+
+        return Result.success(Unit)
     }
 }
