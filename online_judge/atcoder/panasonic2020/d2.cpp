@@ -13,30 +13,25 @@
 using namespace std;
 
 map<string, int> M;
+int N;
 
-void dfs(int n, string s) {
-  if (n == 1) {
+void dfs(string s) {
+  if (s.size() == N) {
     M[s]++;
     return;
   }
 
-  char c = 'a';
-  for (auto& vi: s) {
-    c = max(c, vi);
-  }
-
-
-  for (char i = 'a'; i <= (c + 1); i++) {
-    dfs(n-1, s + i);
+  char t = 'a';
+  for (auto& vi: s) t = max(t, vi);
+  for (char i = 'a'; i <= (t + 1); i++) {
+    dfs(s + i);
   }
 }
 
 int main()
 {
-  int N;
   cin >> N;
-
-  dfs(N, "a");
+  dfs("a");
 
   for (auto& vi: M) {
     cout << vi.first << endl;

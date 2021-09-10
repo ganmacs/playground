@@ -20,12 +20,13 @@ int main()
   for (auto& vi: A) cin >> vi;
   for (auto& vi: B) cin >> vi;
 
+
   long long t = 0;
   for (int i = 0; i < N; i++) {
-    if (A[i] <= B[i]) {
-      t += (B[i]-A[i])/2;
+    if (B[i] >= A[i]) {
+      t += (B[i] - A[i])/2;
     } else {
-      t -= (A[i]-B[i]);
+      t -= (A[i] - B[i]);
     }
   }
 
@@ -34,5 +35,7 @@ int main()
   } else {
     puts("No");
   }
+
+
   return 0;
 }

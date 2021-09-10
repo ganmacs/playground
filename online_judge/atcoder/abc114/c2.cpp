@@ -11,23 +11,21 @@
 #include <set>
 
 using namespace std;
+long long N, ans = 0;
 
-long long N;
-long long c = 0;
-
-void dfs(long long n,int t) {
-  if (n > N) return;
-  if (t == 0b111) c++;
-
-  dfs(n*10 + 3, t | 0b100);
-  dfs(n*10 + 5, t | 0b010);
-  dfs(n*10 + 7, t | 0b001);
+void dfs(long long s, int f) {
+  if (s > N) return;
+  if (f == 0b111) ans++;
+  dfs(10*s + 7, f | 0b100);
+  dfs(10*s + 5, f | 0b010);
+  dfs(10*s + 3, f | 0b001);
 }
 
 int main()
 {
   cin >> N;
   dfs(0, 0);
-  cout << c << endl;
+
+  printf("%lld\n", ans);
   return 0;
 }

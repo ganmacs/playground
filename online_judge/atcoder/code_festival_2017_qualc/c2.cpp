@@ -16,20 +16,21 @@ int main()
 {
   string S;
   cin >> S;
-  int ans = 0;
+  int N = S.size(), ans = 0;
 
-  int i = 0, j = S.size()-1;
-  while (i < j) {
-    if (S[i] == S[j]) {
-      i++; j--;
-    } else if (S[i] == 'x') {
-      i++;
+  int l = 0, r = N-1;
+  while (l < r) {
+    if (S[l] == S[r]) {
+      l++;
+      r--;
+    } else if (S[l] == 'x') {
       ans++;
-    } else if (S[j] == 'x') {
-      j--;
+      l++;
+    } else if (S[r] == 'x') {
       ans++;
+      r--;
     } else {
-      printf("%d\n", -1);
+      puts("-1");
       return 0;
     }
   }

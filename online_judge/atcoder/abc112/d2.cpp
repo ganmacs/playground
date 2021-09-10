@@ -12,29 +12,34 @@
 
 using namespace std;
 
-map<int, int> V;
+map<long long, long long> V;
 
-void f(int n) {
-  for (int i = 1; i * i <= n; i++) {
-    if (n % i == 0) {
-      V[i]++;
-      V[n/i]++;
+void f(long long a) {
+  for (int i = 1; i*i <= a; i++) {
+    if (a%i == 0) {
+      auto aa = a/i;
+      V[i] = aa;
+      if (aa != i) {
+        V[aa] = i;
+      }
     }
   }
 }
 
 int main()
 {
-  int N, M, ans = 0;
+  long long N, M, ans = 0;
   cin >> N >> M;
 
   f(M);
+
   for (auto& vi: V) {
-    if (M/vi.first >= N) {
-      ans = max(ans, vi.first);
+    if (vi.first >= N) {
+      ans = max(ans, vi.second);
     }
   }
 
-  printf("%d\n", ans);
+  printf("%lld\n", ans);
+
   return 0;
 }

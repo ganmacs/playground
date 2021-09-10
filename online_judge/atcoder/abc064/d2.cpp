@@ -14,27 +14,28 @@ using namespace std;
 
 int main()
 {
-  int N;
+  int N, ll = 0;
   string S;
   cin >> N >> S;
 
-  string l;
-
-  int t = 0;
+  string l = "";
   for (auto& vi: S) {
     if (vi == '(') {
-      t++;
+      ll++;
     } else {
-      if (t == 0) {
+      if (ll == 0) {
         l += "(";
       } else {
-        t--;
+        ll--;
       }
     }
   }
 
-  for (int i = 0; i < t; i++) S += ")";
+  string r = "";
+  for (int i = 0; i < ll; i++) {
+    r += ")";
+  }
 
-  cout << l + S << endl;
+  cout << l << S << r << endl;
   return 0;
 }

@@ -47,21 +47,18 @@ long long count(long long n, long long k) {
 
 int main()
 {
-  int X, Y;
-  long long ans = 0;
+  int X, Y, ans = 0;
   cin >> X >> Y;
 
-  for (int b = 0; b <= 1e6; b++) {
-    if (((Y - b)%2) != 0) continue;
-    if (Y -b < 0) continue;
-    int a = (Y - b)/2;
+  for (int i = 0; i < 1e6; i++) {
+    int s = Y - 2*i;
 
-    if ((Y == 2*a + b) && (X == a + 2*b)) {
-      ans += count(a + b, min(a, b));
+    if (s < 0) continue;
+    if (X == (2*s + i) && Y == (2*i + s)) {
+      ans += count(i + s, min(i, s));
     }
   }
-
-  cout << ans << endl;
+  printf("%d\n", ans);
 
   return 0;
 }

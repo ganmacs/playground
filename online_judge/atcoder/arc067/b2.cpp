@@ -15,15 +15,20 @@ using namespace std;
 
 int main()
 {
-  long long N, A, B, ans = 0;
+  int N, A, B;
+  long long ans = 0;
   cin >> N >> A >> B;
-  vector<long long> V(N);
+  vector<long long> V(N), V2;
   for (auto& vi: V) cin >> vi;
-
-  for (int i = 1; i < N; i++) {
-    ans += min(A*(V[i]-V[i-1]), B);
+  for (int i = 0; i + 1 < N; i++) {
+    long long t = (V[i + 1] - V[i])*A;
+    if (t < B) {
+      ans += t;
+    } else {
+      ans += B;
+    }
   }
 
   printf("%lld\n", ans);
-  return 0;
+ return 0;
 }

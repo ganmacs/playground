@@ -14,21 +14,23 @@ using namespace std;
 
 int main()
 {
-  int N, H;
+  int H, N, a, b;
   cin >> H >> N;
-  vector<long long> A(N), B(N), C(H + 1, 1e18);
-  for (int i = 0; i < N; i++) {
-    cin >> A[i] >> B[i];
-  }
-
-  C[0] = 0;
+  vector<long long> M(H + 1, 1e18);
+  M[0] = 0;
 
   for (int i = 0; i < N; i++) {
-    for (int j = 1; j <= H; j++) {
-      C[j] =  min(C[j], C[max(0LL, j-A[i])] + B[i]);
+    cin >> a >> b;
+
+    for (int j = a; j <= H; j++) {
+      M[j] = min(M[j], M[j-a] + b);
+    }
+
+    for (int j = 0; j <= a; j++) {
+      M[H] = min(M[H], M[H-j] + b);
     }
   }
 
-  cout << C[H] << endl;
+  printf("%lld\n", M[H]);
   return 0;
 }

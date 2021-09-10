@@ -14,18 +14,22 @@ using namespace std;
 
 int main()
 {
+  map<long long, long long> M;
   int N;
   long long ans = 0;
   cin >> N;
-  vector<long long> V(N), D(N + 1, 0);
+  vector<long long> V(N), V2(1, 0);
   for (auto& vi: V) cin >> vi;
+  M[0] = 1;
   for (int i = 0; i < N; i++) {
-    D[i + 1] = D[i] + V[i];
+    V2.push_back(V[i] + V2.back());
+    M[V2.back()]++;
   }
-  map<long long, long long> M;
-  for (auto& vi: D) M[vi]++;
+
   for (auto& vi: M) {
-    ans += vi.second*(vi.second-1)/2;
+    if (vi.second >= 2) {
+      ans += vi.second*(vi.second-1)/2;
+    }
   }
 
   printf("%lld\n", ans);

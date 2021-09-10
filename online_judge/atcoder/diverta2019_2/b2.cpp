@@ -15,34 +15,30 @@ using namespace std;
 int main()
 {
   int N;
+  map<long long,  map<long long, int>> M;
   cin >> N;
   vector<long long> X(N), Y(N);
   for (int i = 0; i < N; i++) {
     cin >> X[i] >> Y[i];
   }
 
-  if (N == 1) {
-    printf("%d\n", 1);
-    return 0;
-  }
-
-  map<long long, map<long long, int>> M;
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < N; j++) {
       if (i == j) continue;
-      long long xx = X[i]-X[j];
-      long long yy = Y[i]-Y[j];
-      M[xx][yy]++;
+
+      auto x = X[i] - X[j];
+      auto y = Y[i] - Y[j];
+      M[x][y]++;
     }
   }
 
   int ans = 1e8;
   for (auto& vi: M) {
-    for (auto& vii: vi.second) {
-      ans = min(ans, N-vii.second);
+    for (auto& vi2: vi.second) {
+      ans = min(N-vi2.second, ans);
     }
   }
 
-  cout << ans << endl;
+  printf("%d\n", ans);
   return 0;
 }
