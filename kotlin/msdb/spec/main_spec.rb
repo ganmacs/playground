@@ -1,7 +1,15 @@
 describe 'database' do
+  before do
+    `rm -rf test1.db`
+  end
+
+  after do
+    `rm -rf test1.db`
+  end
+
   def run_script(commands)
     raw_output = nil
-    IO.popen("gradle run -q --console=plain", "r+") do |pipe|
+    IO.popen("gradle run -q --console=plain --args='test1.db'", "r+") do |pipe|
       commands.each do |command|
         pipe.puts command
       end
@@ -65,8 +73,8 @@ describe 'database' do
     result = run_script(script)
     # "db > String is too long.",
     expected = [
-      "db > invalid size for userName. username should be less than 32",
       "db > invalid size for email. email should be less than 255",
+      "db > invalid size for userName. username should be less than 32",
       "db > Executed.",
       "db > ",
     ]
@@ -86,5 +94,18 @@ describe 'database' do
       "db > ",
     ]
     expect(result).to eq(expected)
+  end
+
+  it 'keeps data after closing connection' do
+    result1 = run_script(["insert 1 user1 person1@example.com", ".exit"])
+    expect(result1).to eq(["db > Executed.", "db > "])
+
+    result2 = run_script(["select", ".exit"])
+    expected = [
+      "db > (1, user1, person1@example.com)",
+      "Executed.",
+      "db > ",
+    ]
+    expect(result2).to eq(expected)
   end
 end

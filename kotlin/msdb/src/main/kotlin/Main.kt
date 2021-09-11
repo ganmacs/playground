@@ -1,6 +1,7 @@
 import java.nio.ByteBuffer
 import kotlin.system.exitProcess
 import mu.KotlinLogging
+import java.io.File
 
 const val TABLE_MAX_PAGES = 100
 const val PAGE_SIZE = 1024 * 4
@@ -9,34 +10,22 @@ const val TABLE_MAX_ROWS = ROWS_PER_PAGE * TABLE_MAX_PAGES
 
 val logger = KotlinLogging.logger {}
 
-class RowTableIter(val table: Table): Iterator<Row> {
-    var i = 0
-    override fun hasNext(): Boolean {
-        return i < table.rowNum
-    }
-
-    override fun next(): Row {
-        val buf = table.rowSlot(i)
-        i++
-        return Row.deserialize(buf)
-    }
-}
-
-class Table(var rowNum: Int = 0): Iterable<Row> {
-    var pages = 0.rangeTo(TABLE_MAX_PAGES).map { ByteArray(PAGE_SIZE) }
-
-    fun rowSlot(rowNum: Int): ByteBuffer {
+class Table(private val pager: Pager, var rowNum: Int = 0): Iterable<Row> {
+     fun rowSlot(rowNum: Int): ByteBuffer {
         val pageId = rowNum / ROWS_PER_PAGE
-        val page = pages[pageId]
+        val page = pager.fetchPage(pageId)
         val rowOffset = rowNum % ROWS_PER_PAGE
         val byteOffset = rowOffset * ROW_SIZE
         //logger.info { "ReadPage: pageId = $pageId, rowOffset = $rowOffset byteOffset = $byteOffset"}
-        //println("ReadPage: pageId = $pageId, rowOffset = $rowOffset byteOffset = $byteOffset")
         return ByteBuffer.wrap(page, byteOffset, ROW_SIZE)
     }
 
+    fun close() {
+        pager.close()
+    }
+
     override fun iterator(): Iterator<Row> {
-        return RowTableIter(this)
+        return Cursor.fromStart(this)
     }
 }
 
@@ -45,8 +34,9 @@ sealed class Statement {
     class SelectStatement(): Statement()
 }
 
-fun handleMetaCommand(buf: String): Result<Unit> {
+fun handleMetaCommand(buf: String, table: Table): Result<Unit> {
     if (buf == ".exit") {
+        closeDB(table)
         exitProcess(0)
     } else {
         return Result.failure(Error("unrecognized command $buf"))
@@ -81,7 +71,9 @@ fun executeInsertStatement(insertStmnt: Statement.InsertStatement, table: Table)
     if (table.rowNum > TABLE_MAX_PAGES) {
         return Result.failure(Error("Error: Table full."))
     }
-    return insertStmnt.row.serialize(table.rowSlot(table.rowNum)).onSuccess {
+
+    val cur = Cursor.fromEnd(table)
+    return insertStmnt.row.serialize(cur.value()).onSuccess {
         table.rowNum += 1
         return Result.success(Unit)
     }.onFailure {
@@ -104,15 +96,29 @@ fun executeStatement(stmnt: Statement, table: Table): Result<Unit> {
     }
 }
 
-fun main(args: Array<String>) {
-    val table = Table()
+fun openDB(fileName: String): Table {
+    val file = File(fileName)
+    val pager = Pager(file)
+    return Table(pager, pager.fileLength / PAGE_SIZE)
+}
 
+fun closeDB(table: Table) {
+    table.close()
+}
+
+fun main(args: Array<String>) {
+    if (args.isEmpty()) {
+        println("Must supply a database filename.");
+        exitProcess(1);
+    }
+
+    val table = openDB(args[0])
     while (true) {
         print("db > ")
         val input = readLine()
         if (input.isNullOrEmpty()) continue
         if (input[0] == '.') {
-            handleMetaCommand(input).onFailure {
+            handleMetaCommand(input, table).onFailure {
                 println(it.message)
             }
             continue
