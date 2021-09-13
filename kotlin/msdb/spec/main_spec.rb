@@ -108,4 +108,43 @@ describe 'database' do
     ]
     expect(result2).to eq(expected)
   end
+
+  it 'prints constants' do
+    script = [
+      ".constants",
+      ".exit",
+    ]
+    result = run_script(script)
+    expected = [
+      "db > Constants:",
+      "ROW_SIZE: 291",
+      "COMMON_NODE_HEADER_SIZE: 8", #  2 + 2 + 4
+      "LEAF_NODE_HEADER_SIZE: 12", # 8(common header) + 4
+      "LEAF_NODE_CELL_SIZE: 295", #  4 + 291(row_size)
+      "LEAF_NODE_SPACE_FOR_CELLS: 4084", # 4096 - 8(common header)
+      "LEAF_NODE_MAX_CELLS: 13",
+      "db > ",
+    ]
+
+    expect(result).to eq(expected)
+  end
+
+  it 'allows printing out the structure of a one-node btree' do
+    script = [3, 1, 2].map do |i|
+      "insert #{i} user#{i} person#{i}@example.com"
+    end
+    result = run_script(script + [".btree", ".exit"])
+    expected = [
+      "db > Executed.",
+      "db > Executed.",
+      "db > Executed.",
+      "db > Tree:",
+      "leaf (size 3)",
+      "  - 0 : 3",
+      "  - 1 : 1",
+      "  - 2 : 2",
+      "db > "
+    ]
+    expect(result).to eq(expected)
+  end
 end

@@ -17,13 +17,17 @@ class Buffer(val inner: ByteArray = ByteArray(PAGE_SIZE), var isDirty: Boolean= 
 
 class Pager(file: File) {
     private val file = RandomAccessFile(file, "rw")
-    var fileLength: Int = file.length().toInt()
+    var fileLength: Int = file.length().toInt().also {
+        if (it % PAGE_SIZE  != 0) {
+            throw Error("Db file is not a whole number of pages. Corrupt file.")
+        }
+    }
     private var pages = 0.rangeTo(TABLE_MAX_PAGES).map { Buffer() }
 
     fun close() {
-        pages.forEachIndexed { id, page ->
+        pages.forEachIndexed { pageNum, page ->
             if (page.isLoad) {
-                file.seek(id.toLong() * PAGE_SIZE)
+                file.seek(pageNum.toLong() * PAGE_SIZE)
                 page.flushTo(file)
             }
         }
@@ -38,7 +42,7 @@ class Pager(file: File) {
         }
         val page = pages[pageNum]
         if (!page.isLoad) {
-            file.seek(pageNum.toLong() * PAGE_SIZE.toLong())
+            file.seek(pageNum.toLong() * PAGE_SIZE)
             page.loadFrom(file)
         }
 

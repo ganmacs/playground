@@ -5,27 +5,30 @@ import java.io.File
 
 const val TABLE_MAX_PAGES = 100
 const val PAGE_SIZE = 1024 * 4
-const val ROWS_PER_PAGE = PAGE_SIZE / ROW_SIZE
-const val TABLE_MAX_ROWS = ROWS_PER_PAGE * TABLE_MAX_PAGES
-
 val logger = KotlinLogging.logger {}
 
-class Table(private val pager: Pager, var rowNum: Int = 0): Iterable<Row> {
-     fun rowSlot(rowNum: Int): ByteBuffer {
-        val pageId = rowNum / ROWS_PER_PAGE
-        val page = pager.fetchPage(pageId)
-        val rowOffset = rowNum % ROWS_PER_PAGE
-        val byteOffset = rowOffset * ROW_SIZE
-        //logger.info { "ReadPage: pageId = $pageId, rowOffset = $rowOffset byteOffset = $byteOffset"}
-        return ByteBuffer.wrap(page, byteOffset, ROW_SIZE)
-    }
-
+class Table(val pager: Pager, val rootPageNum: Int) {
     fun close() {
         pager.close()
     }
 
-    override fun iterator(): Iterator<Row> {
-        return Cursor.fromStart(this)
+    fun insert(row: Row): Result<Unit> {
+        val cur = Cursor.fromEnd(this)
+        if (cur.cellNum >= LEAF_NODE_MAX_CELLS) {
+            return Result.failure(Error("Error: Table full."))
+        }
+
+        return cur.insert(row).onFailure {
+            return Result.failure(it)
+        }
+    }
+
+    fun select(): Result<Unit> {
+        val iter = Cursor.fromStart(this)
+        while (iter.hasNext()) {
+            println(iter.next())
+        }
+        return Result.success(Unit)
     }
 }
 
@@ -35,17 +38,27 @@ sealed class Statement {
 }
 
 fun handleMetaCommand(buf: String, table: Table): Result<Unit> {
-    if (buf == ".exit") {
-        closeDB(table)
-        exitProcess(0)
-    } else {
-        return Result.failure(Error("unrecognized command $buf"))
+    when (buf) {
+        ".exit" -> {
+            closeDB(table)
+            exitProcess(0)
+        }
+        ".constants" -> {
+            printConstants()
+            return Result.success(Unit)
+        }
+        ".btree" -> {
+            printLeafNode(Leaf(table.pager.fetchPage(0)))
+            return Result.success(Unit)
+        }
+        else -> {
+            return Result.failure(Error("unrecognized command $buf"))
+        }
     }
 }
 
 fun parseInput(input :String): Result<Statement> {
     val exprs = input.split(" ").map { it.trim() }.filter { it !== "" }
-    logger.debug { exprs }
     return when (exprs.firstOrNull()) {
         "insert" -> {
             if (exprs.size != 4) {
@@ -67,39 +80,50 @@ fun printByte(b: ByteArray) {
     println()
 }
 
-fun executeInsertStatement(insertStmnt: Statement.InsertStatement, table: Table): Result<Unit> {
-    if (table.rowNum > TABLE_MAX_PAGES) {
-        return Result.failure(Error("Error: Table full."))
-    }
+fun printConstants() {
+      println("Constants:");
+      println("ROW_SIZE: $ROW_SIZE");
+      println("COMMON_NODE_HEADER_SIZE: $COMMON_NODE_HEADER_SIZE");
+      println("LEAF_NODE_HEADER_SIZE: $LEAF_NODE_HEADER_SIZE");
+      println("LEAF_NODE_CELL_SIZE: $LEAF_NODE_CELL_SIZE");
+      println("LEAF_NODE_SPACE_FOR_CELLS: $LEAF_NODE_SPACE_FOR_CELLS");
+      println("LEAF_NODE_MAX_CELLS: $LEAF_NODE_MAX_CELLS");
+}
 
-    val cur = Cursor.fromEnd(table)
-    return insertStmnt.row.serialize(cur.value()).onSuccess {
-        table.rowNum += 1
-        return Result.success(Unit)
-    }.onFailure {
-        return Result.failure(it)
+fun printLeafNode(node: Node) {
+    println("Tree:")
+    val numCells = node.asLeaf().numCell()
+    println("leaf (size $numCells)")
+    for (i in 0 until numCells) {
+        val key = node.asLeaf().getCell(i).int
+        println("  - $i : $key")
     }
 }
 
+fun executeInsertStatement(insertStmnt: Statement.InsertStatement, table: Table): Result<Unit> {
+    return table.insert(insertStmnt.row)
+}
+
 fun executeSelectStatement(selectStmnt: Statement.SelectStatement, table: Table): Result<Unit> {
-    val iter = table.iterator()
-    while (iter.hasNext()) {
-        println(iter.next())
-    }
-    return Result.success(Unit)
+    return table.select()
 }
 
 fun executeStatement(stmnt: Statement, table: Table): Result<Unit> {
      return when (stmnt){
-      is Statement.InsertStatement -> executeInsertStatement(stmnt, table)
-      is Statement.SelectStatement -> executeSelectStatement(stmnt, table)
+         is Statement.InsertStatement -> executeInsertStatement(stmnt, table)
+         is Statement.SelectStatement -> executeSelectStatement(stmnt, table)
     }
 }
 
 fun openDB(fileName: String): Table {
     val file = File(fileName)
     val pager = Pager(file)
-    return Table(pager, pager.fileLength / PAGE_SIZE)
+
+    if (pager.fileLength == 0) {
+        val page = pager.fetchPage(0)
+        val l = Leaf(page)
+    }
+    return Table(pager, 0)
 }
 
 fun closeDB(table: Table) {
