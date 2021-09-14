@@ -140,10 +140,29 @@ describe 'database' do
       "db > Executed.",
       "db > Tree:",
       "leaf (size 3)",
-      "  - 0 : 3",
-      "  - 1 : 1",
-      "  - 2 : 2",
-      "db > "
+      "  - 0 : 1",
+      "  - 1 : 2",
+      "  - 2 : 3",
+     "db > "
+    ]
+    expect(result).to eq(expected)
+  end
+
+  it 'allows printing out the structure of a one-node btree' do
+    script = [1, 2, 3].map do |i|
+      "insert #{i} user#{i} person#{i}@example.com"
+    end
+    result = run_script(script + [".btree", ".exit"])
+    expected = [
+      "db > Executed.",
+      "db > Executed.",
+      "db > Executed.",
+      "db > Tree:",
+      "leaf (size 3)",
+      "  - 0 : 1",
+      "  - 1 : 2",
+      "  - 2 : 3",
+     "db > "
     ]
     expect(result).to eq(expected)
   end

@@ -1,4 +1,6 @@
 import java.nio.ByteBuffer
+import kotlin.math.absoluteValue
+import kotlin.system.exitProcess
 
 // BODY = | type(2 bytes) | is_root(2 bytes) | parent_pointer (4 bytes) | LEFF_NODE* |
 // LEAF_NODE = | nums_cells(4bytes) | LEAF_CELL* |
@@ -43,12 +45,19 @@ sealed class Node(protected val buf: ByteBuffer) {
     fun asLeaf(): Leaf {
         return (this as Leaf) // TODO: fix
     }
+
+    fun setAsLeaf() {
+        buf.position(0)
+        buf.putShort(LEAF_TYPE)
+    }
 }
 
 class Leaf(buf: ByteBuffer): Node(buf) {
     private var numCell: Int? = null
 
-    constructor(buf: ByteArray): this(ByteBuffer.wrap(buf))
+    constructor(buf: ByteArray): this(ByteBuffer.wrap(buf)) {
+        setAsLeaf()
+    }
 
     fun numCell(): Int {
         if (this.numCell == null) {
@@ -64,22 +73,85 @@ class Leaf(buf: ByteBuffer): Node(buf) {
           this.numCell = num
     }
 
+    fun find(key: Int): Int {
+        var ok: Int = 0
+        var ng: Int = numCell()*3
+        var lim = 100
+        while ((ng - ok).absoluteValue > 1) {
+            lim--
+            if (lim <= 0) {
+                exitProcess(1)
+            }
+//          println("ok = $ok, ng = $ng")
+            val mid = (ok + ng)/2
+            if (mid > numCell()) {
+                ng = mid
+                continue
+            }
+            // FIXME
+            if (mid == numCell()) {
+                val keyAt = getKey(mid-1)
+                //println("last mid = $mid key = $key keyAt = $keyAt")
+                if (keyAt == key) {
+                    return mid-1
+                } else if (keyAt < key) {
+                    return mid
+                } else {
+                    ng = mid-1
+                    if (ng < ok) ok = ng
+                }
+                continue
+            }
+
+            val keyAt = getKey(mid)
+            //println("mid = $mid key = $key keyAt = $keyAt")
+            if (keyAt == key) return mid
+
+            if (keyAt > key) {
+                ng = mid
+            } else {
+                ok = mid
+            }
+        }
+
+        if (key > getKey(ok)) {
+            return if(ok+1 > numCell()) numCell() else ok+1
+        }
+
+        return ok
+    }
+
+    // shift all following key by a cell size
+    fun makeSpace(at: Int) {
+        val num = numCell()
+        buf.position(LEAF_NODE_CELL_OFFSET + (at * LEAF_NODE_CELL_SIZE))
+        val b = ByteArray((num-at) * LEAF_NODE_CELL_SIZE)
+        buf.get(b) // copy `at` ~ last cell
+
+        buf.position(LEAF_NODE_CELL_OFFSET + ((at+1) * LEAF_NODE_CELL_SIZE))
+        buf.put(b) // copy `at + 1` ~ last cell to be able to insert new value at `at`
+    }
+
     fun getCell(id: Int): ByteBuffer {
         buf.position(LEAF_NODE_CELL_OFFSET + (id * LEAF_NODE_CELL_SIZE) + LEAF_NODE_VALUE_OFFSET)
         return buf // TODO: restrict
     }
 
+    fun getKey(id: Int): Int {
+        buf.position(LEAF_NODE_CELL_OFFSET + (id * LEAF_NODE_CELL_SIZE))
+        return buf.int // TODO: restrict
+    }
+
     fun insertRow(key: Int, row: Row): Result<Unit> {
-        val numC = numCell()
-        if (LEAF_NODE_MAX_CELLS < numC) {
+        if (LEAF_NODE_MAX_CELLS < key) {
             return Result.failure(TODO("Need to implement splitting a leaf node."))
         }
 
-        buf.position(LEAF_NODE_CELL_OFFSET + (numC * LEAF_NODE_CELL_SIZE) + LEAF_NODE_VALUE_OFFSET)
+        buf.position(LEAF_NODE_CELL_OFFSET + (key * LEAF_NODE_CELL_SIZE) + LEAF_NODE_VALUE_OFFSET)
         return row.serialize(buf).onSuccess {
-            buf.position(LEAF_NODE_CELL_OFFSET + (numC * LEAF_NODE_CELL_SIZE))
-            buf.putInt(key)
-            setNumCell(numC+1)
+            buf.position(LEAF_NODE_CELL_OFFSET + (key * LEAF_NODE_CELL_SIZE))
+            buf.putInt(row.id)
+            setNumCell(numCell() + 1)
         }
     }
 }

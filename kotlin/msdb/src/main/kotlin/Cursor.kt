@@ -1,12 +1,13 @@
-import java.nio.ByteBuffer
-
-class Cursor(val node: Node, var cellNum: Int): Iterator<Row> {
+class Cursor(
+    val node: Node,
+    var cellIdx: Int,
+): Iterator<Row> {
     companion object {
         fun fromStart(table: Table): Cursor {
             val page = table.pager.fetchPage(table.rootPageNum)
             return Cursor(
                 node = Leaf(page),
-                cellNum = 0,
+                cellIdx = 0,
             )
         }
 
@@ -15,21 +16,49 @@ class Cursor(val node: Node, var cellNum: Int): Iterator<Row> {
             val l = Leaf(page)
             return Cursor(
                 node = l,
-                cellNum = l.numCell(),
+                cellIdx = l.numCell(),
             )
+        }
+
+        fun find(table: Table, id: Int): Cursor {
+            val page = table.pager.fetchPage(table.rootPageNum)
+            val node = Leaf(page)
+
+            // TODO: check if node is leaf
+            if (true) {
+                val t = node.find(id)
+          //      println("node $t")
+                return Cursor(
+                    node,
+                    cellIdx = t,
+                )
+            } else {
+                TODO("need to implement when node is internal")
+            }
         }
     }
 
     fun insert(row: Row): Result<Unit> {
-        if (node.asLeaf().numCell() > LEAF_NODE_MAX_CELLS) {
+        val numCell = node.asLeaf().numCell()
+        if (numCell > LEAF_NODE_MAX_CELLS) {
             return Result.failure(TODO("imple split"))
         }
 
-        //if (node.numCell() != cellNum) {
-        //    return Result.failure(Error("Invalid cell_num ${node.numCell()} != ${cellNum}"))
-        //}
-        return node.asLeaf().insertRow(cellNum, row).onSuccess {
-            cellNum++
+        //println(node.asLeaf().getKey(cellIdx))
+        //println(row.id)
+
+        // shift all data to make space
+        val leaf = node.asLeaf()
+        if (numCell > cellIdx) {
+            leaf.makeSpace(cellIdx)
+        }
+
+        if (node.asLeaf().getKey(cellIdx) == row.id) {
+            return Result.failure(Error("Error: Duplicate key."))
+        }
+
+        return node.asLeaf().insertRow(cellIdx, row).onSuccess {
+            cellIdx++
         }
     }
 
@@ -40,12 +69,12 @@ class Cursor(val node: Node, var cellNum: Int): Iterator<Row> {
     */
 
     override fun hasNext(): Boolean {
-        return cellNum < node.asLeaf().numCell()
+        return cellIdx < node.asLeaf().numCell()
     }
 
     override fun next(): Row {
-        val buf = node.asLeaf().getCell(cellNum)
-        cellNum++
+        val buf = node.asLeaf().getCell(cellIdx)
+        cellIdx++
         return Row.deserialize(buf)
     }
 }

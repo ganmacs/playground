@@ -13,11 +13,14 @@ class Table(val pager: Pager, val rootPageNum: Int) {
     }
 
     fun insert(row: Row): Result<Unit> {
-        val cur = Cursor.fromEnd(this)
-        if (cur.cellNum >= LEAF_NODE_MAX_CELLS) {
+        val node = Leaf(pager.fetchPage(rootPageNum))
+        if (node.numCell() >= LEAF_NODE_MAX_CELLS) {
             return Result.failure(Error("Error: Table full."))
         }
 
+        val cur = Cursor.find(this, row.id)
+
+        //println("--------")
         return cur.insert(row).onFailure {
             return Result.failure(it)
         }
@@ -95,7 +98,7 @@ fun printLeafNode(node: Node) {
     val numCells = node.asLeaf().numCell()
     println("leaf (size $numCells)")
     for (i in 0 until numCells) {
-        val key = node.asLeaf().getCell(i).int
+        val key = node.asLeaf().getKey(i)
         println("  - $i : $key")
     }
 }
