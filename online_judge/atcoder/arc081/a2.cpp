@@ -17,41 +17,31 @@ int main()
 {
   int N, a;
   cin >> N;
-  map<long long, int> M;
+  map<int, int> M;
   for (int i = 0; i < N; i++) {
     cin >> a;
     M[a]++;
   }
-  vector<pair<long long, int>> V;
 
+  vector<long long> T;
   for (auto& vi: M) {
-    if (vi.second < 2) continue;
-    V.push_back({ vi.first, vi.second });
+    if (vi.second >= 4) {
+      T.push_back(vi.first);
+      vi.second -= 2;
+    }
+
+    if (vi.second >= 2) {
+      T.push_back(vi.first);
+      vi.second -= 2;
+    }
   }
 
-  if (V.size() == 0) {
+  if (T.size() < 2) {
     printf("%d\n", 0);
     return 0;
   }
 
-  sort(V.begin(), V.end(), greater<pair<long long, int>>());
-
-  int t = 0;
-  long long ans = 1;
-
-  for (auto& vi: V) {
-    while (vi.second >= 2) {
-      ans *= vi.first;
-      vi.second -= 2;
-      t++;
-      if (t == 2) {
-        cout << ans << endl;
-        return 0;
-      }
-    }
-  }
-
-  printf("%d\n", 0);
-
+  sort(T.begin(), T.end(), greater<long long>());
+  printf("%lld\n", T[0] * T[1]);
   return 0;
 }

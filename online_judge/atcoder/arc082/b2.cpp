@@ -14,25 +14,22 @@ using namespace std;
 
 int main()
 {
-  int N;
+  int N, ans = 0;
   cin >> N;
-  int ans = 0;
-  vector<int> p(N);
-  for (auto& vi: p) cin >> vi;
+  vector<int> V(N);
+  for (auto& vi: V) cin >> vi;
 
-
-  for (int i = 0; i < N; i++) {
-    if (p[i] == (i + 1)) {
+  for (int i = N-1; i > 0; i--) {
+    if (V[i] == i + 1) {
+      swap(V[i], V[i-1]);
       ans++;
-      if (i + 1 < N) {
-        swap(p[i], p[i + 1]);
-      } else {
-        swap(p[i], p[i - 1]);
-      }
     }
   }
 
-  cout << ans << endl;
+  if (V[0] == 1) {
+    ans++;
+  }
 
+  printf("%d\n", ans);
   return 0;
 }

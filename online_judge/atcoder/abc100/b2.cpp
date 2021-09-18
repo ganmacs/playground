@@ -17,21 +17,16 @@ int main()
   int D, N;
   cin >> D >> N;
 
-  int kk = pow(100, D);
-
+  int t = pow(100, D);
   int j = 0;
-  for (int i = kk; i <= kk*N + kk; i++) {
-    if (i % kk == 0) {
-      int t = i/kk;
-      if (t % 100 != 0) {
-        j++;
-        if (j == N) {
-          printf("%d\n", i);
-          return 0;
-        }
+  for (int i = 1; i < 1000; i++) {
+    if (i % 100) {
+      j++;
+
+      if (j == N) {
+        printf("%d\n", t*i);
       }
     }
   }
-
   return 0;
 }

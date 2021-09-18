@@ -18,23 +18,47 @@ int main()
   int N;
   cin >> N;
   long long ans = 1e18;
-  vector<int> V(N);
+  vector<long long> V(N);
   for (auto& vi: V) cin >> vi;
 
   for (int i = 1; i < pow(2, N); i++) {
-    long long ta = 0, t2 = 0;
+    vector<long long> at, tmp;
+
     for (int j = 0; j < N; j++) {
-      if ((1 << j) & i) {
-        ta ^= t2;
-        t2 = V[j];
+      if (i & (1 << j)) {
+        if (tmp.size() > 0) {
+          long long ttt = 0;
+          for (auto& vi: tmp) {
+            ttt = ttt | vi;
+          }
+          at.push_back(ttt);
+        }
+
+        tmp.clear();
+        tmp.push_back(V[j]);
       } else {
-        t2 |= V[j];
+        tmp.push_back(V[j]);
       }
     }
 
-    ans = min(ans, t2 ^ ta);
+    if (tmp.size() > 0) {
+      long long ttt = 0;
+      for (auto& vi: tmp) {
+        ttt = ttt | vi;
+      }
+      at.push_back(ttt);
+    }
+
+
+    long long t = 0;
+    for (auto& vi: at) {
+      t = t ^ vi;
+    }
+
+
+    ans = min(t, ans);
   }
 
-  cout << ans << endl;
+  printf("%lld\n", ans);
   return 0;
 }

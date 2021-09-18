@@ -15,25 +15,20 @@ using namespace std;
 
 int main()
 {
-  unsigned long long A, B;
+  long long A, B, ans = 0;
   cin >> A >> B;
-  unsigned long long a = gcd(A, B);
 
-  long long ans = 1;
+  long long t = gcd(A, B);
 
-  for (unsigned long long i = 2; i*i <= a && a > 1; i++) {
-    if (a % i != 0) continue;
-
-    while (a % i == 0) {
-      a /= i;
-    }
-    ans++;
+  vector<int> V;
+  int j = 2;
+  if (t > 0) V.push_back(1);
+  while (t > 1) {
+    if (t % j == 0) V.push_back(j);
+    while (t % j == 0) t /= j;
+    j++;
   }
 
-  if (a > 1) {
-    ans++;
-  }
-
-  cout << ans << endl;
+  printf("%ld\n", V.size());
   return 0;
 }
