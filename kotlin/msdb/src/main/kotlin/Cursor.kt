@@ -1,80 +1,77 @@
-class Cursor(
-    val node: Node,
-    var cellIdx: Int,
-): Iterator<Row> {
+class Cursor(var cellIdx: Int, val pageIdx: Int, val pager: Pager): Iterator<Row> {
     companion object {
+        fun find(table: Table, key: Int): Cursor {
+            val page = table.pager.fetchPage(table.rootPageNum)
+            return when (val node = Node(page).asNodeBody()) {
+                is Leaf -> {
+                    return Cursor(
+                        cellIdx = node.find(key),
+                        pageIdx = table.rootPageNum,
+                        pager = table.pager,
+                    )
+                }
+                is Internal -> {
+                    TODO("need to implement when node is internal")
+                }
+            }
+        }
+
         fun fromStart(table: Table): Cursor {
-            val page = table.pager.fetchPage(table.rootPageNum)
-            return Cursor(
-                node = Leaf(page),
-                cellIdx = 0,
-            )
+            return find(table, 0)
+        }
+    }
+
+    override fun hasNext(): Boolean {
+        if (pager.pageNum < pageIdx) {
+            return false
         }
 
-        fun fromEnd(table: Table): Cursor {
-            val page = table.pager.fetchPage(table.rootPageNum)
-            val l = Leaf(page)
-            return Cursor(
-                node = l,
-                cellIdx = l.numCell(),
-            )
+        val page = pager.fetchPage(pageIdx)
+        return when (val node = Node(page).asNodeBody()) {
+            is Leaf -> (node.numCell() > cellIdx)
+            is Internal -> {
+                TODO("need to implement when node is internal")
+            }
         }
+    }
 
-        fun find(table: Table, id: Int): Cursor {
-            val page = table.pager.fetchPage(table.rootPageNum)
-            val node = Leaf(page)
-
-            // TODO: check if node is leaf
-            if (true) {
-                val t = node.find(id)
-          //      println("node $t")
-                return Cursor(
-                    node,
-                    cellIdx = t,
-                )
-            } else {
+    override fun next(): Row {
+        val page = pager.fetchPage(cellIdx)
+        return when (val node = Node(page).asNodeBody()) {
+            is Leaf -> {
+                val buf = node.getCell(cellIdx)
+                cellIdx++
+                Row.deserialize(buf)
+            }
+            is Internal -> {
                 TODO("need to implement when node is internal")
             }
         }
     }
 
     fun insert(row: Row): Result<Unit> {
-        val numCell = node.asLeaf().numCell()
-        if (numCell > LEAF_NODE_MAX_CELLS) {
-            return Result.failure(TODO("imple split"))
-        }
+        val page = pager.fetchPage(pageIdx)
+        return when (val node = Node(page).asNodeBody()) {
+            is Leaf -> {
+                val numCell = node.numCell()
+                if (numCell > LEAF_NODE_MAX_CELLS) {
+                    return insertAndSplit(row)
+                }
 
-        //println(node.asLeaf().getKey(cellIdx))
-        //println(row.id)
+                if (numCell > cellIdx) {
+                    node.makeSpace(cellIdx) // for insertion point
+                }
 
-        // shift all data to make space
-        val leaf = node.asLeaf()
-        if (numCell > cellIdx) {
-            leaf.makeSpace(cellIdx)
-        }
-
-        if (node.asLeaf().getKey(cellIdx) == row.id) {
-            return Result.failure(Error("Error: Duplicate key."))
-        }
-
-        return node.asLeaf().insertRow(cellIdx, row).onSuccess {
-            cellIdx++
+                node.insert(cellIdx, row)
+                Result.success(Unit)
+            }
+            is Internal -> {
+                TODO("need to implement when node is internal")
+            }
         }
     }
 
-    /*
-    private fun value(): ByteBuffer {
-        node.asLeaf().getCell(cellNum)
-    }
-    */
-
-    override fun hasNext(): Boolean {
-        return cellIdx < node.asLeaf().numCell()
-    }
-
-    override fun next(): Row {
-        val buf = node.asLeaf().getCell(cellIdx)
-        cellIdx++
-        return Row.deserialize(buf)
+    private fun insertAndSplit(row: Row): Result<Unit> {
+        TODO("insert and split")
     }
 }

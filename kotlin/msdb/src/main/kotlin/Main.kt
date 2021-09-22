@@ -1,4 +1,3 @@
-import java.nio.ByteBuffer
 import kotlin.system.exitProcess
 import mu.KotlinLogging
 import java.io.File
@@ -13,14 +12,7 @@ class Table(val pager: Pager, val rootPageNum: Int) {
     }
 
     fun insert(row: Row): Result<Unit> {
-        val node = Leaf(pager.fetchPage(rootPageNum))
-        if (node.numCell() >= LEAF_NODE_MAX_CELLS) {
-            return Result.failure(Error("Error: Table full."))
-        }
-
         val cur = Cursor.find(this, row.id)
-
-        //println("--------")
         return cur.insert(row).onFailure {
             return Result.failure(it)
         }
@@ -51,7 +43,7 @@ fun handleMetaCommand(buf: String, table: Table): Result<Unit> {
             return Result.success(Unit)
         }
         ".btree" -> {
-            printLeafNode(Leaf(table.pager.fetchPage(0)))
+            printTree(table.pager, 0)
             return Result.success(Unit)
         }
         else -> {
@@ -93,12 +85,24 @@ fun printConstants() {
       println("LEAF_NODE_MAX_CELLS: $LEAF_NODE_MAX_CELLS");
 }
 
-fun printLeafNode(node: Node) {
+fun printTree(pager: Pager, pageNum: Int) {
+    val page = pager.fetchPage(pageNum)
+    when (val node = Node(page).asNodeBody()) {
+        is Leaf -> {
+            printLeafNode(node)
+        }
+        is Internal -> {
+            TODO("need to implement when node is internal")
+        }
+    }
+}
+
+fun printLeafNode(node: Leaf) {
     println("Tree:")
-    val numCells = node.asLeaf().numCell()
+    val numCells = node.numCell()
     println("leaf (size $numCells)")
     for (i in 0 until numCells) {
-        val key = node.asLeaf().getKey(i)
+        val key = node.getKey(i)
         println("  - $i : $key")
     }
 }
@@ -121,10 +125,9 @@ fun executeStatement(stmnt: Statement, table: Table): Result<Unit> {
 fun openDB(fileName: String): Table {
     val file = File(fileName)
     val pager = Pager(file)
-
     if (pager.fileLength == 0) {
-        val page = pager.fetchPage(0)
-        val l = Leaf(page)
+        val page = pager.fetchPage(0) // always 0
+        Node(page).initializeAsLeaf(root = true)
     }
     return Table(pager, 0)
 }

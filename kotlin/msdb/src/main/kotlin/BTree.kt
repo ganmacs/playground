@@ -1,8 +1,7 @@
+import java.lang.Error
 import java.nio.ByteBuffer
-import kotlin.math.absoluteValue
-import kotlin.system.exitProcess
 
-// BODY = | type(2 bytes) | is_root(2 bytes) | parent_pointer (4 bytes) | LEFF_NODE* |
+// BODY = | type(2 bytes) | is_root(2 bytes) 0 is false | parent_pointer (4 bytes) | LEFF_NODE* |
 // LEAF_NODE = | nums_cells(4bytes) | LEAF_CELL* |
 // LEAF_CELL = | key (4 bytes) | value (ROW_SIZE) |
 
@@ -37,98 +36,82 @@ const val LEAF_NODE_CELL_SIZE = LEAF_NODE_KEY_SIZE + LEAF_NODE_VALUE_SIZE
 const val LEAF_NODE_SPACE_FOR_CELLS = PAGE_SIZE - LEAF_NODE_HEADER_SIZE
 const val LEAF_NODE_MAX_CELLS = LEAF_NODE_SPACE_FOR_CELLS / LEAF_NODE_CELL_SIZE;
 
-// enum?
-const val LEAF_TYPE: Short = 0
-const val INTERNAL_TYPE: Short = 1
+enum class NodeType(val idx: Short) {
+    LEAF_TYPE(0),
+    INTERNAL_TYPE(1),
+}
 
-sealed class Node(protected val buf: ByteBuffer) {
-    fun asLeaf(): Leaf {
-        return (this as Leaf) // TODO: fix
+class Node(private val buf: ByteBuffer) {
+    fun initializeAsLeaf(root: Boolean = false) {
+        nodeHeaderInitialize(NodeType.LEAF_TYPE, root)
+        buf.putInt(LEAF_NODE_NUM_CELLS_OFFSET, 0)
     }
 
-    fun setAsLeaf() {
-        buf.position(0)
-        buf.putShort(LEAF_TYPE)
+    fun asNodeBody(): NodeBody {
+        return NodeBody.new(nodeType(), buf)
+    }
+
+    fun nodeType(): NodeType {
+        buf.position(NODE_TYPE_OFFSET)
+        return when (buf.short.toInt()) {
+            0 -> NodeType.LEAF_TYPE
+            1 -> NodeType.INTERNAL_TYPE
+            else -> throw Error("unknown type")
+        }
+    }
+
+    private fun nodeHeaderInitialize(nodeType: NodeType, root: Boolean) {
+        buf.putShort(NODE_TYPE_OFFSET, nodeType.idx)
+        buf.putShort(IS_ROOT_OFFSET, if (root) 1 else 0)
     }
 }
 
-class Leaf(buf: ByteBuffer): Node(buf) {
+sealed class NodeBody(protected val buf: ByteBuffer) {
+    companion object {
+        fun new(nodeType: NodeType, buf: ByteBuffer): NodeBody {
+            return when(nodeType) {
+                NodeType.LEAF_TYPE -> Leaf(buf)
+                NodeType.INTERNAL_TYPE -> Internal(buf)
+            }
+        }
+    }
+
+    //abstract fun insert(key: Int, row: Row): Result<Unit>
+}
+
+class Leaf(buf: ByteBuffer): NodeBody(buf) {
     private var numCell: Int? = null
 
-    constructor(buf: ByteArray): this(ByteBuffer.wrap(buf)) {
-        setAsLeaf()
-    }
-
     fun numCell(): Int {
-        if (this.numCell == null) {
-            buf.position(LEAF_NODE_NUM_CELLS_OFFSET)
-            this.numCell = buf.int
+        this.numCell?.also {
+            return it
         }
-        return this.numCell!!
-    }
 
-      fun setNumCell(num: Int) {
-          buf.position(LEAF_NODE_NUM_CELLS_OFFSET)
-          buf.putInt(num)
-          this.numCell = num
+        buf.position(LEAF_NODE_NUM_CELLS_OFFSET)
+        val r = buf.int
+        this.numCell = r
+        return r
     }
 
     fun find(key: Int): Int {
-        var ok: Int = 0
-        var ng: Int = numCell()*3
-        var lim = 100
-        while ((ng - ok).absoluteValue > 1) {
-            lim--
-            if (lim <= 0) {
-                exitProcess(1)
-            }
-//          println("ok = $ok, ng = $ng")
-            val mid = (ok + ng)/2
-            if (mid > numCell()) {
-                ng = mid
-                continue
-            }
-            // FIXME
-            if (mid == numCell()) {
-                val keyAt = getKey(mid-1)
-                //println("last mid = $mid key = $key keyAt = $keyAt")
-                if (keyAt == key) {
-                    return mid-1
-                } else if (keyAt < key) {
-                    return mid
-                } else {
-                    ng = mid-1
-                    if (ng < ok) ok = ng
-                }
-                continue
-            }
-
-            val keyAt = getKey(mid)
-            //println("mid = $mid key = $key keyAt = $keyAt")
-            if (keyAt == key) return mid
-
-            if (keyAt > key) {
-                ng = mid
-            } else {
-                ok = mid
-            }
-        }
-
-        if (key > getKey(ok)) {
-            return if(ok+1 > numCell()) numCell() else ok+1
-        }
-
-        return ok
+        return bsearch(key)
     }
 
-    // shift all following key by a cell size
+    fun insert(key: Int, row: Row): Result<Unit> {
+        buf.position(LEAF_NODE_CELL_OFFSET + (key * LEAF_NODE_CELL_SIZE) + LEAF_NODE_VALUE_OFFSET)
+        return row.serialize(buf).onSuccess {
+            buf.putInt(LEAF_NODE_CELL_OFFSET + (key * LEAF_NODE_CELL_SIZE), row.id, )
+            setNumCell(numCell() + 1)
+        }
+    }
+
     fun makeSpace(at: Int) {
-        val num = numCell()
+        val end = numCell()
+        val b = ByteArray((end - at) * LEAF_NODE_CELL_SIZE)
         buf.position(LEAF_NODE_CELL_OFFSET + (at * LEAF_NODE_CELL_SIZE))
-        val b = ByteArray((num-at) * LEAF_NODE_CELL_SIZE)
         buf.get(b) // copy `at` ~ last cell
 
-        buf.position(LEAF_NODE_CELL_OFFSET + ((at+1) * LEAF_NODE_CELL_SIZE))
+        buf.position(LEAF_NODE_CELL_OFFSET + ((at + 1) * LEAF_NODE_CELL_SIZE))
         buf.put(b) // copy `at + 1` ~ last cell to be able to insert new value at `at`
     }
 
@@ -142,107 +125,36 @@ class Leaf(buf: ByteBuffer): Node(buf) {
         return buf.int // TODO: restrict
     }
 
-    fun insertRow(key: Int, row: Row): Result<Unit> {
-        if (LEAF_NODE_MAX_CELLS < key) {
-            return Result.failure(TODO("Need to implement splitting a leaf node."))
-        }
-
-        buf.position(LEAF_NODE_CELL_OFFSET + (key * LEAF_NODE_CELL_SIZE) + LEAF_NODE_VALUE_OFFSET)
-        return row.serialize(buf).onSuccess {
-            buf.position(LEAF_NODE_CELL_OFFSET + (key * LEAF_NODE_CELL_SIZE))
-            buf.putInt(row.id)
-            setNumCell(numCell() + 1)
-        }
-    }
-}
-
-class Internal(buf: ByteBuffer): Node(buf) {
-}
-
-
-/*
-sealed class Node(private val type: Short, val isRoot: Short, val pointerSize: Int) {
-    val isLoad = false
-
-    companion object {
-        fun build(buf: ByteBuffer): Node {
-            buf.rewind()
-            val type = buf.short
-            val isRoot = buf.short
-            val pointerSize = buf.int
-
-            return if (type == LEAF_TYPE) {
-                Leaf(buf, isRoot, pointerSize)
+    private fun bsearch(key: Int): Int {
+        var left = 0
+        var right = numCell()
+        while (right != left) {
+            val mid = (left + right) / 2
+            val keyAtIdx = nodeKey(mid)
+            if (keyAtIdx == key) {
+                return mid
+            } else if (keyAtIdx > key) {
+                right = mid
             } else {
-                Internal(buf, isRoot, pointerSize)
+                left = mid + 1
             }
         }
+        return left
     }
 
-    fun isLeaf(): Boolean {
-        return type == LEAF_TYPE
+    private fun setNumCell(num: Int) {
+        buf.putInt(LEAF_NODE_NUM_CELLS_OFFSET, num)
+        this.numCell = num
     }
 
-    fun isInternal(): Boolean {
-        return type == INTERNAL_TYPE
-    }
-
-    abstract fun numCell(): Int
-    abstract fun insert(key: Int, row: Row)
-}
-
-class Leaf(val buf: ByteBuffer, isRoot: Short = 0, pointerSize: Int = 0): Node(LEAF_TYPE, isRoot, pointerSize) {
-    var numCell = 0
-    var keys: MutableList<ByteArray> = mutableListOf()
-    var values: MutableList<ByteArray> = mutableListOf()
-
-    constructor(buf: ByteArray, isRoot: Short = 0, pointerSize: Int = 0): this(ByteBuffer.wrap(buf), isRoot, pointerSize)
-
-    override fun numCell(): Int {
-        return numCell
-    }
-
-    override fun insert(key: Int, row: Row) {
-        ByteArray(ROW_SIZE).also {
-            row.serialize(ByteBuffer.wrap(it))
-            values.add(it)
-        }
-        ByteArray(4).also { // key size is int(4)
-            ByteBuffer.wrap(it).putInt(key)
-            keys.add(it)
-        }
-        numCell++;
-    }
-
-    private fun loadKeys(): MutableList<ByteArray> {
-        return 0.rangeTo(numCell).map { i ->
-            buf.position(LEAF_NODE_HEADER_SIZE + (i * LEAF_NODE_CELL_SIZE))
-            ByteArray(ROW_SIZE).also { buf.get(it) }
-        }.toMutableList()
-    }
-
-    private fun loadValues(): MutableList<ByteArray> {
-        return 0.rangeTo(numCell).map { i ->
-            buf.position(LEAF_NODE_HEADER_SIZE + (i * LEAF_NODE_CELL_SIZE) + LEAF_NODE_VALUE_SIZE)
-            ByteArray(ROW_SIZE).also { buf.get(it) }
-        }.toMutableList()
-    }
-
-    private fun loadNumCell(): Int {
-        buf.position(LEAF_NODE_NUM_CELLS_OFFSET)
+    private fun nodeKey(num: Int): Int {
+        buf.position(LEAF_NODE_CELL_OFFSET + (num * LEAF_NODE_CELL_SIZE))
         return buf.int
     }
 }
 
-class Internal(buf: ByteBuffer, isRoot: Short, pointerSize: Int): Node(INTERNAL_TYPE, isRoot, pointerSize) {
-    override fun numCell(): Int {
-        TODO("implement")
-    }
-
-    override fun insert(key: Int, row: Row) {
-        TODO("implement")
-    }
-}
-*/
-class BTree {
+class Internal(buf: ByteBuffer): NodeBody(buf) {
+    /*fun insert(key: Int, row: Row): Result<Unit> {
+        TODO("should not pass. it's bug")
+    }*/
 }
