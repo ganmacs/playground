@@ -13,9 +13,7 @@ class Table(val pager: Pager, val rootPageNum: Int) {
 
     fun insert(row: Row): Result<Unit> {
         val cur = Cursor.find(this, row.id)
-        return cur.insert(row).onFailure {
-            return Result.failure(it)
-        }
+        return cur.insert(row)
     }
 
     fun select(): Result<Unit> {

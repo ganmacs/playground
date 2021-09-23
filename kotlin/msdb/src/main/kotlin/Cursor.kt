@@ -62,8 +62,7 @@ class Cursor(var cellIdx: Int, val pageIdx: Int, val pager: Pager): Iterator<Row
                     node.makeSpace(cellIdx) // for insertion point
                 }
 
-                node.insert(cellIdx, row)
-                Result.success(Unit)
+                return node.insert(cellIdx, row)
             }
             is Internal -> {
                 TODO("need to implement when node is internal")
