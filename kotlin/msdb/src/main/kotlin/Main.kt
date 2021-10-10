@@ -6,28 +6,9 @@ const val TABLE_MAX_PAGES = 100
 const val PAGE_SIZE = 1024 * 4
 val logger = KotlinLogging.logger {}
 
-class Table(val pager: Pager, val rootPageNum: Int) {
-    fun close() {
-        pager.close()
-    }
-
-    fun insert(row: Row): Result<Unit> {
-        val cur = Cursor.find(this, row.id)
-        return cur.insert(row)
-    }
-
-    fun select(): Result<Unit> {
-        val iter = Cursor.fromStart(this)
-        while (iter.hasNext()) {
-            println(iter.next())
-        }
-        return Result.success(Unit)
-    }
-}
-
 sealed class Statement {
     class InsertStatement(val row: Row): Statement()
-    class SelectStatement(): Statement()
+    object SelectStatement : Statement()
 }
 
 fun handleMetaCommand(buf: String, table: Table): Result<Unit> {
@@ -60,7 +41,7 @@ fun parseInput(input :String): Result<Statement> {
             val r = Row(exprs[1].toInt(), exprs[2].toByteArray(), exprs[3].toByteArray())
             Result.success(Statement.InsertStatement(r))
         }
-        "select" -> Result.success(Statement.SelectStatement())
+        "select" -> Result.success(Statement.SelectStatement)
         else -> Result.failure(Error("invalid statement: ${exprs.joinToString { it }}"))
     }
 }
@@ -74,13 +55,13 @@ fun printByte(b: ByteArray) {
 }
 
 fun printConstants() {
-      println("Constants:");
-      println("ROW_SIZE: $ROW_SIZE");
-      println("COMMON_NODE_HEADER_SIZE: $COMMON_NODE_HEADER_SIZE");
-      println("LEAF_NODE_HEADER_SIZE: $LEAF_NODE_HEADER_SIZE");
-      println("LEAF_NODE_CELL_SIZE: $LEAF_NODE_CELL_SIZE");
-      println("LEAF_NODE_SPACE_FOR_CELLS: $LEAF_NODE_SPACE_FOR_CELLS");
-      println("LEAF_NODE_MAX_CELLS: $LEAF_NODE_MAX_CELLS");
+      println("Constants:")
+      println("ROW_SIZE: $ROW_SIZE")
+      println("COMMON_NODE_HEADER_SIZE: $COMMON_NODE_HEADER_SIZE")
+      println("LEAF_NODE_HEADER_SIZE: $LEAF_NODE_HEADER_SIZE")
+      println("LEAF_NODE_CELL_SIZE: $LEAF_NODE_CELL_SIZE")
+      println("LEAF_NODE_SPACE_FOR_CELLS: $LEAF_NODE_SPACE_FOR_CELLS")
+      println("LEAF_NODE_MAX_CELLS: $LEAF_NODE_MAX_CELLS")
 }
 
 fun printTree(pager: Pager, pageNum: Int) {
@@ -136,8 +117,8 @@ fun closeDB(table: Table) {
 
 fun main(args: Array<String>) {
     if (args.isEmpty()) {
-        println("Must supply a database filename.");
-        exitProcess(1);
+        println("Must supply a database filename.")
+        exitProcess(1)
     }
 
     val table = openDB(args[0])

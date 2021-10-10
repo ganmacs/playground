@@ -47,17 +47,5 @@ long long count(long long n, long long k) {
 
 int main()
 {
-  int n, a, b;
-  cin >> n >> a >> b;
-
-  long long ans = pow2(2, n) - 1;
-  if (ans < 0) ans += L;
-
-  ans -= count(n, a);
-  if (ans < 0) ans += L;
-  ans -= count(n, b);
-  if (ans < 0) ans += L;
-
-  cout << ans << endl;
   return 0;
 }

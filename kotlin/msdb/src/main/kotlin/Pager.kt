@@ -41,13 +41,13 @@ class Pager(file: File) {
         file.close()
     }
 
-    fun createNewPage(): ByteBuffer {
+    fun createNewPage(): Result<ByteBuffer> {
         pageNum += 1
         if (pageNum > TABLE_MAX_PAGES) {
-            println("size is too big. $pageNum > ${this.pageNum}")
+            return Result.failure(Error("size is too big. $pageNum > ${this.pageNum}")))
         }
 
-        return fetchPage(pageNum)
+        return Result.success(fetchPage(pageNum))
     }
 
     fun fetchPage(pageNum: Int): ByteBuffer {
