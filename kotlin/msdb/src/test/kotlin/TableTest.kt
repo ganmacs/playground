@@ -1,3 +1,8 @@
 import org.junit.jupiter.api.Assertions.*
-
-internal class TableTest
+import java.io.File
+import kotlin.test.Test
+internal class TableTest {
+    @Test
+    fun simpleTest() {
+    }
+}

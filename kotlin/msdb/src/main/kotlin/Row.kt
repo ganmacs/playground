@@ -9,7 +9,7 @@ const val EMAIL_SIZE = 255
 const val ID_OFFSET = 0
 const val USERNAME_OFFSET = ID_OFFSET + ID_SIZE
 const val EMAIL_OFFSET = USERNAME_OFFSET + USERNAME_SIZE
-const val ROW_SIZE = ID_SIZE + USERNAME_SIZE + EMAIL_SIZE
+const val ROW_SIZE = ID_SIZE + USERNAME_SIZE + EMAIL_SIZE // 291
 
 class Row(val id: Int, val userName: ByteArray, val email: ByteArray) {
     companion object {
@@ -49,7 +49,6 @@ class Row(val id: Int, val userName: ByteArray, val email: ByteArray) {
             it.put(userName)
             dst.put(it.array())
         }
-
         if (email.size > (EMAIL_SIZE - INT_SIZE)) {
             return Result.failure(Error( "invalid size for email. email should be less than $EMAIL_SIZE"))
         }

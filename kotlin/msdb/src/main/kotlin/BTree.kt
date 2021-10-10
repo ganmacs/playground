@@ -1,9 +1,13 @@
 import java.lang.Error
 import java.nio.ByteBuffer
 
-// BODY = | type(2 bytes) | is_root(2 bytes) 0 is false | parent_pointer (4 bytes) | LEFF_NODE* |
-// LEAF_NODE = | nums_cells(4bytes) | LEAF_CELL* |
-// LEAF_CELL = | key (4 bytes) | value (ROW_SIZE) |
+/*
+ BODY = | type(2 bytes) | is_root(2 bytes) 0 is false | parent_pointer (4 bytes) | (LEAF_NODE or INTERNAL_NODE) |
+ LEAF_NODE = | num_cells(4bytes) | LEAF_CELL* |
+ LEAF_CELL = | key (4 bytes) | value (ROW_SIZE) |
+ INTERNAL_NODE = | num_cells(4 bytes) | right most child(4 bytes) |
+ INTERNAL_CELL = | child pointer (4 bytes) | key (4 bytes)
+ */
 
 /*
  * Common header offset
@@ -36,6 +40,25 @@ const val LEAF_NODE_CELL_SIZE = LEAF_NODE_KEY_SIZE + LEAF_NODE_VALUE_SIZE
 const val LEAF_NODE_SPACE_FOR_CELLS = PAGE_SIZE - LEAF_NODE_HEADER_SIZE
 const val LEAF_NODE_MAX_CELLS = LEAF_NODE_SPACE_FOR_CELLS / LEAF_NODE_CELL_SIZE;
 
+/*
+ * Internal Node Header Layout
+ */
+const val INTERNAL_NODE_NUM_KEYS_SIZE = 4
+const val INTERNAL_NODE_NUM_KEYS_OFFSET = COMMON_NODE_HEADER_SIZE
+const val INTERNAL_NODE_RIGHT_CHILD_SIZE = 4
+const val INTERNAL_NODE_RIGHT_CHILD_OFFSET = INTERNAL_NODE_NUM_KEYS_OFFSET + INTERNAL_NODE_NUM_KEYS_SIZE
+const val INTERNAL_NODE_HEADER_SIZE = COMMON_NODE_HEADER_SIZE + INTERNAL_NODE_NUM_KEYS_SIZE + INTERNAL_NODE_RIGHT_CHILD_SIZE
+
+/*
+ * Internal Node Body Layout
+ */
+
+const val INTERNAL_NODE_CELL_OFFSET = INTERNAL_NODE_HEADER_SIZE
+
+const val INTERNAL_NODE_KEY_SIZE = 4
+const val INTERNAL_NODE_CHILD_SIZE = 4
+const val INTERNAL_NODE_CELL_SIZE = INTERNAL_NODE_CHILD_SIZE + INTERNAL_NODE_KEY_SIZE
+
 enum class NodeType(val idx: Short) {
     LEAF_TYPE(0),
     INTERNAL_TYPE(1),
@@ -45,6 +68,11 @@ class Node(private val buf: ByteBuffer) {
     fun initializeAsLeaf(root: Boolean = false) {
         nodeHeaderInitialize(NodeType.LEAF_TYPE, root)
         buf.putInt(LEAF_NODE_NUM_CELLS_OFFSET, 0)
+    }
+
+    fun initializeAsInternal(root: Boolean = false) {
+        nodeHeaderInitialize(NodeType.INTERNAL_TYPE, root)
+        buf.putInt(INTERNAL_NODE_NUM_KEYS_OFFSET, 0)
     }
 
     fun asNodeBody(): NodeBody {
@@ -60,13 +88,27 @@ class Node(private val buf: ByteBuffer) {
         }
     }
 
+    fun parent(): Int {
+        buf.position(PARENT_POINTER_OFFSET)
+        return buf.int
+    }
+
+    fun setRoot(root: Boolean) {
+        buf.putShort(IS_ROOT_OFFSET, if (root) 1 else 0 )
+    }
+
+    fun isRoot(): Boolean {
+        buf.position(IS_ROOT_OFFSET)
+        return (buf.short.toInt() == 1)
+    }
+
     private fun nodeHeaderInitialize(nodeType: NodeType, root: Boolean) {
         buf.putShort(NODE_TYPE_OFFSET, nodeType.idx)
-        buf.putShort(IS_ROOT_OFFSET, if (root) 1 else 0)
+        setRoot(root)
     }
 }
 
-sealed class NodeBody(protected val buf: ByteBuffer) {
+sealed class NodeBody(val buf: ByteBuffer) {
     companion object {
         fun new(nodeType: NodeType, buf: ByteBuffer): NodeBody {
             return when(nodeType) {
@@ -76,7 +118,15 @@ sealed class NodeBody(protected val buf: ByteBuffer) {
         }
     }
 
-    //abstract fun insert(key: Int, row: Row): Result<Unit>
+    fun getMaxKey(): Int {
+        return when (this) {
+            is Leaf -> {
+                this.getKey(this.numCell()-1)
+            }
+            is Internal -> this.getKey(this.numCell()-1)
+        }
+    }
+        //abstract fun insert(key: Int, row: Row): Result<Unit>
 }
 
 class Leaf(buf: ByteBuffer): NodeBody(buf) {
@@ -99,8 +149,9 @@ class Leaf(buf: ByteBuffer): NodeBody(buf) {
 
     fun insert(key: Int, row: Row): Result<Unit> {
         buf.position(LEAF_NODE_CELL_OFFSET + (key * LEAF_NODE_CELL_SIZE) + LEAF_NODE_VALUE_OFFSET)
+
         return row.serialize(buf).onSuccess {
-            buf.putInt(LEAF_NODE_CELL_OFFSET + (key * LEAF_NODE_CELL_SIZE), row.id, )
+            buf.putInt(LEAF_NODE_CELL_OFFSET + (key * LEAF_NODE_CELL_SIZE), row.id)
             setNumCell(numCell() + 1)
         }
     }
@@ -142,8 +193,9 @@ class Leaf(buf: ByteBuffer): NodeBody(buf) {
         return left
     }
 
-    private fun setNumCell(num: Int) {
+    fun setNumCell(num: Int) {
         buf.putInt(LEAF_NODE_NUM_CELLS_OFFSET, num)
+//        println("set numcell=$num")
         this.numCell = num
     }
 
@@ -154,6 +206,48 @@ class Leaf(buf: ByteBuffer): NodeBody(buf) {
 }
 
 class Internal(buf: ByteBuffer): NodeBody(buf) {
+    private var numCell: Int? = null
+
+    fun numCell(): Int {
+        buf.position(INTERNAL_NODE_NUM_KEYS_OFFSET)
+        val r = buf.int
+        this.numCell = r
+        return r
+    }
+
+    fun setNumCell(num: Int) {
+        buf.putInt(INTERNAL_NODE_NUM_KEYS_OFFSET, num)
+        this.numCell = num
+    }
+
+    fun getRightChild(): Int {
+        buf.position(INTERNAL_NODE_RIGHT_CHILD_OFFSET)
+        return buf.int
+    }
+
+    fun setRightChild(i: Int) {
+        buf.putInt(INTERNAL_NODE_RIGHT_CHILD_OFFSET, i)
+    }
+
+    fun getKey(i: Int): Int {
+        buf.position(INTERNAL_NODE_CELL_OFFSET + INTERNAL_NODE_CELL_SIZE * i + INTERNAL_NODE_CHILD_SIZE)
+        return buf.int
+    }
+
+    fun setKey(i: Int, key: Int) {
+        buf.putInt(INTERNAL_NODE_CELL_OFFSET + INTERNAL_NODE_CELL_SIZE * i + INTERNAL_NODE_CHILD_SIZE, key)
+    }
+
+    fun getChild(i: Int): Int {
+        buf.position(INTERNAL_NODE_CELL_OFFSET + INTERNAL_NODE_CELL_SIZE * i)
+        return buf.int
+    }
+
+
+    fun setChild(i: Int, key: Int) {
+        buf.putInt(INTERNAL_NODE_CELL_OFFSET + INTERNAL_NODE_CELL_SIZE * i, key)
+    }
+
     /*fun insert(key: Int, row: Row): Result<Unit> {
         TODO("should not pass. it's bug")
     }*/

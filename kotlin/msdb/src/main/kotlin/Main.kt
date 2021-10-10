@@ -64,26 +64,50 @@ fun printConstants() {
       println("LEAF_NODE_MAX_CELLS: $LEAF_NODE_MAX_CELLS")
 }
 
-fun printTree(pager: Pager, pageNum: Int) {
-    val page = pager.fetchPage(pageNum)
-    when (val node = Node(page).asNodeBody()) {
-        is Leaf -> {
-            printLeafNode(node)
-        }
-        is Internal -> {
-            TODO("need to implement when node is internal")
-        }
+fun printIndent(level: Int) {
+    for (i in 0.until(level)) {
+        print("  ")
     }
 }
 
-fun printLeafNode(node: Leaf) {
+fun printTree(pager: Pager, pageNum: Int) {
     println("Tree:")
-    val numCells = node.numCell()
-    println("leaf (size $numCells)")
-    for (i in 0 until numCells) {
-        val key = node.getKey(i)
-        println("  - $i : $key")
+    printTreeInner(pager, pageNum, 0)
+}
+
+fun printTreeInner(pager: Pager, pageNum: Int, level: Int) {
+    val page = pager.fetchPage(pageNum)
+    when (val node = Node(page).asNodeBody()) {
+        is Leaf -> printLeafNode(node, level)
+        is Internal -> printInternalNode(pager, node, level)
     }
+
+}
+
+fun printLeafNode(leaf: Leaf, level: Int) {
+    val numCells = leaf.numCell()
+    printIndent(level)
+    println("- leaf (size $numCells)")
+    for (i in 0 until numCells) {
+        printIndent(level + 1)
+        println("- ${leaf.getKey(i)}")
+    }
+}
+
+fun printInternalNode(pager: Pager, internal: Internal, level: Int) {
+    val numCells = internal.numCell()
+    printIndent(level)
+    println("- internal (size $numCells)")
+    for (i in 0 until numCells) {
+        val num = internal.getChild(i)
+        printTreeInner(pager, num, level + 1)
+
+        printIndent(level + 1)
+        println("- key ${internal.getKey(i)}")
+    }
+
+    val righChild = internal.getRightChild()
+    printTreeInner(pager, righChild, level+1)
 }
 
 fun executeInsertStatement(insertStmnt: Statement.InsertStatement, table: Table): Result<Unit> {
@@ -136,7 +160,12 @@ fun main(args: Array<String>) {
             val stmnt = parseInput(input).getOrThrow()
             executeStatement(stmnt, table).getOrThrow()
         }.onFailure {
-            println(it.message)
+            if (it.message == null || it.message == "") {
+                println(it)
+                it.stackTrace.forEach { i -> println("${i.fileName}:${i.lineNumber}") }
+            } else {
+                println(it.message)
+            }
         }.onSuccess {
             println("Executed.")
         }

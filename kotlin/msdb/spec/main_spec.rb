@@ -139,31 +139,48 @@ describe 'database' do
       "db > Executed.",
       "db > Executed.",
       "db > Tree:",
-      "leaf (size 3)",
-      "  - 0 : 1",
-      "  - 1 : 2",
-      "  - 2 : 3",
+      "- leaf (size 3)",
+      "  - 1",
+      "  - 2",
+      "  - 3",
      "db > "
     ]
     expect(result).to eq(expected)
   end
 
-  it 'allows printing out the structure of a one-node btree' do
-    script = [1, 2, 3].map do |i|
+  it 'allows printing out the structure of a 3-leaf-node btree' do
+    script = (1..14).map do |i|
       "insert #{i} user#{i} person#{i}@example.com"
     end
-    result = run_script(script + [".btree", ".exit"])
-    expected = [
-      "db > Executed.",
-      "db > Executed.",
-      "db > Executed.",
+    script << ".btree"
+    script << "insert 16 user15 person15@example.com"
+    script << ".exit"
+    result = run_script(script)
+    # puts result
+
+    expected_array = [
       "db > Tree:",
-      "leaf (size 3)",
-      "  - 0 : 1",
-      "  - 1 : 2",
-      "  - 2 : 3",
-     "db > "
+      "- internal (size 1)",
+      "  - leaf (size 7)",
+      "    - 1",
+      "    - 2",
+      "    - 3",
+      "    - 4",
+      "    - 5",
+      "    - 6",
+      "    - 7",
+      "  - key 7",
+      "  - leaf (size 7)",
+      "    - 8",
+      "    - 9",
+      "    - 10",
+      "    - 11",
+      "    - 12",
+      "    - 13",
+      "    - 14",
+      "db > An operation is not implemented: need to implement when node is internal",
+      "db > "
     ]
-    expect(result).to eq(expected)
+    expect(result[14...(result.length)]).to eq(expected_array)
   end
 end
