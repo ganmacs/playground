@@ -153,7 +153,7 @@ describe 'database' do
       "insert #{i} user#{i} person#{i}@example.com"
     end
     script << ".btree"
-    script << "insert 16 user15 person15@example.com"
+    script << "insert 15 user15 person15@example.com"
     script << ".exit"
     result = run_script(script)
     # puts result
@@ -178,7 +178,7 @@ describe 'database' do
       "    - 12",
       "    - 13",
       "    - 14",
-      "db > An operation is not implemented: need to implement when node is internal",
+      "db > Executed.",
       "db > "
     ]
     expect(result[14...(result.length)]).to eq(expected_array)

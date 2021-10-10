@@ -120,19 +120,20 @@ sealed class NodeBody(val buf: ByteBuffer) {
 
     fun getMaxKey(): Int {
         return when (this) {
-            is Leaf -> {
-                this.getKey(this.numCell()-1)
-            }
+            is Leaf -> this.getKey(this.numCell()-1)
             is Internal -> this.getKey(this.numCell()-1)
         }
     }
-        //abstract fun insert(key: Int, row: Row): Result<Unit>
+
+    abstract fun find(key: Int): Int
+    abstract fun numCell(): Int
+    //abstract fun insert(key: Int, row: Row): Result<Unit>
 }
 
 class Leaf(buf: ByteBuffer): NodeBody(buf) {
     private var numCell: Int? = null
 
-    fun numCell(): Int {
+    override fun numCell(): Int {
         this.numCell?.also {
             return it
         }
@@ -143,7 +144,7 @@ class Leaf(buf: ByteBuffer): NodeBody(buf) {
         return r
     }
 
-    fun find(key: Int): Int {
+    override fun find(key: Int): Int {
         return bsearch(key)
     }
 
@@ -208,7 +209,7 @@ class Leaf(buf: ByteBuffer): NodeBody(buf) {
 class Internal(buf: ByteBuffer): NodeBody(buf) {
     private var numCell: Int? = null
 
-    fun numCell(): Int {
+    override fun numCell(): Int {
         buf.position(INTERNAL_NODE_NUM_KEYS_OFFSET)
         val r = buf.int
         this.numCell = r
@@ -241,6 +242,25 @@ class Internal(buf: ByteBuffer): NodeBody(buf) {
     fun getChild(i: Int): Int {
         buf.position(INTERNAL_NODE_CELL_OFFSET + INTERNAL_NODE_CELL_SIZE * i)
         return buf.int
+    }
+
+    override fun find(key: Int): Int {
+        return bsearch(key)
+    }
+
+    fun bsearch(key: Int): Int {
+        var l = 0
+        var r = numCell()
+        while (l != r) {
+            val m = (l+r)/2
+            val rk = getKey(m)
+            if (rk >= key) {
+                r = m
+            } else {
+                l = m + 1
+            }
+        }
+        return l
     }
 
 

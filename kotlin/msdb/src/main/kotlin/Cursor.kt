@@ -4,18 +4,16 @@ const val LEAF_NODE_LEFT_SPLIT_COUNT = LEAF_NODE_MAX_CELLS - LEAF_NODE_RIGHT_SPL
 class Cursor(var cellIdx: Int, val pageIdx: Int, val table: Table): Iterator<Row> {
     companion object {
         fun find(table: Table, key: Int): Cursor {
-            val page = table.pager.fetchPage(table.rootPageNum)
-            return when (val node = Node(page).asNodeBody()) {
-                is Leaf -> {
-                    Cursor(
-                        cellIdx = node.find(key),
-                        pageIdx = table.rootPageNum,
-                        table = table,
-                    )
-                }
-                is Internal -> {
-                    TODO("need to implement when node is internal")
-                }
+            return _find(table, table.rootPageNum, key)
+        }
+
+        fun _find(table: Table, pageIdx: Int, key: Int): Cursor {
+            val page = table.pager.fetchPage(pageIdx)
+            val node = Node(page).asNodeBody()
+            val child = node.find(key)
+            return when (node) {
+                is Leaf -> Cursor(cellIdx = child, pageIdx, table)
+                is Internal -> _find(table, child, key)
             }
         }
 
@@ -30,12 +28,13 @@ class Cursor(var cellIdx: Int, val pageIdx: Int, val table: Table): Iterator<Row
         }
 
         val page = table.pager.fetchPage(pageIdx)
-        return when (val node = Node(page).asNodeBody()) {
+        return (Node(page).asNodeBody().numCell() > cellIdx)
+        /*return when (val node = Node(page).asNodeBody()) {
             is Leaf -> (node.numCell() > cellIdx)
             is Internal -> {
                 TODO("need to implement when node is internal")
             }
-        }
+        }*/
     }
 
     override fun next(): Row {
@@ -47,7 +46,7 @@ class Cursor(var cellIdx: Int, val pageIdx: Int, val table: Table): Iterator<Row
                 Row.deserialize(buf)
             }
             is Internal -> {
-                TODO("need to implement when node is internal")
+                TODO("need to implement when node is internal2")
             }
         }
     }
@@ -57,7 +56,6 @@ class Cursor(var cellIdx: Int, val pageIdx: Int, val table: Table): Iterator<Row
         return when (val node = Node(page).asNodeBody()) {
             is Leaf -> {
                 val numCell = node.numCell()
-                //println("numCell=$numCell, callIdx=$cellIdx")
                 if (numCell >= LEAF_NODE_MAX_CELLS) {
                     return insertAndSplit(row)
                 }
@@ -69,19 +67,17 @@ class Cursor(var cellIdx: Int, val pageIdx: Int, val table: Table): Iterator<Row
                 node.insert(cellIdx, row)
             }
             is Internal -> {
-                TODO("need to implement when node is internal")
+                TODO("need to implement when node is internal3")
             }
         }
     }
 
     private fun insertAndSplit(row: Row): Result<Unit> {
-        //println("-------------------")
         val newPageIdx = table.pager.createNewPage().onFailure { return Result.failure(it) }.getOrThrow()
         val newNode = Node(table.pager.fetchPage(newPageIdx))
         newNode.initializeAsLeaf()
         val newLeaf = newNode.asNodeBody() as Leaf
 
-        //println("id=$pageIdx, newId=$newPageIdx")
         val oldPage = table.pager.fetchPage(pageIdx)
         val oldNode = Node(oldPage)
         when (val body = oldNode.asNodeBody()) {
