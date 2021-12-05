@@ -19,13 +19,12 @@ int main()
 
   for (long long n = 1; n <= 3500; n++) {
     for (long long h = 1; h <= 3500; h++) {
-      long long t = N*h*n;
-      long long t2 = 4*h*n - N*(h + n);
+      long long t = n*h*N;
+      long long t1 = 4*h*n - N*(h + n);
 
-      if (t2 <= 0) continue;
-
-      if (t % t2 == 0) {
-        printf("%lld %lld %lld\n", n, h, t/t2);
+      if (t1 <= 0) continue;
+      if (t % t1 == 0) {
+        printf("%lld %lld %lld\n", h, n, t/t1);
         return 0;
       }
     }
