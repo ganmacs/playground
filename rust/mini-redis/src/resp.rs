@@ -21,6 +21,7 @@ pub enum ParseErr {
 
 const SIMPLE_STRING_CHAR: u8 = b'+';
 const BULK_STRING_CHAR: u8 = b'$';
+const INTEGER_CHAR: u8 = b':';
 
 fn read_u8(buf: &mut Cursor<&[u8]>) -> Result<u8, ParseErr> {
     let v = peek_u8(buf)?;
@@ -39,8 +40,22 @@ fn peek_u8(buf: &Cursor<&[u8]>) -> Result<u8, ParseErr> {
 
 fn read_num(buf: &mut Cursor<&[u8]>) -> Result<i64, ParseErr> {
     use atoi::atoi;
+
+    let mut negtive = false;
+    if peek_u8(buf)? == b'-' {
+        skip(buf, 1)?; // skip '-'
+
+        negtive = true;
+    }
+
     let line = read_line(buf)?;
-    atoi::<i64>(line).ok_or_else(|| ParseErr::Invalid("invalid protocol".into()))
+    let r = atoi::<i64>(line).ok_or_else(|| ParseErr::Invalid("invalid protocol".into()))?;
+
+    if negtive {
+        Ok(-1 * r)
+    } else {
+        Ok(r)
+    }
 }
 
 fn read_string(buf: &mut Cursor<&[u8]>) -> Result<String, ParseErr> {
@@ -78,16 +93,9 @@ impl Resp {
     pub fn parse(buf: &mut Cursor<&[u8]>) -> Result<Resp, ParseErr> {
         match read_u8(buf)? {
             BULK_STRING_CHAR => {
-                let mut negtive = false;
-                if peek_u8(buf)? == b'-' {
-                    skip(buf, 1)?; // skip '-'
-
-                    negtive = true;
-                }
-
                 match read_num(buf)? {
-                    1 if negtive => Ok(Resp::Null),
-                    _ if negtive => Err(ParseErr::Invalid(
+                    -1 => Ok(Resp::Null),
+                    len if len < -1 => Err(ParseErr::Invalid(
                         "invalid protocol. negitive value is not allowed here".into(),
                     )),
                     len => {
@@ -105,6 +113,10 @@ impl Resp {
             SIMPLE_STRING_CHAR => {
                 let sstring = read_string(buf)?;
                 Ok(Resp::SimpleString(sstring))
+            }
+            INTEGER_CHAR => {
+                let n = read_num(buf)?;
+                Ok(Resp::Integer(n))
             }
             // b'*' => {
             // Array

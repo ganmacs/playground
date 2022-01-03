@@ -32,10 +32,10 @@ impl Connection {
         self.stream.flush().await.map_err(|e| e.into())
     }
 
-    // pub async fn write_data2(&mut self, data: &[u8]) -> Result<(), Error> {
-    //     self.stream.write(data).await.map_err(|e| e.into())?;
-    //     self.stream.flush().await.map_err(|e| e.into())
-    // }
+    pub async fn write_data2(&mut self, data: &[u8]) -> Result<(), Error> {
+        self.stream.write(data).await.map_err(|e| e.into())?;
+        self.stream.flush().await.map_err(|e| e.into())
+    }
 
     pub async fn read_data(&mut self) -> Result<Option<Resp>, Error> {
         loop {

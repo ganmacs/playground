@@ -55,6 +55,17 @@ impl Client {
         }
     }
 
+    pub async fn incr(&mut self, key: &str) -> Result<i64, Error> {
+        let incr = Resp::from(command::Incr::new(key));
+        self.connection.write_data(&incr).await?;
+        match self.read_response().await? {
+            Resp::Integer(resp) => Ok(resp),
+            rest => Err(Error::Invalid(
+                format!("invalid response ${:?}", rest).into(),
+            )),
+        }
+    }
+
     async fn read_response(&mut self) -> Result<Resp, Error> {
         let resp = self.connection.read_data().await?;
         match resp {

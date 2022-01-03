@@ -14,5 +14,7 @@ pub async fn main() -> Result<(), RErr> {
     let r = client.get("key1").await?;
     dbg!(r);
 
+    dbg!(client.incr("key22").await?);
+
     Ok(())
 }
