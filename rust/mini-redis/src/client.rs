@@ -58,6 +58,16 @@ impl Client {
     pub async fn incr(&mut self, key: &str) -> Result<i64, Error> {
         let incr = Resp::from(command::Incr::new(key));
         self.connection.write_data(&incr).await?;
+        self.handle_incr_decr_resp().await
+    }
+
+    pub async fn decr(&mut self, key: &str) -> Result<i64, Error> {
+        let incr = Resp::from(command::Decr::new(key));
+        self.connection.write_data(&incr).await?;
+        self.handle_incr_decr_resp().await
+    }
+
+    async fn handle_incr_decr_resp(&mut self) -> Result<i64, Error> {
         match self.read_response().await? {
             Resp::Integer(resp) => Ok(resp),
             Resp::Error(msg) => Err(Error::RedisError(msg)),
