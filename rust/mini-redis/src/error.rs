@@ -5,6 +5,7 @@ pub enum Error {
     IO(io::Error),
     Serialization(String),
     Invalid(String),
+    RedisError(String),
 }
 
 impl Into<Error> for io::Error {

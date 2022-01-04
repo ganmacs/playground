@@ -22,6 +22,8 @@ pub enum ParseErr {
 const SIMPLE_STRING_CHAR: u8 = b'+';
 const BULK_STRING_CHAR: u8 = b'$';
 const INTEGER_CHAR: u8 = b':';
+const ERROR_CHAR: u8 = b'-';
+const ARRAY_CHAR: u8 = b'*';
 
 fn read_u8(buf: &mut Cursor<&[u8]>) -> Result<u8, ParseErr> {
     let v = peek_u8(buf)?;
@@ -118,9 +120,7 @@ impl Resp {
                 let n = read_num(buf)?;
                 Ok(Resp::Integer(n))
             }
-            // b'*' => {
-            // Array
-            b'*' => match read_num(buf)? {
+            ARRAY_CHAR => match read_num(buf)? {
                 -1 => Ok(Resp::Null),
                 len if len < -1 => Err(ParseErr::Invalid("invalid protocol".into())),
                 len => {
@@ -133,7 +133,14 @@ impl Resp {
                     Ok(Resp::Array(inner))
                 }
             },
-            actual => Err(ParseErr::Imcomplete),
+            ERROR_CHAR => {
+                let sstring = read_string(buf)?;
+                Ok(Resp::Error(sstring))
+            }
+            actual => {
+                println!("{:?}", actual);
+                Err(ParseErr::Imcomplete)
+            }
         }
     }
 

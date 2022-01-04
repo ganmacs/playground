@@ -60,6 +60,7 @@ impl Client {
         self.connection.write_data(&incr).await?;
         match self.read_response().await? {
             Resp::Integer(resp) => Ok(resp),
+            Resp::Error(msg) => Err(Error::RedisError(msg)),
             rest => Err(Error::Invalid(
                 format!("invalid response ${:?}", rest).into(),
             )),
