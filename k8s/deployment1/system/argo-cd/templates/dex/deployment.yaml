@@ -1,0 +1,74 @@
+---
+# Source: argo-cd/templates/dex/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argo-cd-argocd-dex-server
+  labels:
+    helm.sh/chart: argo-cd-4.2.2
+    app.kubernetes.io/name: argocd-dex-server
+    app.kubernetes.io/instance: argo-cd
+    app.kubernetes.io/component: dex-server
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: argocd
+    app.kubernetes.io/version: "v2.30.0"
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-dex-server
+      app.kubernetes.io/instance: argo-cd
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: argo-cd-4.2.2
+        app.kubernetes.io/name: argocd-dex-server
+        app.kubernetes.io/instance: argo-cd
+        app.kubernetes.io/component: dex-server
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: argocd
+        app.kubernetes.io/version: "v2.30.0"
+    spec:
+      initContainers:
+      - name: copyutil
+        image: quay.io/argoproj/argocd:v2.3.2
+        imagePullPolicy: IfNotPresent
+        resources:
+          {}
+        command:
+        - cp
+        - -n
+        - /usr/local/bin/argocd
+        - /shared/argocd-dex
+        volumeMounts:
+        - mountPath: /shared
+          name: static-files
+      containers:
+      - name: dex-server
+        image: ghcr.io/dexidp/dex:v2.30.0
+        imagePullPolicy: IfNotPresent
+        command:
+        - /shared/argocd-dex
+        - rundex
+        ports:
+        - name: http
+          containerPort: 5556
+          protocol: TCP
+        - name: grpc
+          containerPort: 5557
+          protocol: TCP
+        - name: metrics
+          containerPort: 5558
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp-dir
+        - mountPath: /shared
+          name: static-files
+        resources:
+          {}
+      serviceAccountName: argocd-dex-server
+      volumes:
+      - emptyDir: {}
+        name: tmp-dir
+      - emptyDir: {}
+        name: static-files

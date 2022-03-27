@@ -1,0 +1,70 @@
+---
+# Source: argo-cd/templates/argocd-notifications/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argo-cd-argocd-notifications-controller
+  labels:
+    helm.sh/chart: argo-cd-4.2.2
+    app.kubernetes.io/name: argocd-notifications-controller
+    app.kubernetes.io/instance: argo-cd
+    app.kubernetes.io/component: notifications-controller
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: argocd
+    app.kubernetes.io/version: "v2.3.2"
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-notifications-controller
+      app.kubernetes.io/instance: argo-cd
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: argo-cd-4.2.2
+        app.kubernetes.io/name: argocd-notifications-controller
+        app.kubernetes.io/instance: argo-cd
+        app.kubernetes.io/component: notifications-controller
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: argocd
+        app.kubernetes.io/version: "v2.3.2"
+    spec:
+      serviceAccountName: argocd-notifications-controller
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: notifications-controller
+          image: quay.io/argoproj/argocd:v2.3.2
+          imagePullPolicy: IfNotPresent
+          resources:
+            {}
+          command:
+            - argocd-notifications
+            - --loglevel=info
+            - --namespace=argocd
+            - --argocd-repo-server=argo-cd-argocd-repo-server:8081
+            - --secret-name=argo-cd-argocd-notifications-controller-secret
+            - --config-map-name=argo-cd-argocd-notifications-controller-cm
+          workingDir: /app
+          ports:
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /app/config/tls
+            - name: argocd-repo-server-tls
+              mountPath: /app/config/reposerver/tls
+      volumes:
+        - configMap:
+            name: argocd-tls-certs-cm
+          name: tls-certs
+        - name: argocd-repo-server-tls
+          secret:
+            items:
+            - key: tls.crt
+              path: tls.crt
+            - key: tls.key
+              path: tls.key
+            - key: ca.crt
+              path: ca.crt
+            optional: true
+            secretName: argocd-repo-server-tls

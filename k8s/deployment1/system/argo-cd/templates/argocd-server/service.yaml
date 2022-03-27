@@ -1,0 +1,27 @@
+---
+# Source: argo-cd/templates/argocd-server/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: argo-cd-argocd-server
+  labels:
+    helm.sh/chart: argo-cd-4.2.2
+    app.kubernetes.io/name: argocd-server
+    app.kubernetes.io/instance: argo-cd
+    app.kubernetes.io/component: server
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: argocd
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: server
+  - name: https
+    protocol: TCP
+    port: 443
+    targetPort: server
+  selector:
+    app.kubernetes.io/name: argocd-server
+    app.kubernetes.io/instance: argo-cd

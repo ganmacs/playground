@@ -1,0 +1,86 @@
+---
+# Source: argo-cd/templates/argocd-applicationset/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argo-cd-argocd-applicationset-controller
+  labels:
+    helm.sh/chart: argo-cd-4.2.2
+    app.kubernetes.io/name: argocd-applicationset-controller
+    app.kubernetes.io/instance: argo-cd
+    app.kubernetes.io/component: applicationset-controller
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: argocd
+    app.kubernetes.io/version: "v0.4.1"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-applicationset-controller
+      app.kubernetes.io/instance: argo-cd
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: argo-cd-4.2.2
+        app.kubernetes.io/name: argocd-applicationset-controller
+        app.kubernetes.io/instance: argo-cd
+        app.kubernetes.io/component: applicationset-controller
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: argocd
+        app.kubernetes.io/version: "v0.4.1"
+    spec:
+      serviceAccountName: argo-cd-argocd-applicationset-controller
+      securityContext:
+        {}
+      containers:
+        - name: applicationset-controller
+          securityContext:
+            {}
+          command:
+            - applicationset-controller
+            - --metrics-addr=:8080
+            - --probe-addr=:8081
+            - --namespace=argocd
+            - --argocd-repo-server=argo-cd-argocd-repo-server:8081
+            - --policy=sync
+            - --debug=false
+            - --dry-run=false
+          image: quay.io/argoproj/argocd-applicationset:v0.4.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+            - name: metrics
+              containerPort: 8080
+              protocol: TCP
+            - name: webhook
+              containerPort: 7000
+              protocol: TCP
+          resources:
+            {}
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp-dir
+            - mountPath: /app/config/ssh
+              name: ssh-known-hosts
+            - mountPath: /app/config/tls
+              name: tls-certs
+            - mountPath: /app/config/gpg/source
+              name: gpg-keys
+            - mountPath: /app/config/gpg/keys
+              name: gpg-keyring
+      volumes:
+      - emptyDir: {}
+        name: tmp-dir
+      - configMap:
+          name: argocd-ssh-known-hosts-cm
+        name: ssh-known-hosts
+      - configMap:
+          name: argocd-tls-certs-cm
+        name: tls-certs
+      - configMap:
+          name: argocd-gpg-keys-cm
+        name: gpg-keys
+      - emptyDir: {}
+        name: gpg-keyring

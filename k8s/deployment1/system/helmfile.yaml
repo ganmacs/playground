@@ -1,0 +1,36 @@
+repositories:
+  - name: secrets-store-csi-driver
+    url: https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts
+  - name: argo
+    url: https://argoproj.github.io/argo-helm
+
+releases:
+- name: secrets-store-csi-driver
+  namespace: kube-system
+  chart: secrets-store-csi-driver/secrets-store-csi-driver
+  version: 1.1.1
+  # https://github.com/roboll/helmfile/issues/1843#issuecomment-839746318
+  hooks:
+  - events: ["prepare"]
+    showlogs: true
+    command: "bash"
+    args:
+    - -c
+    - rm -rf ./{{`{{.Release.Name}}`}}/templates
+  values:
+    - "./values/{{`{{.Release.Name}}`}}.yaml"
+
+- name: argo-cd
+  namespace: argocd
+  chart: argo/argo-cd
+  version: 4.2.2
+  # https://github.com/roboll/helmfile/issues/1843#issuecomment-839746318
+  hooks:
+  - events: ["prepare"]
+    showlogs: true
+    command: "bash"
+    args:
+    - -c
+    - rm -rf ./{{`{{.Release.Name}}`}}/templates
+  values:
+    - "./values/{{`{{.Release.Name}}`}}.yaml"

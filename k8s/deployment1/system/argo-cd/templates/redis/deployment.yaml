@@ -1,0 +1,48 @@
+---
+# Source: argo-cd/templates/redis/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argo-cd-argocd-redis
+  labels:
+    helm.sh/chart: argo-cd-4.2.2
+    app.kubernetes.io/name: argocd-redis
+    app.kubernetes.io/instance: argo-cd
+    app.kubernetes.io/component: redis
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: argocd
+    app.kubernetes.io/version: "6.2.6-alpine"
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-redis
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: argo-cd-4.2.2
+        app.kubernetes.io/name: argocd-redis
+        app.kubernetes.io/instance: argo-cd
+        app.kubernetes.io/component: redis
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: argocd
+        app.kubernetes.io/version: "6.2.6-alpine"
+    spec:
+      automountServiceAccountToken: false
+      serviceAccountName: default
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+      containers:
+      - name: argo-cd-argocd-redis
+        args:
+        - --save
+        - ""
+        - --appendonly
+        - "no"
+        image: redis:6.2.6-alpine
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 6379
+          name: redis
+        resources:
+          {}
