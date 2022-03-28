@@ -3,7 +3,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: argo-cd-argocd-notifications-controller
+  name: argocd-notifications-controller
   labels:
     helm.sh/chart: argo-cd-4.2.2
     app.kubernetes.io/name: argocd-notifications-controller
@@ -34,7 +34,7 @@ rules:
 - apiGroups:
   - ""
   resourceNames:
-  - argo-cd-argocd-notifications-controller-cm
+  - argocd-notifications-controller-cm
   resources:
   - configmaps
   verbs:
@@ -42,7 +42,7 @@ rules:
 - apiGroups:
   - ""
   resourceNames:
-  - argo-cd-argocd-notifications-controller-secret
+  - argocd-notifications-controller-secret
   resources:
   - secrets
   verbs:

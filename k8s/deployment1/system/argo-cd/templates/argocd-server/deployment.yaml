@@ -3,7 +3,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: argo-cd-argocd-server
+  name: argocd-server
   labels:
     helm.sh/chart: argo-cd-4.2.2
     app.kubernetes.io/name: argocd-server
@@ -41,15 +41,15 @@ spec:
         - /shared/app
         
         - --repo-server
-        - argo-cd-argocd-repo-server:8081
+        - argocd-repo-server:8081
         - --dex-server
-        - http://argo-cd-argocd-dex-server:5556
+        - http://argocd-dex-server:5556
         - --logformat
         - text
         - --loglevel
         - info
         - --redis
-        - argo-cd-argocd-redis:6379
+        - argocd-redis:6379
         volumeMounts:
         - mountPath: /app/config/ssh
           name: ssh-known-hosts

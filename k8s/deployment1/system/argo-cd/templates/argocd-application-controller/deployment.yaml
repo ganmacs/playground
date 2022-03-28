@@ -3,7 +3,7 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: argo-cd-argocd-application-controller
+  name: argocd-application-controller
   labels:
     helm.sh/chart: argo-cd-4.2.2
     app.kubernetes.io/name: argocd-application-controller
@@ -17,7 +17,7 @@ spec:
     matchLabels:
       app.kubernetes.io/name: argocd-application-controller
       app.kubernetes.io/instance: argo-cd
-  serviceName: argo-cd-argocd-application-controller
+  serviceName: argocd-application-controller
   revisionHistoryLimit: 5
   replicas: 1
   template:
@@ -43,7 +43,7 @@ spec:
         - --self-heal-timeout-seconds
         - "5"
         - --repo-server
-        - argo-cd-argocd-repo-server:8081
+        - argocd-repo-server:8081
         - --repo-server-timeout-seconds
         - "60"
         - --logformat
@@ -51,7 +51,7 @@ spec:
         - --loglevel
         - info
         - --redis
-        - argo-cd-argocd-redis:6379
+        - argocd-redis:6379
         image: quay.io/argoproj/argocd:v2.3.2
         imagePullPolicy: IfNotPresent
         name: application-controller

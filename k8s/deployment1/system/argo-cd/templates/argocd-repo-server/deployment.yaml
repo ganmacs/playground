@@ -3,7 +3,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: argo-cd-argocd-repo-server
+  name: argocd-repo-server
   labels:
     helm.sh/chart: argo-cd-4.2.2
     app.kubernetes.io/name: argocd-repo-server
@@ -39,7 +39,7 @@ spec:
         args:
         - argocd-repo-server
         - --redis
-        - argo-cd-argocd-redis:6379
+        - argocd-redis:6379
         - --logformat
         - text
         - --loglevel
@@ -91,7 +91,7 @@ spec:
           failureThreshold: 3
         resources:
           {}
-      serviceAccountName: argo-cd-argocd-repo-server
+      serviceAccountName: argocd-repo-server
       volumes:
       - name: gpg-keys
         configMap:

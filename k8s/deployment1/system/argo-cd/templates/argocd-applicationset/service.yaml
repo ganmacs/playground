@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: argo-cd-argocd-applicationset-controller
+  name: argocd-applicationset-controller
   labels:
     helm.sh/chart: argo-cd-4.2.2
     app.kubernetes.io/name: argocd-applicationset-controller

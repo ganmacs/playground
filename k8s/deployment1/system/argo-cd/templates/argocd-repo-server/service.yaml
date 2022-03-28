@@ -10,7 +10,7 @@ metadata:
     app.kubernetes.io/component: repo-server
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: argocd
-  name: argo-cd-argocd-repo-server
+  name: argocd-repo-server
 spec:
   ports:
   - name: https-repo-server

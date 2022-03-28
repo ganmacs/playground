@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: argo-cd-argocd-notifications-controller-cm
+  name: argocd-notifications-controller-cm
   labels:
     helm.sh/chart: argo-cd-4.2.2
     app.kubernetes.io/name: argocd-notifications-controller

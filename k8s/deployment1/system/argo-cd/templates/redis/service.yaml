@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: argo-cd-argocd-redis
+  name: argocd-redis
   labels:
     helm.sh/chart: argo-cd-4.2.2
     app.kubernetes.io/name: argocd-redis
