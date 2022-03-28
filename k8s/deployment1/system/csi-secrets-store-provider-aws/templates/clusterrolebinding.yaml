@@ -1,0 +1,21 @@
+---
+# Source: csi-secrets-store-provider-aws/templates/clusterrolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: csi-secrets-store-provider-aws-cluster-role-binding
+  labels:
+    app.kubernetes.io/instance: "csi-secrets-store-provider-aws"
+    app.kubernetes.io/managed-by: "Helm"
+    app.kubernetes.io/name: "csi-secrets-store-provider-aws"
+    app.kubernetes.io/version: "1.0.r2"
+    app: csi-secrets-store-provider-aws
+    helm.sh/chart: "csi-secrets-store-provider-aws-0.0.2"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: csi-secrets-store-provider-aws-cluster-role
+subjects:
+  - kind: ServiceAccount
+    name: csi-secrets-store-provider-aws
+    namespace: kube-system

@@ -1,0 +1,26 @@
+---
+# Source: csi-secrets-store-provider-aws/templates/clusterrole.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: csi-secrets-store-provider-aws-cluster-role
+  labels:
+    app.kubernetes.io/instance: "csi-secrets-store-provider-aws"
+    app.kubernetes.io/managed-by: "Helm"
+    app.kubernetes.io/name: "csi-secrets-store-provider-aws"
+    app.kubernetes.io/version: "1.0.r2"
+    app: csi-secrets-store-provider-aws
+    helm.sh/chart: "csi-secrets-store-provider-aws-0.0.2"
+rules:
+  - apiGroups: [""]
+    resources: ["serviceaccounts/token"]
+    verbs: ["create"]
+  - apiGroups: [""]
+    resources: ["serviceaccounts"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get"]

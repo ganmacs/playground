@@ -3,6 +3,8 @@ repositories:
     url: https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts
   - name: argo
     url: https://argoproj.github.io/argo-helm
+  - name: eks
+    url: https://aws.github.io/eks-charts
 
 releases:
 - name: secrets-store-csi-driver
@@ -34,3 +36,16 @@ releases:
     - rm -rf ./{{`{{.Release.Name}}`}}/templates
   values:
     - "./values/{{`{{.Release.Name}}`}}.yaml"
+
+- name: csi-secrets-store-provider-aws
+  namespace: kube-system
+  chart: eks/csi-secrets-store-provider-aws
+  version: 0.0.2
+  # https://github.com/roboll/helmfile/issues/1843#issuecomment-839746318
+  hooks:
+  - events: ["prepare"]
+    showlogs: true
+    command: "bash"
+    args:
+    - -c
+    - rm -rf ./{{`{{.Release.Name}}`}}/templates

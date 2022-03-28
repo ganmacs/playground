@@ -1,0 +1,61 @@
+---
+# Source: csi-secrets-store-provider-aws/templates/daemonset.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: csi-secrets-store-provider-aws
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/instance: "csi-secrets-store-provider-aws"
+    app.kubernetes.io/managed-by: "Helm"
+    app.kubernetes.io/name: "csi-secrets-store-provider-aws"
+    app.kubernetes.io/version: "1.0.r2"
+    app: csi-secrets-store-provider-aws
+    helm.sh/chart: "csi-secrets-store-provider-aws-0.0.2"
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: csi-secrets-store-provider-aws
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: "csi-secrets-store-provider-aws"
+        app.kubernetes.io/managed-by: "Helm"
+        app.kubernetes.io/name: "csi-secrets-store-provider-aws"
+        app.kubernetes.io/version: "1.0.r2"
+        app: csi-secrets-store-provider-aws
+        helm.sh/chart: "csi-secrets-store-provider-aws-0.0.2"
+    spec:
+      serviceAccountName: csi-secrets-store-provider-aws
+      hostNetwork: true
+      containers:
+        - name: provider-aws-installer
+          image: public.ecr.aws/aws-secrets-manager/secrets-store-csi-driver-provider-aws:1.0.r2-2021.08.13.20.34-linux-amd64
+          imagePullPolicy: IfNotPresent
+          args:
+            - --provider-volume=/etc/kubernetes/secrets-store-csi-providers
+          resources:
+            limits:
+              cpu: 50m
+              memory: 100Mi
+            requests:
+              cpu: 50m
+              memory: 100Mi
+          volumeMounts:
+            - mountPath: "/etc/kubernetes/secrets-store-csi-providers"
+              name: provider-vol
+            - name: mountpoint-dir
+              mountPath: /var/lib/kubelet/pods
+              mountPropagation: HostToContainer
+      volumes:
+        - name: provider-vol
+          hostPath:
+            path: "/etc/kubernetes/secrets-store-csi-providers"
+        - name: mountpoint-dir
+          hostPath:
+            path: /var/lib/kubelet/pods
+            type: DirectoryOrCreate
+      nodeSelector:
+        kubernetes.io/os: linux
