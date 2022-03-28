@@ -10,7 +10,7 @@ spec:
   source:
     repoURL: https://github.com/ganmacs/playground.git
     targetRevision: HEAD
-    path: k8s/deployment1/system/argocd/templates
+    path: k8s/deployment1/system/argo-cd/templates
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
