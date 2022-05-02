@@ -4,7 +4,7 @@ repositories:
 
 releases:
 - name: datadog-operator
-  namespace: datadog
+  namespace: default
   chart: datadog/datadog-operator
   version: 0.7.2
 
