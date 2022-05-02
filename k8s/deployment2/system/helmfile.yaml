@@ -1,0 +1,21 @@
+repositories:
+  - name: datadog
+    url: https://helm.datadoghq.com
+
+releases:
+- name: datadog-operator
+  namespace: datadog
+  chart: datadog/datadog-operator
+  version: 0.7.2
+
+  # https://github.com/roboll/helmfile/issues/1843#issuecomment-839746318
+  # hooks:
+  # - events: ["prepare"]
+  #   showlogs: true
+  #   command: "bash"
+  #   args:
+  #   - -c
+  #   - rm -rf ./{{`{{.Release.Name}}`}}/*
+
+  # values:
+  #   - "./values/{{`{{.Release.Name}}`}}.yaml"
