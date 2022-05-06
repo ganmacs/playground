@@ -10,3 +10,6 @@ spec:
     appSecret:
       secretName: datadog-secret
       keyName: app-key
+  features:
+    prometheusScrape:
+      enabled: true

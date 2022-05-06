@@ -7,18 +7,14 @@ releases:
   namespace: default
   chart: datadog/datadog-operator
   version: 0.7.2
-
   # https://github.com/roboll/helmfile/issues/1843#issuecomment-839746318
-  # hooks:
-  # - events: ["prepare"]
-  #   showlogs: true
-  #   command: "bash"
-  #   args:
-  #   - -c
-  #   - rm -rf ./{{`{{.Release.Name}}`}}/*
-
-  # values:
-  #   - "./values/{{`{{.Release.Name}}`}}.yaml"
+  hooks:
+  - events: ["prepare"]
+    showlogs: true
+    command: "bash"
+    args:
+    - -c
+    - rm -rf ./{{`{{.Release.Name}}`}}/charts && rm -rf ./{{`{{.Release.Name}}`}}/templates
 
 apiVersions:
 - "apiextensions.k8s.io/v1/CustomResourceDefinition" # for datadog agent
