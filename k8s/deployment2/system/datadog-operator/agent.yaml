@@ -13,3 +13,6 @@ spec:
   features:
     prometheusScrape:
       enabled: true
+      additionalConfigs: |-
+        - configurations:
+          - namespace: prometheus_example
