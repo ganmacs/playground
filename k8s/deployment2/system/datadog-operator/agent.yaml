@@ -10,6 +10,15 @@ spec:
     appSecret:
       secretName: datadog-secret
       keyName: app-key
+  agent:
+    config:
+      env:
+        - name: DD_KUBERNETES_NODE_LABELS_AS_TAGS
+          value: '{"app.example.com/stage":"node_stage", "app.example.com/region":"node_region", "app.example.com/site":"node_site", "app.example.com/cluster_name":"node_cluster_name"}'
+        - name: DD_KUBERNETES_POD_LABELS_AS_TAGS
+          value: '{"app.example.com/stage":"pod_stage", "app.example.com/region":"pod_region", "app.example.com/site":"pod_site"}'
+
+
   features:
     prometheusScrape:
       enabled: true

@@ -13,9 +13,14 @@ spec:
     metadata:
       labels:
         app: prometheus
+        app.kubernetes.io/part-of: proj1
+        app.kubernetes.io/name: my-prometheus
+        app.example.com/stage: development
+        app.example.com/region: us-east-1
+        app.example.com/site: site
       annotations:
-        prometheus.io/scrape: true
-        prometheus.io/port: 9090
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
     spec:
       containers:
       - name: prometheus-example
